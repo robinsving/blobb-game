@@ -21,9 +21,12 @@ var _serving := 0
 var _band: TextureRect
 var _old: Label
 var _young: Label
+var _old_icon: NarratorIcon
+var _young_icon: NarratorIcon
 var _arrow: Label
 var _hint: Label
 var _hint_tween: Tween
+var _band_tween: Tween
 var _skip_typing := false
 var _typing := false
 
@@ -52,6 +55,16 @@ func _ready() -> void:
 
 	_old = _make_label(Fonts.serif(), 44, OLD_COLOR, Vector2(110, 44), HORIZONTAL_ALIGNMENT_LEFT)
 	_young = _make_label(Fonts.hand(), 50, YOUNG_COLOR, Vector2(1920 - 110 - 1000, 168), HORIZONTAL_ALIGNMENT_RIGHT)
+
+	# emblems: crescent moon = older narrator (left), round-edged star = younger narrator (right)
+	_old_icon = NarratorIcon.new(NarratorIcon.Kind.MOON, OLD_COLOR)
+	_old_icon.position = Vector2(110 - 64, 44 - 4)
+	_old_icon.modulate.a = 0.0
+	add_child(_old_icon)
+	_young_icon = NarratorIcon.new(NarratorIcon.Kind.STAR, YOUNG_COLOR)
+	_young_icon.position = Vector2(1920 - 110 + 10, 168 - 2)
+	_young_icon.modulate.a = 0.0
+	add_child(_young_icon)
 
 	_arrow = Label.new()
 	_arrow.text = "▾"
@@ -145,6 +158,8 @@ func clear() -> void:
 	_old.text = ""
 	_young.text = ""
 	_band.modulate.a = 0.0
+	_old_icon.modulate.a = 0.0
+	_young_icon.modulate.a = 0.0
 	_arrow.visible = false
 	_skip_typing = true
 
@@ -163,12 +178,19 @@ func _type_line(line: Dictionary) -> void:
 	var is_old: bool = line["who"] == "o"
 	var lbl := _old if is_old else _young
 	var other := _young if is_old else _old
+	var icon := _old_icon if is_old else _young_icon
+	var other_icon := _young_icon if is_old else _old_icon
+	icon.modulate.a = 1.0
+	icon.pop()
+	# dim the other voice only if it is currently showing (not a faded line from an earlier scene)
+	if other.modulate.a > 0.05:
+		var dim := create_tween().set_parallel()
+		dim.tween_property(other, "modulate:a", 0.38, 0.25)
+		dim.tween_property(other_icon, "modulate:a", 0.38, 0.25)
 	var text := Game.pick(line)
 	lbl.text = text
 	lbl.visible_characters = 0
 	lbl.modulate.a = 1.0
-	var tw := create_tween()
-	tw.tween_property(other, "modulate:a", 0.38, 0.25)
 	_skip_typing = false
 	_typing = true
 	var n := text.length()
@@ -226,8 +248,13 @@ func _wait(secs: float) -> void:
 
 
 func _fade_band(to: float) -> void:
+	if _band_tween:
+		_band_tween.kill()  # a new scene starting must cancel the previous scene's fade-out
 	var tw := create_tween()
+	_band_tween = tw
 	tw.tween_property(_band, "modulate:a", to, 0.4)
 	if to == 0.0:
 		tw.parallel().tween_property(_old, "modulate:a", 0.0, 0.5)
 		tw.parallel().tween_property(_young, "modulate:a", 0.0, 0.5)
+		tw.parallel().tween_property(_old_icon, "modulate:a", 0.0, 0.5)
+		tw.parallel().tween_property(_young_icon, "modulate:a", 0.0, 0.5)
