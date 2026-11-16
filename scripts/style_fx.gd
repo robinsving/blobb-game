@@ -5,10 +5,10 @@ extends CanvasLayer
 
 const LOOKS := {
 	"plain":  {"saturation": 1.0, "posterize": 0.0, "paper": 0.0, "wobble": 0.0, "outline": 0.0, "darkness": 0.0, "vignette": 0.25, "contrast": 1.0},
-	"paper":  {"saturation": 1.0, "posterize": 0.0, "paper": 1.0, "wobble": 0.6, "outline": 0.0, "darkness": 0.0, "vignette": 0.15, "contrast": 1.0},
-	"crayon": {"saturation": 1.25, "posterize": 0.55, "paper": 0.75, "wobble": 1.0, "outline": 0.7, "darkness": 0.0, "vignette": 0.2, "contrast": 1.05},
+	"paper":  {"saturation": 1.0, "posterize": 0.0, "paper": 1.0, "wobble": 0.0, "outline": 0.0, "darkness": 0.0, "vignette": 0.15, "contrast": 1.0},
+	"crayon": {"saturation": 1.25, "posterize": 0.55, "paper": 0.75, "wobble": 0.0, "outline": 0.7, "darkness": 0.0, "vignette": 0.2, "contrast": 1.05},
 	"dark":   {"saturation": 0.3, "posterize": 0.0, "paper": 0.0, "wobble": 0.0, "outline": 0.0, "darkness": 0.45, "vignette": 0.8, "contrast": 1.2},
-	"mono":   {"saturation": 0.0, "posterize": 0.0, "paper": 0.35, "wobble": 0.3, "outline": 0.3, "darkness": 0.0, "vignette": 0.35, "contrast": 1.15},
+	"mono":   {"saturation": 0.0, "posterize": 0.0, "paper": 0.35, "wobble": 0.0, "outline": 0.3, "darkness": 0.0, "vignette": 0.35, "contrast": 1.15},
 	"real":   {"saturation": 1.05, "posterize": 0.0, "paper": 0.0, "wobble": 0.0, "outline": 0.0, "darkness": 0.0, "vignette": 0.35, "contrast": 1.05},
 }
 
@@ -57,16 +57,17 @@ func white(to: float, dur := 1.0) -> void:
 	await tw.finished
 
 
-## Brief "the storyteller is rewinding" warble.
+## Brief "the storyteller is rewinding" effect: colour drains out with only a slight warble.
+## (Continuous screen wobble was removed from all looks: it caused motion discomfort.)
 func rewind_pulse(dur := 1.0) -> void:
 	var tw := create_tween()
 	var base_w: float = _param("wobble")
 	var base_s: float = _param("saturation")
 	tw.set_parallel()
-	tw.tween_method(func(v): _mat.set_shader_parameter("wobble", v), base_w, 6.0, dur * 0.4)
+	tw.tween_method(func(v): _mat.set_shader_parameter("wobble", v), base_w, 1.2, dur * 0.4)
 	tw.tween_method(func(v): _mat.set_shader_parameter("saturation", v), base_s, 0.1, dur * 0.4)
 	tw.chain().set_parallel()
-	tw.tween_method(func(v): _mat.set_shader_parameter("wobble", v), 6.0, base_w, dur * 0.6)
+	tw.tween_method(func(v): _mat.set_shader_parameter("wobble", v), 1.2, base_w, dur * 0.6)
 	tw.tween_method(func(v): _mat.set_shader_parameter("saturation", v), 0.1, base_s, dur * 0.6)
 
 

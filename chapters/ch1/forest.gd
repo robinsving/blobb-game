@@ -198,7 +198,6 @@ func _fly_up() -> void:
 	var tw := create_tween().set_parallel()
 	tw.tween_property(camera, "zoom", Vector2(0.45, 0.45), 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tw.tween_property(camera, "offset", Vector2(0, -500), 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	tw.tween_property(camera, "rotation", 0.25, 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await fx.white(1.0, 2.2)
 	Game.go(NEXT_SCENE, Color(1.0, 0.99, 0.97), 0.5)
 
