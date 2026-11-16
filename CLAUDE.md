@@ -12,7 +12,8 @@ Godot runs through flatpak: `godot-flatpak` (wraps `flatpak run org.godotengine.
 
 ```sh
 godot-flatpak --headless --path . --import                       # (re)import assets after adding/changing files in assets/
-godot-flatpak --path .                                           # play from the title screen
+./run.sh                                                         # play (re-imports first, so new class_name scripts are known)
+godot-flatpak --path .                                           # play without re-importing (can fail with "Parse error" if a new class_name script was added since the last import)
 godot-flatpak --path . -- --scene=res://chapters/ch1/forest.tscn # jump straight into a scene
 godot-flatpak --headless --path . --script res://tests/test_sokoban.gd   # puzzle rule tests (prints ALL TESTS PASSED / exit 1 on failure)
 godot-flatpak --headless --path . --script res://tests/test_story.gd     # validates every chapters/*/story.txt (run after editing dialogue)
