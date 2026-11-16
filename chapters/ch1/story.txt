@@ -1,0 +1,313 @@
+# =====================================================================
+#  BLOBB, Chapter 1: The Other Side of the Forest
+# =====================================================================
+#
+#  How to read this file
+#  ---------------------
+#   === name ===          a scene. The comment above it says what triggers it.
+#   === name (ambient) === the player keeps control; lines advance by themselves.
+#                         Otherwise the game pauses and the player presses
+#                         Space/Enter/(A) to continue.
+#   O:                    the older narrator (calm, a little dry; serif text, left)
+#   Y:                    the younger narrator (curious, insistent; hand-written, right)
+#     sv:                 Swedish version of the line above. Every line needs one.
+#     @effect             something happens in the world when the line above has
+#                         finished typing (effect list at the bottom of this file)
+#     @hold 0.6           wait a little extra after the line above
+#   @pause 0.8            silence before the next line
+#   #                     comments and stage directions; the game ignores them
+#
+#  Rules: no family words (mum, dad, son...). Blobb is "he"/"han".
+#  See docs/story.md for the bigger picture.
+#
+#  Scene names must match the level code:
+#    forest:   chapters/ch1/forest.gd   (TRIGGERS table = tile columns)
+#    clearing: chapters/ch1/clearing.gd
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+#  PART 1: THE FOREST (side view platformer)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the chapter starts. A blank sheet of paper, camera zoomed in.
+=== intro ===
+Y: Tell me a story.
+  sv: Berätta en saga.
+O: Now? It's very late.
+  sv: Nu? Det är jättesent.
+Y: Just one. Please?
+  sv: Bara en. Snälla?
+O: Hmm... a story about what? I don't think I know any stories tonight.
+  sv: Hmm... en saga om vad då? Jag tror inte att jag kan några sagor i kväll.
+Y: You always know stories.
+  sv: Du kan alltid sagor.
+# (O looks around the room and notices the drawing)
+@pause 0.8
+O: ...What about him? That fuzzy little fellow in the drawing on the wall.
+  sv: ...Vad sägs om honom? Den lilla luddiga på teckningen där på väggen.
+Y: That's Blobb!
+  sv: Det är Blobb!
+O: Blobb. Alright, I can tell you a story about Blobb.
+  sv: Blobb. Okej, jag kan berätta en saga om Blobb.
+O: But only if you help me. I don't know everything Blobb did on his adventures.
+  sv: Men bara om du hjälper mig. Jag vet inte allt som Blobb gjorde på sina äventyr.
+Y: I'll help!
+  sv: Jag hjälper till!
+O: Once upon a time, there was a Blobb.
+  sv: Det var en gång en Blobb.
+  @blobb_appears
+O: He was round. And fuzzy. And very, very purple.
+  sv: Han var rund. Och luddig. Och väldigt, väldigt lila.
+  @blobb_color purple
+Y: Purple?! No! He's green!
+  sv: Lila?! Nej! Han är grön!
+  @blobb_color green
+O: Green. Of course. You see? I need your help already.
+  sv: Grön. Såklart. Ser du? Jag behöver redan din hjälp.
+Y: Where does he live?
+  sv: Var bor han?
+O: In a deep, dark forest, where the trees grow so tall that the sun never reaches the ground...
+  sv: I en djup, mörk skog, där träden är så höga att solen aldrig når marken...
+  @forest_dark
+Y: Too scary. Make it a nice forest.
+  sv: För läskigt. Gör den till en snäll skog.
+O: A nice forest, then. The kind where everything looks like someone drew it with crayons.
+  sv: En snäll skog, då. En sån där allt ser ut som om någon har ritat det med kritor.
+  @forest_crayon
+Y: That's better.
+  sv: Det är bättre.
+O: One morning, Blobb decided to find out what was on the other side of the forest.
+  sv: En morgon bestämde sig Blobb för att ta reda på vad som fanns på andra sidan skogen.
+# (hint appears: arrows to move)
+
+
+# TRIGGER: Blobb reaches the first step, which is too high for his little hop (column 19).
+=== jump ===
+Y: He's stuck.
+  sv: Han sitter fast.
+O: Blobb wasn't very good at jumping, you see.
+  sv: Blobb var inte så bra på att hoppa, förstår du.
+Y: Yes he was! He could jump super high!
+  sv: Jo, det var han! Han kunde hoppa jättehögt!
+O: ...Super high. Fine.
+  sv: ...Jättehögt. Okej då.
+  @jump_unlock
+# (hint appears: Space / A to jump)
+
+
+# TRIGGER: just before the first pit (column 31).
+=== careful (ambient) ===
+Y: Careful, there's a hole!
+  sv: Akta, det är ett hål!
+O: Blobb saw it. He was a very careful Blobb.
+  sv: Blobb såg det. Han var en väldigt försiktig Blobb.
+
+
+# TRIGGER: Blobb falls into a pit. The scene rewinds to the last checkpoint.
+# The game cycles fail_1 to fail_4, then starts over.
+=== fail_1 ===
+Y: No! He didn't fall in!
+  sv: Nej! Han ramlade inte ner!
+O: You're right. Let me tell that part again.
+  sv: Du har rätt. Jag berättar den biten igen.
+
+=== fail_2 ===
+Y: That's not how it goes.
+  sv: Det är inte så det går.
+O: Isn't it? How does it go, then?
+  sv: Är det inte? Hur går det då?
+Y: He jumps over. Obviously.
+  sv: Han hoppar över. Självklart.
+
+=== fail_3 ===
+Y: Again!
+  sv: Igen!
+O: Again.
+  sv: Igen.
+
+=== fail_4 ===
+Y: Blobbs don't fall. Blobbs bounce.
+  sv: Blobbar ramlar inte. Blobbar studsar.
+O: I'll remember that.
+  sv: Det ska jag komma ihåg.
+
+
+# TRIGGER: the open path before the banana (column 64).
+=== banana ===
+O: But in the middle of the path, there stood a monster.
+  sv: Men mitt på stigen stod ett monster.
+  @banana_appear
+  @hold 0.6
+Y: What kind of monster?
+  sv: Vad för slags monster?
+O: A banana. An enormous, grumpy banana.
+  sv: En banan. En enorm, sur banan.
+Y: Bananas can't be grumpy.
+  sv: Bananer kan inte vara sura.
+O: This one could. It was as tall as a house.
+  sv: Den här kunde det. Den var stor som ett hus.
+Y: No. It was tiny. Like a normal banana.
+  sv: Nej. Den var pytteliten. Som en vanlig banan.
+  @banana_shrink
+  @hold 0.7
+O: ...A tiny banana. Guarding the path. Very bravely.
+  sv: ...En pytteliten banan. Som vaktade stigen. Mycket modigt.
+
+
+# TRIGGER: the tiny banana bumps into Blobb for the first time.
+=== banana_bump (ambient) ===
+Y: Hey! Don't push Blobb!
+  sv: Hallå! Knuffa inte Blobb!
+O: It was a very serious banana. Maybe Blobb could jump over it.
+  sv: Det var en väldigt allvarlig banan. Blobb kanske kunde hoppa över den.
+
+
+# TRIGGER: Blobb reaches the cliff with the big tree (column 79).
+=== branches ===
+Y: That's way too high.
+  sv: Det där är alldeles för högt.
+O: It was. Blobb sat down under the big tree and thought for a long time.
+  sv: Det var det. Blobb satte sig under det stora trädet och funderade länge.
+Y: And then the tree grew branches! For climbing!
+  sv: Och då växte det grenar på trädet! Att klättra på!
+  @grow_branches
+  @hold 0.8
+O: Trees don't grow that fast.
+  sv: Träd växer inte så fort.
+Y: This one did.
+  sv: Det här gjorde det.
+O: ...Fair enough.
+  sv: ...Det kan jag inte säga emot.
+
+
+# TRIGGER: past the cliff, on the way down (column 100).
+=== evening (ambient) ===
+Y: Was it getting dark?
+  sv: Började det bli mörkt?
+O: The sun was going down. Everything turned orange and gold.
+  sv: Solen gick ner. Allt blev orange och guld.
+  @evening
+Y: I like it when it's orange.
+  sv: Jag gillar när allt är orange.
+O: Me too.
+  sv: Jag med.
+
+
+# TRIGGER: the end of the forest path (column 133).
+=== end ===
+O: At the end of the path, Blobb found a clearing.
+  sv: Vid slutet av stigen hittade Blobb en glänta.
+Y: What's a clearing?
+  sv: Vad är en glänta?
+O: A place in the forest where there are no trees. Just old stumps, and things people have left behind.
+  sv: Ett ställe i skogen där det inte finns några träd. Bara gamla stubbar, och saker som folk har lämnat kvar.
+Y: Can we see it from above? Like a bird?
+  sv: Kan vi se den uppifrån? Som en fågel?
+O: Like a bird. Close your eyes... and fly up.
+  sv: Som en fågel. Blunda... och flyg upp.
+# (the camera flies up, everything turns white, and we switch to the top-down clearing)
+
+
+# ---------------------------------------------------------------------
+#  PART 2: THE CLEARING (top-down box pushing)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the clearing scene starts (room 1).
+=== room1 ===
+O: From up high, the clearing looked just like a puzzle.
+  sv: Uppifrån såg gläntan ut precis som ett pussel.
+Y: What does Blobb look like from up here?
+  sv: Hur ser Blobb ut härifrån?
+O: Like a fuzzy pancake.
+  sv: Som en luddig pannkaka.
+  @pancake
+  @hold 0.4
+Y: A pancake!
+  sv: En pannkaka!
+O: There were old wooden crates lying everywhere. And the way out was shut tight.
+  sv: Det låg gamla trälådor överallt. Och vägen ut var stängd.
+Y: Why are there boxes in a forest?
+  sv: Varför finns det lådor i en skog?
+O: Someone must have been moving.
+  sv: Någon måste ha flyttat.
+Y: Moving where?
+  sv: Flyttat vart?
+O: Somewhere else. If Blobb pushes the crates onto the flat stones, maybe the gate will open.
+  sv: Någon annanstans. Om Blobb knuffar lådorna till de platta stenarna kanske grinden öppnas.
+# (hint appears: arrows, Z undo, R restart)
+
+
+# TRIGGER: every stone has a crate on it for the first time.
+=== gate_open (ambient) ===
+Y: It opened!
+  sv: Den öppnades!
+
+
+# TRIGGER: the player restarts a room (R) for the first time.
+=== restart (ambient) ===
+Y: Let's do that part again.
+  sv: Vi gör den biten igen.
+O: From the top.
+  sv: Från början.
+
+
+# TRIGGER: Blobb walks through the gate into room 2.
+=== room2 ===
+O: Behind the gate, a little stream ran right through the clearing.
+  sv: Bakom grinden rann en liten bäck rakt genom gläntan.
+Y: Can Blobb swim?
+  sv: Kan Blobb simma?
+O: Not yet.
+  sv: Inte än.
+
+
+# TRIGGER: Blobb stands next to the water, or tries to push a crate into it.
+# Until this scene has played, crates can't go in the water.
+=== float ===
+Y: Wait. Do boxes float?
+  sv: Vänta. Flyter lådor?
+O: Wooden ones do. If Blobb pushes them in, maybe he can walk on them.
+  sv: Trälådor gör det. Om Blobb knuffar i dem kanske han kan gå på dem.
+  @crates_float
+Y: Like a bridge!
+  sv: Som en bro!
+
+
+# TRIGGER: Blobb leaves room 2. The music fades, Blobb lies down, the light turns blue.
+=== ending ===
+O: On the other side, the grass was warm and soft. So Blobb lay down to rest.
+  sv: På andra sidan var gräset varmt och mjukt. Så Blobb lade sig ner och vilade.
+Y: Is that the end?
+  sv: Är det slut nu?
+O: That's the end of today's part.
+  sv: Det är slut på dagens del.
+Y: I'm not tired.
+  sv: Jag är inte trött.
+O: Your eyes are saying something else.
+  sv: Dina ögon säger något annat.
+  @fade_to_black
+@pause 1.6
+Y: Tomorrow... can Blobb learn to swim?
+  sv: I morgon... kan Blobb lära sig simma?
+O: Tomorrow, Blobb learns to swim. I promise.
+  sv: I morgon lär sig Blobb simma. Jag lovar.
+# (silence... one quiet beep from a monitor... then the chapter card)
+
+
+# =====================================================================
+#  Effects used in this chapter (what each @effect does)
+# ---------------------------------------------------------------------
+#  @blobb_appears      Blobb pops into existence on the blank page
+#  @blobb_color X      recolours Blobb: purple | green
+#  @forest_dark        a dark, misty, realistic forest fades in
+#  @forest_crayon      the forest turns into a crayon drawing
+#  @jump_unlock        Blobb can now jump high
+#  @banana_appear      the giant banana rises up and blocks the path
+#  @banana_shrink      the banana shrinks to normal banana size
+#  @grow_branches      branches sprout from the big tree (climbable)
+#  @evening            everything turns orange and gold
+#  @pancake            Blobb becomes the top-down "pancake" sprite
+#  @crates_float       crates pushed into water become bridges
+#  @fade_to_black      the screen slowly fades to black
+# =====================================================================

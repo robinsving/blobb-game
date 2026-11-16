@@ -1,7 +1,7 @@
 extends Node2D
 ## Chapter 1, part 2: top-down box pushing in the clearing ("like a bird sees it").
 ## Two rooms. Room 2's stream can only be crossed after the narrators agree that wooden crates float.
-## Room layouts live in rooms.gd (verified by tools/solve_sokoban.py and tests/test_sokoban.gd).
+## Dialogue: chapters/ch1/story.txt. Room layouts live in rooms.gd (verified by tools/solve_sokoban.py and tests/test_sokoban.gd).
 
 const CELL := 96
 const ROOMS: Array = preload("res://chapters/ch1/rooms.gd").ROOMS
@@ -27,6 +27,7 @@ var _gate_told := false
 var _pancake := false
 var _done := false
 var _t := 0.0
+var story := StoryScript.load_file("res://chapters/ch1/story.txt")
 
 
 func _ready() -> void:
@@ -56,45 +57,23 @@ func _debug_play(spec: String) -> void:
 
 
 # ================================================================ story
+# All dialogue lives in chapters/ch1/story.txt (scenes room1, room2, float, gate_open,
+# restart, ending). @effects in those scenes call the fx_* methods below.
 
 func _room_intro() -> void:
 	Game.control_locked = true
 	if room == 0:
 		await get_tree().create_timer(0.8).timeout
-		await Narrator.say([
-			Ln.o("From up high, the clearing looked just like a puzzle.", "Uppifrån såg gläntan ut precis som ett pussel."),
-			Ln.y("What does Blobb look like from up here?", "Hur ser Blobb ut härifrån?"),
-			Ln.o("Like a fuzzy pancake.", "Som en luddig pannkaka.", _become_pancake, {"hold": 0.4}),
-			Ln.y("A pancake!", "En pannkaka!"),
-			Ln.o("There were old wooden crates lying everywhere. And the way out was shut tight.",
-				"Det låg gamla trälådor överallt. Och vägen ut var stängd."),
-			Ln.y("Why are there boxes in a forest?", "Varför finns det lådor i en skog?"),
-			Ln.o("Someone must have been moving.", "Någon måste ha flyttat."),
-			Ln.y("Moving where?", "Flyttat vart?"),
-			Ln.o("Somewhere else. If Blobb pushes the crates onto the flat stones, maybe the gate will open.",
-				"Någon annanstans. Om Blobb knuffar lådorna till de platta stenarna kanske grinden öppnas."),
-		])
+		await story.play("room1", self)
 		Narrator.hint(Game.t("hint_push"), 7.0)
 	else:
-		await Narrator.say([
-			Ln.o("Behind the gate, a little stream ran right through the clearing.", "Bakom grinden rann en liten bäck rakt genom gläntan."),
-			Ln.y("Can Blobb swim?", "Kan Blobb simma?"),
-			Ln.o("Not yet.", "Inte än."),
-		])
+		await story.play("room2", self)
 
 
 ## retry_dir: the push that bumped into the water; Blobb tries it again once crates float.
 func _float_beat(retry_dir := Vector2i.ZERO) -> void:
 	_float_told = true
-	await Narrator.say([
-		Ln.y("Wait. Do boxes float?", "Vänta. Flyter lådor?"),
-		Ln.o("Wooden ones do. If Blobb pushes them in, maybe he can walk on them.",
-			"Trälådor gör det. Om Blobb knuffar i dem kanske han kan gå på dem.",
-			func():
-				grid.crates_float = true
-				Game.sfx("chime", -6.0)),
-		Ln.y("Like a bridge!", "Som en bro!"),
-	])
+	await story.play("float", self)
 	if retry_dir != Vector2i.ZERO:
 		while _moving:
 			await get_tree().process_frame
@@ -109,24 +88,24 @@ func _ending() -> void:
 	tw.tween_property(player_sprite, "rotation", 0.4, 1.5)
 	fx.tint(Color(0.55, 0.6, 1.0), 0.6, 4.0)
 	fx.set_look("paper", 4.0)
-	await Narrator.say([
-		Ln.o("On the other side, the grass was warm and soft. So Blobb lay down to rest.",
-			"På andra sidan var gräset varmt och mjukt. Så Blobb lade sig ner och vilade."),
-		Ln.y("Is that the end?", "Är det slut nu?"),
-		Ln.o("That's the end of today's part.", "Det är slut på dagens del."),
-		Ln.y("I'm not tired.", "Jag är inte trött."),
-		Ln.o("Your eyes are saying something else.", "Dina ögon säger något annat.",
-			func(): Game.fade_out(Color.BLACK, 3.0)),
-		Ln.y("Tomorrow... can Blobb learn to swim?", "I morgon... kan Blobb lära sig simma?",
-			Callable(), {"pre": 1.6}),
-		Ln.o("Tomorrow, Blobb learns to swim. I promise.", "I morgon lär sig Blobb simma. Jag lovar."),
-	])
+	await story.play("ending", self)
 	await get_tree().create_timer(1.2).timeout
 	Game.sfx("beep", -20.0)
 	await get_tree().create_timer(2.2).timeout
 	await _chapter_card()
 	Game.unlock_chapter(2)
 	Game.go("res://scenes/title.tscn", Color.BLACK, 1.5)
+
+
+# ================================================================ story effects (@name in story.txt)
+
+func fx_crates_float() -> void:
+	grid.crates_float = true
+	Game.sfx("chime", -6.0)
+
+
+func fx_fade_to_black() -> void:
+	Game.fade_out(Color.BLACK, 3.0)
 
 
 func _chapter_card() -> void:
@@ -153,7 +132,7 @@ func _chapter_card() -> void:
 	await get_tree().create_timer(3.5 if not Game.fast else 0.5).timeout
 
 
-func _become_pancake() -> void:
+func fx_pancake() -> void:
 	_pancake = true
 	Game.sfx("pop", -4.0, 0.8)
 	var target := _player_scale()
@@ -316,7 +295,7 @@ func _gate_changed(open: bool) -> void:
 	Game.sfx("gate", -4.0 if open else -8.0, 1.0 if open else 0.8)
 	if open and not _gate_told:
 		_gate_told = true
-		Narrator.say([Ln.y("It opened!", "Den öppnades!")], false)
+		story.play("gate_open", self)
 
 
 func _undo() -> void:
@@ -333,7 +312,7 @@ func _restart() -> void:
 	_sync_nodes()
 	if not _restart_told:
 		_restart_told = true
-		Narrator.say([Ln.y("Let's do that part again.", "Vi gör den biten igen."), Ln.o("From the top.", "Från början.")], false)
+		story.play("restart", self)
 
 
 func _sync_nodes() -> void:

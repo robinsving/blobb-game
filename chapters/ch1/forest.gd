@@ -1,6 +1,7 @@
 extends Node2D
 ## Chapter 1, part 1: side-view forest platformer.
 ## The world is built in code from the data tables below; story beats fire from trigger columns.
+## Dialogue: chapters/ch1/story.txt (scene names = TRIGGERS values, fail_1..4, banana_bump).
 ## Flow: intro (blank paper -> Blobb -> forest) -> jump beat -> pits -> banana -> branches -> evening -> "like a bird" -> clearing.
 
 const TILE := 64
@@ -35,6 +36,7 @@ var _fired := {}
 var _retelling := false
 var _fail_count := 0
 var _bumps := 0
+var story := StoryScript.load_file("res://chapters/ch1/story.txt")
 
 
 func _ready() -> void:
@@ -59,7 +61,7 @@ func _debug_warp(col: int) -> void:
 		if c < col:
 			_fired[TRIGGERS[c]] = true
 	if col > 79:
-		_grow_branches()
+		fx_grow_branches()
 	if col > 64:
 		banana.visible = true
 		banana.shrink()
@@ -68,6 +70,8 @@ func _debug_warp(col: int) -> void:
 
 
 # ================================================================ story
+# All dialogue lives in chapters/ch1/story.txt. This code decides WHEN a scene plays
+# (TRIGGERS columns, falls, bumps) and implements the @effects as fx_* methods below.
 
 func _intro() -> void:
 	Game.control_locked = true
@@ -76,101 +80,17 @@ func _intro() -> void:
 	camera.offset = Vector2(0, -90)
 	camera.position_smoothing_enabled = false
 	await get_tree().create_timer(1.0).timeout
-	await Narrator.say([
-		Ln.y("Tell me a story.", "Berätta en saga."),
-		Ln.o("Now? It's very late.", "Nu? Det är jättesent."),
-		Ln.y("Just one. Please?", "Bara en. Snälla?"),
-		Ln.o("Hmm... a story about what? I don't think I know any stories tonight.",
-			"Hmm... en saga om vad då? Jag tror inte att jag kan några sagor i kväll."),
-		Ln.y("You always know stories.", "Du kan alltid sagor."),
-		Ln.o("...What about him? That fuzzy little fellow in the drawing on the wall.",
-			"...Vad sägs om honom? Den lilla luddiga på teckningen där på väggen.", Callable(), {"pre": 0.8}),
-		Ln.y("That's Blobb!", "Det är Blobb!"),
-		Ln.o("Blobb. Alright, I can tell you a story about Blobb.", "Blobb. Okej, jag kan berätta en saga om Blobb."),
-		Ln.o("But only if you help me. I don't know everything Blobb did on his adventures.",
-			"Men bara om du hjälper mig. Jag vet inte allt som Blobb gjorde på sina äventyr."),
-		Ln.y("I'll help!", "Jag hjälper till!"),
-		Ln.o("Once upon a time, there was a Blobb.", "Det var en gång en Blobb.", _blobb_appears),
-		Ln.o("He was round. And fuzzy. And very, very purple.",
-			"Han var rund. Och luddig. Och väldigt, väldigt lila.",
-			func(): player.sprite.set_tint(Color(0.62, 0.32, 0.95), 1.0)),
-		Ln.y("Purple?! No! He's green!", "Lila?! Nej! Han är grön!",
-			func(): player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT)),
-		Ln.o("Green. Of course. You see? I need your help already.",
-			"Grön. Såklart. Ser du? Jag behöver redan din hjälp."),
-		Ln.y("Where does he live?", "Var bor han?"),
-		Ln.o("In a deep, dark forest, where the trees grow so tall that the sun never reaches the ground...",
-			"I en djup, mörk skog, där träden är så höga att solen aldrig når marken...", _forest_dark),
-		Ln.y("Too scary. Make it a nice forest.", "För läskigt. Gör den till en snäll skog."),
-		Ln.o("A nice forest, then. The kind where everything looks like someone drew it with crayons.",
-			"En snäll skog, då. En sån där allt ser ut som om någon har ritat det med kritor.", _forest_crayon),
-		Ln.y("That's better.", "Det är bättre."),
-		Ln.o("One morning, Blobb decided to find out what was on the other side of the forest.",
-			"En morgon bestämde sig Blobb för att ta reda på vad som fanns på andra sidan skogen."),
-	])
+	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_move"), 6.0)
 
 
+## Called when Blobb walks into a TRIGGERS column. The scene name = the trigger name.
 func _beat(name: String) -> void:
+	await story.play(name, self)
 	match name:
 		"jump":
-			await Narrator.say([
-				Ln.y("He's stuck.", "Han sitter fast."),
-				Ln.o("Blobb wasn't very good at jumping, you see.", "Blobb var inte så bra på att hoppa, förstår du."),
-				Ln.y("Yes he was! He could jump super high!", "Jo, det var han! Han kunde hoppa jättehögt!"),
-				Ln.o("...Super high. Fine.", "...Jättehögt. Okej då.",
-					func():
-						player.jump_velocity = PlayerSide.STRONG_JUMP
-						player.sprite.flash()
-						Game.sfx("chime", -6.0)),
-			])
 			Narrator.hint(Game.t("hint_jump"), 6.0)
-		"careful":
-			Narrator.say([
-				Ln.y("Careful, there's a hole!", "Akta, det är ett hål!"),
-				Ln.o("Blobb saw it. He was a very careful Blobb.", "Blobb såg det. Han var en väldigt försiktig Blobb."),
-			], false)
-		"banana":
-			await Narrator.say([
-				Ln.o("But in the middle of the path, there stood a monster.", "Men mitt på stigen stod ett monster.",
-					func(): banana.appear(), {"hold": 0.6}),
-				Ln.y("What kind of monster?", "Vad för slags monster?"),
-				Ln.o("A banana. An enormous, grumpy banana.", "En banan. En enorm, sur banan."),
-				Ln.y("Bananas can't be grumpy.", "Bananer kan inte vara sura."),
-				Ln.o("This one could. It was as tall as a house.", "Den här kunde det. Den var stor som ett hus."),
-				Ln.y("No. It was tiny. Like a normal banana.", "Nej. Den var pytteliten. Som en vanlig banan.",
-					func(): banana.shrink(), {"hold": 0.7}),
-				Ln.o("...A tiny banana. Guarding the path. Very bravely.",
-					"...En pytteliten banan. Som vaktade stigen. Mycket modigt."),
-			])
-		"branches":
-			await Narrator.say([
-				Ln.y("That's way too high.", "Det där är alldeles för högt."),
-				Ln.o("It was. Blobb sat down under the big tree and thought for a long time.",
-					"Det var det. Blobb satte sig under det stora trädet och funderade länge."),
-				Ln.y("And then the tree grew branches! For climbing!", "Och då växte det grenar på trädet! Att klättra på!",
-					_grow_branches, {"hold": 0.8}),
-				Ln.o("Trees don't grow that fast.", "Träd växer inte så fort."),
-				Ln.y("This one did.", "Det här gjorde det."),
-				Ln.o("...Fair enough.", "...Det kan jag inte säga emot."),
-			])
-		"evening":
-			Narrator.say([
-				Ln.y("Was it getting dark?", "Började det bli mörkt?"),
-				Ln.o("The sun was going down. Everything turned orange and gold.",
-					"Solen gick ner. Allt blev orange och guld.", _evening),
-				Ln.y("I like it when it's orange.", "Jag gillar när allt är orange."),
-				Ln.o("Me too.", "Jag med."),
-			], false)
 		"end":
-			await Narrator.say([
-				Ln.o("At the end of the path, Blobb found a clearing.", "Vid slutet av stigen hittade Blobb en glänta."),
-				Ln.y("What's a clearing?", "Vad är en glänta?"),
-				Ln.o("A place in the forest where there are no trees. Just old stumps, and things people have left behind.",
-					"Ett ställe i skogen där det inte finns några träd. Bara gamla stubbar, och saker som folk har lämnat kvar."),
-				Ln.y("Can we see it from above? Like a bird?", "Kan vi se den uppifrån? Som en fågel?"),
-				Ln.o("Like a bird. Close your eyes... and fly up.", "Som en fågel. Blunda... och flyg upp."),
-			])
 			_fly_up()
 
 
@@ -181,24 +101,11 @@ func _fail() -> void:
 	Game.control_locked = true
 	Game.sfx("rewind", -4.0)
 	fx.rewind_pulse(1.2)
-	var lines: Array
-	match _fail_count % 4:
-		0:
-			lines = [Ln.y("No! He didn't fall in!", "Nej! Han ramlade inte ner!"),
-				Ln.o("You're right. Let me tell that part again.", "Du har rätt. Jag berättar den biten igen.")]
-		1:
-			lines = [Ln.y("That's not how it goes.", "Det är inte så det går."),
-				Ln.o("Isn't it? How does it go, then?", "Är det inte? Hur går det då?"),
-				Ln.y("He jumps over. Obviously.", "Han hoppar över. Självklart.")]
-		2:
-			lines = [Ln.y("Again!", "Igen!"), Ln.o("Again.", "Igen.")]
-		3:
-			lines = [Ln.y("Blobbs don't fall. Blobbs bounce.", "Blobbar ramlar inte. Blobbar studsar."),
-				Ln.o("I'll remember that.", "Det ska jag komma ihåg.")]
+	var scene := "fail_%d" % (_fail_count % 4 + 1)
 	_fail_count += 1
 	player.visible = false
 	player.teleport(_checkpoint)
-	await Narrator.say(lines)
+	await story.play(scene, self)
 	player.visible = true
 	player.sprite.flash(0.6)
 	Game.sfx("pop", -6.0)
@@ -208,16 +115,12 @@ func _fail() -> void:
 func _on_banana_bump() -> void:
 	_bumps += 1
 	if _bumps == 1:
-		Narrator.say([
-			Ln.y("Hey! Don't push Blobb!", "Hallå! Knuffa inte Blobb!"),
-			Ln.o("It was a very serious banana. Maybe Blobb could jump over it.",
-				"Det var en väldigt allvarlig banan. Blobb kanske kunde hoppa över den."),
-		], false)
+		story.play("banana_bump", self)
 
 
-# ================================================================ story effects
+# ================================================================ story effects (@name in story.txt)
 
-func _blobb_appears() -> void:
+func fx_blobb_appears() -> void:
 	player.visible = true
 	player.sprite.scale = Vector2.ZERO
 	var tw := create_tween()
@@ -225,7 +128,17 @@ func _blobb_appears() -> void:
 	Game.sfx("pop")
 
 
-func _forest_dark() -> void:
+func fx_blobb_color(color: String) -> void:
+	match color:
+		"purple":
+			player.sprite.set_tint(Color(0.62, 0.32, 0.95), 1.0)
+		"green":
+			player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT)
+		_:
+			push_error("fx_blobb_color: unknown colour " + color)
+
+
+func fx_forest_dark() -> void:
 	var tw := create_tween().set_parallel()
 	tw.tween_property(camera, "zoom", Vector2.ONE, 3.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(camera, "offset", Vector2(0, -120), 3.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -237,7 +150,7 @@ func _forest_dark() -> void:
 	Game.sfx("rumble", -10.0, 0.6)
 
 
-func _forest_crayon() -> void:
+func fx_forest_crayon() -> void:
 	terrain.set_palette("crayon")
 	fx.set_look("crayon", 1.2)
 	_fade_in(_bg_crayon, 1.2)
@@ -246,12 +159,26 @@ func _forest_crayon() -> void:
 	Game.sfx("chime", -6.0)
 
 
-func _evening() -> void:
+func fx_jump_unlock() -> void:
+	player.jump_velocity = PlayerSide.STRONG_JUMP
+	player.sprite.flash()
+	Game.sfx("chime", -6.0)
+
+
+func fx_banana_appear() -> void:
+	banana.appear()
+
+
+func fx_banana_shrink() -> void:
+	banana.shrink()
+
+
+func fx_evening() -> void:
 	fx.tint(Color(1.0, 0.7, 0.42), 0.75, 4.0)
 	terrain.set_palette("evening")
 
 
-func _grow_branches() -> void:
+func fx_grow_branches() -> void:
 	Game.sfx("grow", -2.0)
 	var i := 0
 	for b in _branch_nodes:
