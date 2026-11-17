@@ -27,10 +27,14 @@ const FORMS := {
 	"ball": "res://assets/sprites/drawn_ball.png",       # round scribble, no face (curled up / seen from above)
 	"drawn": "res://assets/sprites/drawn_blobb.png",     # the original classic Blobb, still
 }
+## Which way the art faces. Most of it faces LEFT (the strips and the classic, grumpy and blue
+## drawings); only these face right. Always turn Blobb with face(), never flip_h directly.
+const FACES_RIGHT := {"superjump": true, "dash": true}
 ## Height of a drawn form in this sprite's local pixels (the strips' Blobb is ~280 tall).
 const FORM_HEIGHT := 270.0
 
 var form := "normal"
+var facing_left := false
 var _mat: ShaderMaterial
 var _tint_tween: Tween
 var _drawn: Sprite2D
@@ -104,10 +108,24 @@ func set_form(name: String) -> void:
 		tw.tween_property(_drawn, "scale", Vector2(k, k), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## Turn Blobb toward dir (< 0 left, > 0 right; 0 keeps his facing).
+func face(dir: float) -> void:
+	if dir != 0.0:
+		facing_left = dir < 0.0
+	_apply_facing()
+
+
+func _apply_facing() -> void:
+	# mirror the art only when it faces the other way from where he's heading
+	flip_h = facing_left == FACES_RIGHT.has(animation)
+	if _drawn:
+		_drawn.flip_h = facing_left == FACES_RIGHT.has(form)
+
+
 func _process(delta: float) -> void:
+	_apply_facing()  # the animation can change under us (run -> superjump)
 	if _drawn and _drawn.visible:
 		_t += delta
-		_drawn.flip_h = flip_h
 		var k: float = _drawn.get_meta("k")
 		if _t > 0.4:  # after the pop: breathe
 			_drawn.scale = Vector2(k, k * (1.0 + sin(_t * 3.0) * 0.025))

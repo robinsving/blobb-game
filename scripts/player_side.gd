@@ -95,7 +95,7 @@ func _physics_process(delta: float) -> void:
 
 func _animate(dir: float, on_floor: bool) -> void:
 	if dir != 0.0:
-		sprite.flip_h = dir < 0.0
+		sprite.face(dir)
 	if on_floor:
 		if absf(velocity.x) > 30.0:
 			if sprite.animation != "run":

@@ -594,13 +594,8 @@ func _draw_blobb() -> void:
 	# body
 	_world.draw_set_transform(center, sin(_t * 9.0) * 0.04, sq)
 	_world.draw_texture_rect(_ball, Rect2(-r * 1.15, -r * 1.15, r * 2.3, r * 2.3), false)
-	# face, turned toward where he's running (up and to the right on screen)
-	var eye := Vector2(r * 0.28, -r * 0.18)
-	_world.draw_circle(eye + Vector2(-r * 0.3, 0.0), r * 0.13, Color(0.42, 0.18, 0.7))
-	_world.draw_circle(eye + Vector2(r * 0.12, -r * 0.08), r * 0.13, Color(0.42, 0.18, 0.7))
-	_world.draw_circle(eye + Vector2(-r * 0.27, -r * 0.04), r * 0.045, Color(1, 1, 1, 0.9))
-	_world.draw_circle(eye + Vector2(r * 0.15, -r * 0.12), r * 0.045, Color(1, 1, 1, 0.9))
-	_world.draw_line(eye + Vector2(-r * 0.5, -r * 0.26), eye + Vector2(r * 0.32, -r * 0.42), Color(0.1, 0.1, 0.08), r * 0.09)
+	# no face: he runs away from the camera (into the screen), so we see the back of him.
+	# A face here made him look like he was running backwards.
 	_world.draw_set_transform(Vector2.ZERO)
 
 

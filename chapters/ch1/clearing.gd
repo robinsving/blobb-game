@@ -252,7 +252,7 @@ func _process(delta: float) -> void:
 
 func _move(dir: Vector2i) -> void:
 	if dir.x != 0 and player_sprite is BlobbSprite:
-		(player_sprite as BlobbSprite).flip_h = dir.x < 0
+		(player_sprite as BlobbSprite).face(dir.x)
 	var was_open := grid.gate_open()
 	var res := grid.try_move(dir)
 	if not res["moved"]:

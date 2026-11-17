@@ -137,7 +137,7 @@ func _move_swim(input: Vector2, delta: float) -> void:
 
 func _animate(input: Vector2, delta: float) -> void:
 	if absf(input.x) > 0.1:
-		sprite.flip_h = input.x < 0.0
+		sprite.face(input.x)
 	match mode:
 		Mode.LAND, Mode.SINK:
 			var moving := absf(velocity.x) > 30.0 and is_on_floor()
