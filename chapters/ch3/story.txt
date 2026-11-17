@@ -251,11 +251,9 @@ Y: What is going on?
 Y: Why is it so fast?
   sv: Varför går det så fort?
 
-# Blobb stops listening: no more control, he runs straight through everything.
+# Blobb runs on by himself, through everything. Y isn't talking about the story any more:
+# this is about the room they're really in.
 === chase_8 (ambient) ===
-Y: He won't stop.
-  sv: Han stannar inte.
-@pause 1.0
 Y: What is happening?
   sv: Vad är det som händer?
 

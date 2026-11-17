@@ -29,7 +29,8 @@ const CATCH := 0.6                         # dropped less than this below a roof
 const LINES := {2: "chase_go", 14: "chase_1", 28: "chase_2", 44: "chase_3", 58: "chase_4",
 	72: "chase_5", 90: "chase_6", 106: "chase_7", 113: "chase_8"}
 ## From here to the end Blobb runs by himself: no control, straight down the middle, through
-## chimneys and birds as if they weren't there (he only hops the gaps). Y: "What is happening?"
+## chimneys and birds as if they weren't there (he only hops the gaps). Y: "What is happening?",
+## about the real room now, not the story.
 const AUTO_BEAT := 112
 
 var fx: StyleFX
