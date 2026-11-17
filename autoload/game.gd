@@ -38,7 +38,7 @@ const UI := {
 	"paused": {"en": "Paused", "sv": "Paus"},
 	"hint_move": {"en": "← → to move", "sv": "← → för att gå"},
 	"hint_jump": {"en": "Space / Ⓐ to jump", "sv": "Mellanslag / Ⓐ för att hoppa"},
-	"hint_advance": {"en": "Space / Enter / Ⓐ", "sv": "Mellanslag / Enter / Ⓐ"},
+	"hint_advance": {"en": "Space / Enter / Ⓐ for the next line", "sv": "Mellanslag / Enter / Ⓐ för nästa rad"},
 	"hint_push": {"en": "Arrows to move · Z undo · R restart", "sv": "Piltangenter för att gå · Z ångra · R börja om"},
 	"chapter_1": {"en": "Chapter 1", "sv": "Kapitel 1"},
 	"chapter_1_name": {"en": "The Other Side of the Forest", "sv": "Andra sidan skogen"},

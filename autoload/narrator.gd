@@ -24,6 +24,7 @@ var _young: Label
 var _old_icon: NarratorIcon
 var _young_icon: NarratorIcon
 var _arrow: Label
+var _taught_advance := false  # the first line that waits says which key moves the story on
 var _hint: Label
 var _hint_tween: Tween
 var _band_tween: Tween
@@ -139,7 +140,13 @@ func say(lines: Array, blocking := true) -> void:
 			await _wait(line["hold"])
 		if blocking and not Game.fast:
 			_arrow.visible = true
+			var teach := not _taught_advance
+			if teach:
+				hint(Game.t("hint_advance"), 600.0)  # stays until it's been pressed once
 			await _wait_advance()
+			if teach:
+				_taught_advance = true
+				hint_off()
 			_arrow.visible = false
 		else:
 			await _wait(_read_time(line))
@@ -172,6 +179,13 @@ func hint(text: String, dur := 5.0) -> void:
 	_hint_tween.tween_property(_hint, "modulate:a", 1.0, 0.4)
 	_hint_tween.tween_interval(dur)
 	_hint_tween.tween_property(_hint, "modulate:a", 0.0, 0.8)
+
+
+func hint_off() -> void:
+	if _hint_tween:
+		_hint_tween.kill()
+	_hint_tween = create_tween()
+	_hint_tween.tween_property(_hint, "modulate:a", 0.0, 0.4)
 
 
 func _type_line(line: Dictionary) -> void:
