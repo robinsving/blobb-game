@@ -25,16 +25,26 @@ func _ready() -> void:
 	_blobb.scale = Vector2.ONE * 1.25
 	holder.add_child(_blobb)
 
-	var title := Label.new()
-	title.text = "Blobb"
-	title.add_theme_font_override("font", Fonts.hand())
-	title.add_theme_font_size_override("font_size", 230)
-	title.add_theme_color_override("font_color", Color(0.4, 0.55, 0.18))
-	title.add_theme_color_override("font_shadow_color", Color(0.2, 0.15, 0.1, 0.35))
-	title.add_theme_constant_override("shadow_offset_x", 6)
-	title.add_theme_constant_override("shadow_offset_y", 8)
-	title.position = Vector2(170, 140)
-	add_child(title)
+	const DRAWN_TITLE := "res://assets/sprites/drawn_title.png"  # the "BLOBB" from the original drawing
+	if ResourceLoader.exists(DRAWN_TITLE):
+		var t := TextureRect.new()
+		t.texture = load(DRAWN_TITLE)
+		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		t.size = Vector2(820, 820.0 * t.texture.get_height() / t.texture.get_width())
+		t.position = Vector2(150, 150)
+		add_child(t)
+	else:
+		var title := Label.new()
+		title.text = "Blobb"
+		title.add_theme_font_override("font", Fonts.hand())
+		title.add_theme_font_size_override("font_size", 230)
+		title.add_theme_color_override("font_color", Color(0.4, 0.55, 0.18))
+		title.add_theme_color_override("font_shadow_color", Color(0.2, 0.15, 0.1, 0.35))
+		title.add_theme_constant_override("shadow_offset_x", 6)
+		title.add_theme_constant_override("shadow_offset_y", 8)
+		title.position = Vector2(170, 140)
+		add_child(title)
 
 	var box := VBoxContainer.new()
 	box.position = Vector2(190, 520)

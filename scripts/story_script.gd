@@ -5,7 +5,7 @@ extends RefCounted
 ## File format (see the header of any story.txt):
 ##   === name ===            starts a scene; "=== name (ambient) ===" = player keeps control
 ##   O: text / Y: text       older / younger narrator line (English)
-##     sv: text              Swedish version of the line above
+##     sv: text              Swedish version of the line above (optional; falls back to English)
 ##     @effect [args...]     calls fx_<effect>(args...) on the level when the line above finishes typing
 ##     @hold N               extra wait (seconds) after the line above
 ##   @pause N                silence before the next line
@@ -130,7 +130,3 @@ func _parse(text: String) -> void:
 				last["effects"].append(parts)
 		else:
 			errors.append("%s: can't parse '%s'" % [where, l])
-	for name in scenes:
-		for line in scenes[name]["lines"]:
-			if line["sv"] == "":
-				errors.append("%s: scene '%s' line missing sv: \"%s\"" % [path, name, line["en"]])

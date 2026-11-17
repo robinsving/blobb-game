@@ -12,7 +12,8 @@
 #                         a little forgetful; serif text + crescent moon, left)
 #   Y:                    the younger narrator (quick, bossy, silly, makes the rules;
 #                         hand-written text + star, right)
-#     sv:                 Swedish version of the line above. Every line needs one.
+#     sv:                 Swedish version of the line above. Optional for now:
+#                         lines without one are shown in English.
 #     @effect             something happens in the world when the line above has
 #                         finished typing (effect list at the bottom of this file)
 #     @hold 0.6           wait a little extra after the line above
@@ -22,6 +23,8 @@
 #  Rules: they are equals building a story together, never parent/child.
 #  No family words, no bedtime/caretaker talk (late, sleep, tired, "your eyes",
 #  permission). Never hint WHICH of them is unwell. Blobb is "he"/"han".
+#  Never mention drawing, crayons, paper or pencils: the narrators ask for a
+#  "simple" or "bright" world, and the art style is the game's interpretation.
 #  See docs/story.md for the bigger picture.
 #
 #  Scene names must match the level code:
@@ -74,11 +77,9 @@ Y: Where does he live?
 O: In a deep, dark forest, where the trees are so old they've forgotten what the sun looks like...
   sv: I en djup, mörk skog, där träden är så gamla att de har glömt hur solen ser ut...
   @forest_dark
-Y: Boring. And scary. Make it a forest someone drew. With crayons. And a big sun.
-  sv: Tråkigt. Och läskigt. Gör den till en skog som någon har ritat. Med kritor. Och en stor sol.
+Y: Boring. And scary. Make it a simple forest. Bright colours. And a big sun.
   @forest_crayon
-O: Crayons, and a big sun. The trees didn't mind one bit.
-  sv: Kritor, och en stor sol. Träden hade inget emot det alls.
+O: A simple forest, and a big sun. The trees didn't mind one bit.
 Y: Better.
   sv: Bättre.
 O: And one morning, Blobb set off to see what was on the other side of it all.
@@ -163,8 +164,11 @@ O: ...A tiny banana. Still grumpy, though. You can't take that away from it.
 === banana_bump (ambient) ===
 Y: Hey! No pushing!
   sv: Hallå! Ingen knuffning!
-O: Small and stubborn. Perhaps Blobb could simply hop over it.
-  sv: Liten och envis. Blobb kunde kanske helt enkelt hoppa över den.
+  @blobb_form grumpy
+O: And Blobb went prickly all over. Two small, stubborn things on one path.
+Y: Grumpy Blobb! I KNEW he had spikes.
+O: Perhaps he could simply hop over it, spikes and all.
+  @blobb_form normal
 
 
 # TRIGGER: Blobb reaches the cliff with the big tree (column 79).
@@ -305,6 +309,8 @@ O: Tomorrow, Blobb learns to swim.
 # ---------------------------------------------------------------------
 #  @blobb_appears      Blobb pops into existence on the blank page
 #  @blobb_color X      recolours Blobb: purple | green
+#  @blobb_form X       Blobb turns into a figure from the original drawing:
+#                      grumpy | blue | dash | ball | drawn, or back to normal
 #  @forest_dark        a dark, misty, realistic forest fades in
 #  @forest_crayon      the forest turns into a crayon drawing
 #  @jump_unlock        Blobb can now jump high

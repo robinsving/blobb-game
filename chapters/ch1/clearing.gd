@@ -5,7 +5,8 @@ extends Node2D
 
 const CELL := 96
 const ROOMS: Array = preload("res://chapters/ch1/rooms.gd").ROOMS
-const TOPDOWN_TEX := "res://assets/gen/ch1/blobb_topdown.png"
+## Top-down Blobb, best first: the round green scribble from the original drawing, then the generated pancake.
+const TOPDOWN_TEXES := ["res://assets/sprites/drawn_ball.png", "res://assets/gen/ch1/blobb_topdown.png"]
 const CRATE_TEX := "res://assets/gen/ch1/crate_topdown.png"
 const STUMP_TEX := "res://assets/gen/ch1/stump_topdown.png"
 const GROUND_TEX := "res://assets/gen/ch1/clearing_topdown_ground.png"
@@ -136,9 +137,10 @@ func fx_pancake() -> void:
 	_pancake = true
 	Game.sfx("pop", -4.0, 0.8)
 	var target := _player_scale()
-	if ResourceLoader.exists(TOPDOWN_TEX):
+	if _topdown_tex() != "":
 		var s := Sprite2D.new()
-		s.texture = load(TOPDOWN_TEX)
+		s.texture = load(_topdown_tex())
+		s.material = BlobbSprite.green_material()
 		s.scale = Vector2.ONE * (CELL * 1.15 / s.texture.get_width())
 		target = s.scale
 		player_sprite.queue_free()
@@ -177,9 +179,10 @@ func _load_room(i: int) -> void:
 	player_node = Node2D.new()
 	player_node.position = _cell_pos(grid.player)
 	add_child(player_node)
-	if _pancake and ResourceLoader.exists(TOPDOWN_TEX):
+	if _pancake and _topdown_tex() != "":
 		var s := Sprite2D.new()
-		s.texture = load(TOPDOWN_TEX)
+		s.texture = load(_topdown_tex())
+		s.material = BlobbSprite.green_material()
 		s.scale = Vector2.ONE * (CELL * 1.15 / s.texture.get_width())
 		player_sprite = s
 	else:
@@ -188,6 +191,13 @@ func _load_room(i: int) -> void:
 		b.position = Vector2(0, -8)
 		player_sprite = b
 	player_node.add_child(player_sprite)
+
+
+func _topdown_tex() -> String:
+	for p in TOPDOWN_TEXES:
+		if ResourceLoader.exists(p):
+			return p
+	return ""
 
 
 func _player_scale() -> Vector2:

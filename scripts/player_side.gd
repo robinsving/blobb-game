@@ -22,6 +22,7 @@ var _buffer := 0.0
 var _was_on_floor := true
 var _knock := 0.0
 var _t := 0.0
+var _folding := false
 
 
 func _ready() -> void:
@@ -72,7 +73,8 @@ func _physics_process(delta: float) -> void:
 		_coyote = 0.0
 		Game.sfx("jump", -6.0, randf_range(0.95, 1.08) * (1.25 if jump_velocity == WEAK_JUMP else 1.0))
 		_squash(Vector2(0.8, 1.25))
-		sprite.play("jump")
+		sprite.play(_jump_anim())
+		_folding = false
 	if Input.is_action_just_released("jump") and velocity.y < 0.0:
 		velocity.y *= 0.55
 
@@ -105,6 +107,18 @@ func _animate(dir: float, on_floor: bool) -> void:
 	else:
 		sprite.rotation = lerpf(sprite.rotation, clampf(velocity.x / SPEED, -1, 1) * 0.15, 0.2)
 		_pivot.position.y = 0.0
+		# super jump: past the top, fold the stretch back up on the way down
+		if sprite.animation == "superjump" and velocity.y > 150.0 and not _folding:
+			_folding = true
+			sprite.play_backwards("superjump")
+
+
+## The weak hop uses the little jump; once the story has unlocked the big jump,
+## Blobb stretches out like the flying Blobb in the drawing.
+func _jump_anim() -> String:
+	if jump_velocity != WEAK_JUMP and sprite.sprite_frames.has_animation("superjump"):
+		return "superjump"
+	return "jump"
 
 
 func _squash(s: Vector2) -> void:

@@ -137,8 +137,10 @@ func t(key: String) -> String:
 
 
 ## Pick the current-locale string from a {"en": ..., "sv": ...} dictionary.
+## Falls back to English when the translation is missing or empty.
 func pick(d: Dictionary) -> String:
-	return d.get(locale, d.get("en", ""))
+	var s: String = d.get(locale, "")
+	return s if s != "" else d.get("en", "")
 
 
 func cycle_locale() -> void:

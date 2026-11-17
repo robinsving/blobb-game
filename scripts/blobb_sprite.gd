@@ -11,20 +11,43 @@ const STRIPS := {
 	"idle": ["res://assets/sprites/blobb_idle.png", 24.0, true],
 	"run": ["res://assets/sprites/blobb_running.png", 40.0, true],
 	"jump": ["res://assets/sprites/blobb_jumping.png", 18.0, false],
+	# the big story-unlocked jump: he crouches, then stretches into a long tilted oval
+	# (tools/key_superjump.py; like the little flying Blobb in the original drawing)
+	"superjump": ["res://assets/sprites/blobb_superjump.png", 20.0, false],
 }
+## Forms taken straight from the child's drawing (tools/cut_drawing.py). While a form is
+## shown, the animated strips are hidden and the drawn figure breathes gently instead.
+const FORMS := {
+	"grumpy": "res://assets/sprites/drawn_grumpy.png",   # spiky dark crown, angry brows, jagged teeth
+	"blue": "res://assets/sprites/drawn_blue.png",       # blue, open-mouthed (planned: ch2 swimming)
+	"dash": "res://assets/sprites/drawn_dash.png",       # green blur + speed lines (planned: ch3 rooftop chase)
+	"ball": "res://assets/sprites/drawn_ball.png",       # round scribble, no face (curled up / seen from above)
+	"drawn": "res://assets/sprites/drawn_blobb.png",     # the original classic Blobb, still
+}
+## Height of a drawn form in this sprite's local pixels (the strips' Blobb is ~280 tall).
+const FORM_HEIGHT := 270.0
 
+var form := "normal"
 var _mat: ShaderMaterial
 var _tint_tween: Tween
+var _drawn: Sprite2D
+var _t := 0.0
 
 
 func _init() -> void:
 	sprite_frames = build_frames()
-	_mat = ShaderMaterial.new()
-	_mat.shader = preload("res://shaders/blobb.gdshader")
+	_mat = green_material()
 	material = _mat
-	_mat.set_shader_parameter("tint", GREEN)
-	_mat.set_shader_parameter("tint_amount", GREEN_AMOUNT)
 	play("idle")
+
+
+## Blobb's recolour shader at his canonical green, for other sprites that show him.
+static func green_material() -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = preload("res://shaders/blobb.gdshader")
+	m.set_shader_parameter("tint", GREEN)
+	m.set_shader_parameter("tint_amount", GREEN_AMOUNT)
+	return m
 
 
 static func build_frames() -> SpriteFrames:
@@ -32,6 +55,8 @@ static func build_frames() -> SpriteFrames:
 	sf.remove_animation("default")
 	for anim in STRIPS:
 		var info: Array = STRIPS[anim]
+		if not ResourceLoader.exists(info[0]):
+			continue
 		var tex: Texture2D = load(info[0])
 		var count := int(round(float(tex.get_width()) / FRAME_W))
 		sf.add_animation(anim)
@@ -43,6 +68,46 @@ static func build_frames() -> SpriteFrames:
 			at.region = Rect2(i * FRAME_W, 0, FRAME_W, tex.get_height())
 			sf.add_frame(anim, at)
 	return sf
+
+
+## Show one of the drawn FORMS ("normal" = back to the animated Blobb), with a little pop.
+func set_form(name: String) -> void:
+	if name == form:
+		return
+	if name != "normal" and not (FORMS.has(name) and ResourceLoader.exists(FORMS[name])):
+		push_warning("BlobbSprite.set_form: no form " + name)
+		return
+	form = name
+	if name == "normal":
+		if _drawn:
+			_drawn.visible = false
+		self_modulate.a = 1.0
+	else:
+		if not _drawn:
+			_drawn = Sprite2D.new()
+			add_child(_drawn)
+		_drawn.texture = load(FORMS[name])
+		# green forms get the same recolour as the animated Blobb so they match him; blue keeps its own colour
+		_drawn.use_parent_material = name != "blue"
+		_drawn.visible = true
+		var k := FORM_HEIGHT / _drawn.texture.get_height()
+		_drawn.set_meta("k", k)
+		_drawn.offset = Vector2(0, -_drawn.texture.get_height() * 0.5)
+		_drawn.position = Vector2(0, 150)  # feet on the same line as the strips' feet
+		self_modulate.a = 0.0
+		_t = 0.0
+		var tw := create_tween()
+		_drawn.scale = Vector2(k * 1.3, k * 0.7)
+		tw.tween_property(_drawn, "scale", Vector2(k, k), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _process(delta: float) -> void:
+	if _drawn and _drawn.visible:
+		_t += delta
+		_drawn.flip_h = flip_h
+		var k: float = _drawn.get_meta("k")
+		if _t > 0.4:  # after the pop: breathe
+			_drawn.scale = Vector2(k, k * (1.0 + sin(_t * 3.0) * 0.025))
 
 
 ## Recolour Blobb. amount 0 = his natural crayon colours.
