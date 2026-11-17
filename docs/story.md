@@ -11,7 +11,7 @@ Two narrators are telling Blobb's story. They are an older person and a child, i
 - **No drawing words in dialogue.** The narrators never mention drawing, crayons, paper or pencils, since that would make them human too early. They ask for a "simple", "bright" or "dark" world; the crayon look is the game's own interpretation of that.
 - **Don't reveal WHO is in the hospital before ch3.** In ch1 and ch2, hints (beeps, gaps, "will you be here tomorrow?") must fit either narrator being the one who is unwell, or both, and any crack in one voice is balanced by one in the other. Ch3 ends that: O goes silent during the chase and Y calls for help (the director's decision).
 - **Blobb** is "he" / "han". He is green; this was settled in ch1, where O said purple and Y corrected it.
-- Lines are written in **English**. Swedish (`sv:`) is optional for now; missing lines fall back to English. Translate once the story settles.
+- Lines are written in **English**, each with a Swedish (`sv:`) line under it. Chapters 1–3 and the UI strings are fully translated; when you add or change a line, write or update its `sv:` too (missing ones fall back to English). In Swedish, Y is everyday and bossy ("Nix", "Usch", "Vad var det jag sa"), O a little old-fashioned ("Nåväl", "Naturligtvis").
 - **Tone arc.** Light-hearted and funny at first. Later chapters move toward childlike questions about what happens when we die. Hospital hints grow chapter by chapter; ch1 has only one quiet monitor beep at the very end.
 - **Failure is a retell.** Y says "that's not what happened!" and the scene rewinds.
 

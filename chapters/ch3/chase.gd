@@ -27,7 +27,10 @@ const BLINK_SECS := 1.6
 const CATCH := 0.6                         # dropped less than this below a roof's edge: he scrambles up
 ## beat -> scene (chapters/ch3/story.txt). Only Y.
 const LINES := {2: "chase_go", 14: "chase_1", 28: "chase_2", 44: "chase_3", 58: "chase_4",
-	72: "chase_5", 90: "chase_6", 106: "chase_7"}
+	72: "chase_5", 90: "chase_6", 106: "chase_7", 113: "chase_8"}
+## From here to the end Blobb runs by himself: no control, straight down the middle, through
+## chimneys and birds as if they weren't there (he only hops the gaps). Y: "What is happening?"
+const AUTO_BEAT := 112
 
 var fx: StyleFX
 var camera: Camera2D
@@ -234,14 +237,21 @@ func _tick_end(delta: float) -> void:
 func _move(delta: float, db: float) -> void:
 	var z := _beat * BEAT_LEN
 	# lanes
-	if not Game.control_locked:
+	var auto := _beat >= AUTO_BEAT
+	if auto:
+		_lane = 0
+		var here: Variant = _roof_at(z)
+		var next: Variant = _roof_at(z + 0.5)
+		if _air < 0.0 and not _falling and here != null and (next == null or next["h"] > here["h"] + 0.05):
+			_take_off()  # he still clears the gaps, without looking
+	elif not Game.control_locked:
 		if Input.is_action_just_pressed("left"):
 			_lane = maxi(_lane - 1, -1)
 		elif Input.is_action_just_pressed("right"):
 			_lane = mini(_lane + 1, 1)
 		if Input.is_action_just_pressed("jump") and _air < 0.0 and not _falling:
 			_take_off()
-	if Game.autoplay:
+	if Game.autoplay and not auto:
 		_bot(z)
 	_x = move_toward(_x, float(_lane), delta / LANE_TIME)
 	var roof: Variant = _roof_at(z)
@@ -281,7 +291,7 @@ func _move(delta: float, db: float) -> void:
 			_h = roof_h
 	# chimneys and vents
 	for o in _obstacles:
-		if _blink > 0.0:
+		if _blink > 0.0 or auto:
 			break
 		if z > o["z0"] - 0.2 and z < o["z1"] + 0.2 and absf(_x - o["lane"]) < 0.45 and _h < o["top"] - 0.05:
 			_fail("chimney" if o["kind"] == "chimney" else "vent")
@@ -299,7 +309,7 @@ func _move(delta: float, db: float) -> void:
 		if _beat >= d["beat"] and d["lane"] != 99:
 			d["done"] = true
 			var base: float = roof_h if roof != null else 0.0
-			if absf(_x - d["lane"]) < 0.6 and _h < base + 0.7 and _blink <= 0.0:
+			if absf(_x - d["lane"]) < 0.6 and _h < base + 0.7 and _blink <= 0.0 and not auto:
 				_fail("bird")
 				return
 	if _beat >= END_BEAT and not _ended:
@@ -641,10 +651,27 @@ func _draw_hospital() -> void:
 			_quad(_proj(xx, z0, hh), _proj(xx + 0.5, z0, hh), _proj(xx + 0.5, z0, hh - 0.7), _proj(xx, z0, hh - 0.7), Color(0.8, 0.9, 1.0, 0.75) if lit else Color(0.1, 0.12, 0.2))
 			xx += 0.95
 		hh -= 1.3
-	# the sign: one plain glowing panel near the top, no words
-	var glow := 0.75 + 0.25 * sin(_t * 2.0)
-	_quad(_proj(-2.4, z0 - 0.05, top - 0.6), _proj(2.4, z0 - 0.05, top - 0.6), _proj(2.4, z0 - 0.05, top - 2.0), _proj(-2.4, z0 - 0.05, top - 2.0), Color(0.75, 0.9, 1.0, 0.35 * glow))
-	_quad(_proj(-2.1, z0 - 0.06, top - 0.8), _proj(2.1, z0 - 0.06, top - 0.8), _proj(2.1, z0 - 0.06, top - 1.8), _proj(-2.1, z0 - 0.06, top - 1.8), Color(0.88, 0.96, 1.0, glow))
+	# a helipad on the roof: a pale ring with an H
+	var pad: float = (_hospital["z0"] + _hospital["z1"]) * 0.5
+	var ring := PackedVector2Array()
+	for i in 28:
+		var ang := TAU * i / 28.0
+		ring.append(_proj(cos(ang) * 2.4, pad + sin(ang) * 2.4, top))
+	_world.draw_colored_polygon(ring, Color(0.85, 0.88, 0.95, 0.85))
+	ring = PackedVector2Array()
+	for i in 28:
+		var ang := TAU * i / 28.0
+		ring.append(_proj(cos(ang) * 2.05, pad + sin(ang) * 2.05, top))
+	_world.draw_colored_polygon(ring, Color(0.22, 0.25, 0.34))
+	for r in [[-1.0, -0.6, -1.2, 1.2], [0.6, 1.0, -1.2, 1.2], [-0.6, 0.6, -0.2, 0.2]]:
+		_quad(_proj(r[0], pad + r[2], top), _proj(r[1], pad + r[2], top), _proj(r[1], pad + r[3], top), _proj(r[0], pad + r[3], top), Color(0.92, 0.94, 1.0))
+	# the sign: the hospital H, white on a glowing blue square (no words, so it reads in any language)
+	var glow := 0.8 + 0.2 * sin(_t * 2.0)
+	var zf: float = z0 - 0.05
+	_quad(_proj(-1.35, zf, top - 0.0), _proj(1.35, zf, top - 0.0), _proj(1.35, zf, top - 2.6), _proj(-1.35, zf, top - 2.6), Color(0.35, 0.6, 1.0, 0.3 * glow))
+	_quad(_proj(-1.0, zf, top - 0.35), _proj(1.0, zf, top - 0.35), _proj(1.0, zf, top - 2.25), _proj(-1.0, zf, top - 2.25), Color(0.12, 0.38, 0.92).lightened(0.15 * glow))
+	for r in [[-0.62, -0.3, 0.6, 2.0], [0.3, 0.62, 0.6, 2.0], [-0.3, 0.3, 1.15, 1.45]]:
+		_quad(_proj(r[0], zf - 0.01, top - r[2]), _proj(r[1], zf - 0.01, top - r[2]), _proj(r[1], zf - 0.01, top - r[3]), _proj(r[0], zf - 0.01, top - r[3]), Color(1, 1, 1, 0.95))
 
 
 ## Blobb's body: a round fuzzy ball, lit from up and to the left, three flat bands of light

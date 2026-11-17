@@ -78,8 +78,10 @@ O: In a deep, dark forest, where the trees are so old they've forgotten what the
   sv: I en djup, mörk skog, där träden är så gamla att de har glömt hur solen ser ut...
   @forest_dark
 Y: Boring. And scary. Make it a simple forest. Bright colours. And a big sun.
+  sv: Tråkigt. Och läskigt. Gör det till en enkel skog. Starka färger. Och en stor sol.
   @forest_crayon
 O: A simple forest, and a big sun. The trees didn't mind one bit.
+  sv: En enkel skog, och en stor sol. Träden hade inte det minsta emot det.
 Y: Better.
   sv: Bättre.
 O: And one morning, Blobb set off to see what was on the other side of it all.
@@ -166,8 +168,11 @@ Y: Hey! No pushing!
   sv: Hallå! Ingen knuffning!
   @blobb_form grumpy
 O: And Blobb went prickly all over. Two small, stubborn things on one path.
+  sv: Och Blobb blev taggig över hela kroppen. Två små, envisa saker på samma stig.
 Y: Grumpy Blobb! I KNEW he had spikes.
+  sv: Sur-Blobb! Jag VISSTE att han hade taggar.
 O: Perhaps he could simply hop over it, spikes and all.
+  sv: Han kunde kanske helt enkelt hoppa över den, taggar och allt.
   @blobb_form normal
 
 
