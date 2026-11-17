@@ -190,7 +190,7 @@ Y: What is going on?
 === chase_7 (ambient) ===
 Y: Why is it so fast?
 
-# TRIGGER: Blobb falls or a bird catches him. Nobody answers now.
+# TRIGGER: Blobb is hit (bird, chimney, a missed gap); he blinks and runs on. Nobody answers now.
 === chase_fail_1 (ambient) ===
 Y: He didn't fall. He didn't.
 
