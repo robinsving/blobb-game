@@ -54,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	_knock -= delta
 
 	if _knock <= 0.0:
-		var target := dir * SPEED
+		var target := dir * SPEED * Game.move_scale()
 		var rate := ACCEL if dir != 0.0 else FRICTION
 		velocity.x = move_toward(velocity.x, target, rate * delta)
 

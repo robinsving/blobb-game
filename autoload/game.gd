@@ -7,9 +7,10 @@ extends Node
 ##   --lang=sv                                force language
 ##   --shots=DIR                              save a screenshot every 2s into DIR (for visual checks)
 ##   --quit-after-secs=N                      quit after N seconds
-##   --warp=N                                 (forest) skip the intro and start at tile column N
+##   --warp=N                                 (forest, pond) skip the intro and start at tile column N
 ##   --moves=RRUL|DDR..                       (clearing) auto-play box-pusher moves, one string per room
-##   --autoplay                               crude bot: platformer runs right & jumps gaps (for screenshots)
+##   --autoplay                               crude bot: platformer runs right & jumps gaps; pond swims right;
+##                                            mill rooms solve themselves (for screenshots)
 
 signal locale_changed
 
@@ -41,10 +42,20 @@ const UI := {
 	"chapter_1_name": {"en": "The Other Side of the Forest", "sv": "Andra sidan skogen"},
 	"chapter_end": {"en": "End of chapter one. More tomorrow.", "sv": "Slut på kapitel ett. Mer i morgon."},
 	"locked": {"en": "(not yet)", "sv": "(inte än)"},
+	"chapter_2_btn": {"en": "Chapter 2", "sv": "Kapitel 2"},
+	"chapter_2": {"en": "Chapter 2", "sv": "Kapitel 2"},
+	"chapter_2_name": {"en": "Learning to Swim"},
+	"chapter_end_2": {"en": "End of chapter two. More tomorrow."},
+	"hint_walk_in": {"en": "→ to walk in"},
+	"hint_hop": {"en": "← → to walk · Space / Ⓐ to hop"},
+	"hint_swim": {"en": "Arrows to swim"},
+	"hint_mill": {"en": "Arrows to swim · Space / Ⓐ at a wheel or lever · R starts the room again"},
+	"hint_backwards": {"en": "A wheel now goes: off → on → backwards"},
 }
 
 const SFX_NAMES := ["jump", "blip_old", "blip_young", "pop", "push", "splash", "plate", "gate",
-	"rewind", "whoosh", "beep", "shrink", "rumble", "bonk", "land", "grow", "chime"]
+	"rewind", "whoosh", "beep", "shrink", "rumble", "bonk", "land", "grow", "chime",
+	"whistle", "drip", "bubble", "turn", "flow", "gurgle"]
 
 var _sfx := {}
 var _fade_layer: CanvasLayer
@@ -134,6 +145,16 @@ func t(key: String) -> String:
 	if UI.has(key):
 		return UI[key].get(locale, UI[key]["en"])
 	return key
+
+
+## While the narrators talk and the player still has control (ambient lines), Blobb moves at this
+## fraction of his speed, so the player can't race far past what's being said. Player scripts
+## multiply their move speed by move_scale().
+const LISTENING_SPEED := 0.4
+
+
+func move_scale() -> float:
+	return LISTENING_SPEED if Narrator.busy and not control_locked else 1.0
 
 
 ## Pick the current-locale string from a {"en": ..., "sv": ...} dictionary.

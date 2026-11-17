@@ -1,0 +1,224 @@
+# =====================================================================
+#  BLOBB, Chapter 2: Learning to Swim
+# =====================================================================
+#
+#  Same format as chapters/ch1/story.txt (see its header):
+#   === name ===   scene (blocking)      === name (ambient) ===   player keeps control
+#   O: / Y:        older / younger narrator     sv: optional Swedish line
+#     @effect      runs fx_effect() on the level after the line above has typed
+#     @hold 0.6    extra wait after a line      @pause 0.8   silence before the next line
+#
+#  Rules (docs/story.md): they are EQUALS building a story half each. Never parent/child:
+#  no family words, no bedtime or caretaker talk, nobody asks the other for permission,
+#  nobody reassures or grants. Never hint WHICH of them is unwell: each crack in one voice
+#  is balanced by one in the other (here: O loses the thread in "current", Y loses their
+#  words in "ending"). Never mention drawing, crayons, paper or pencils. Blobb is "he".
+#  Setting: outdoors (a river and an old mill's pond), never anything that feels indoor
+#  or institutional. Hints this chapter: a drip all through it, two beeps at the end.
+#
+#  Scene names must match the level code:
+#    pond: chapters/ch2/pond.gd   (TRIGGERS table = tile columns)
+#    mill: chapters/ch2/mill.gd
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+#  PART 1: THE MILLPOND (side view, under water)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the chapter starts. Blobb on the bank of a dark, murky pond.
+=== intro ===
+O: Now. Where had we got to?
+Y: Swimming. Blobb learns to swim. That was the deal.
+O: So it was. The stream from the clearing ran downhill, and Blobb followed it all the way to a millpond.
+O: The water was as brown as old tea. You couldn't see your own feet in it.
+Y: Yuck. Make it clear. And sunny. With little fish.
+  @pond_clear
+O: Clear as glass, then. And the sun came down in long stripes.
+Y: Better.
+# (hint appears: walk right to jump in)
+
+
+# TRIGGER: Blobb drops into the water for the first time.
+=== splash ===
+O: In jumped Blobb, with a splash... and down he went, like a stone.
+  @sink
+Y: Why?!
+O: Fuzz. It drinks up water like a sponge. He had never been so heavy.
+Y: Then he walks. Along the bottom. Like a crab.
+O: Like a very determined crab.
+# (hint appears: walk and hop)
+
+
+# TRIGGER: the spring bubbling up from the riverbed (column 27).
+=== bubbles ===
+Y: Wait. Fuzz holds bubbles. Everybody knows that.
+O: Does it?
+Y: Loads. Blobb's full of bubbles now. He floats.
+  @swim_unlock
+O: ...And so he did. Up he came, light as a cork.
+# (hint appears: arrows swim every way)
+
+
+# TRIGGER: just past the big rock (column 35).
+=== cold (ambient) ===
+O: Pond water is cold, even in summer. Blobb went quite blue.
+  @blobb_blue
+Y: Blue's fine. Blue's a swimming colour.
+
+
+# TRIGGER: under the warden's stump (column 40).
+=== lifeguard (ambient) ===
+O: On an old stump sat the pond warden. A small banana, with a whistle.
+  @whistle
+Y: The grumpy banana! He got a job!
+O: "No running," said the banana.
+  @whistle
+Y: He's SWIMMING.
+
+
+# TRIGGER: the fish (column 45).
+=== fish (ambient) ===
+Y: Fish!
+O: River fish. They don't think much of visitors.
+
+
+# TRIGGER: where the river starts pushing back (column 57).
+# O loses the thread here. Y's matching crack is in "ending".
+=== current (ambient) ===
+O: Then the river started pushing. Blobb pushed back, harder and harder, and...
+@pause 1.6
+O: ...Where was he?
+Y: Near the bottom. The push is weaker down there.
+O: Near the bottom. Yes. Thank you.
+
+
+# TRIGGER: just before the whirlpool (column 66).
+=== whirlpool (ambient) ===
+Y: What's that swirly thing?
+O: A whirlpool. It spins anything that comes too close. Best keep clear.
+
+
+# TRIGGER: the whirlpool catches Blobb. The scene rewinds to the last checkpoint.
+# The game cycles fail_1 to fail_4, then starts over.
+=== fail_1 ===
+Y: Nope. He swam right round it.
+O: Right round it. Of course he did.
+
+=== fail_2 ===
+Y: That's not what happened.
+O: What did happen?
+Y: He did a loop-the-loop. Then he went round it.
+
+=== fail_3 ===
+Y: Again!
+O: Again.
+
+=== fail_4 ===
+Y: Whirlpools can't catch Blobbs. Too fuzzy.
+O: Too fuzzy. I'll try to keep that in mind.
+
+
+# TRIGGER: the far end of the pond (column 80). Then we cut to the mill channel.
+=== deep_end ===
+O: At the far end of the pond stood the old mill, and under it the water ran in through a dark channel.
+  @gurgle
+Y: What's that noise?
+O: Something stuck in there, going round and round. Something yellow, and very cross.
+
+
+# ---------------------------------------------------------------------
+#  PART 2: THE MILL CHANNEL (move the water, the water moves the duck)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the mill scene starts (room 1). A rubber duck behind the fence.
+=== room1 ===
+Y: A duck! A rubber duck!
+O: A rubber duck, stuck behind the mill's old fence. And the warden would not stop whistling about it.
+  @whistle
+Y: Blobb can't get through the fence.
+O: No. But water can. The wheels open the spouts, and the levers turn the boards.
+Y: So Blobb moves the water, and the water moves the duck.
+# (hint appears: swim to a wheel or lever, Space to use it, R to start the room again)
+
+
+# TRIGGER: room 1 is solved. The duck pops up out of the water.
+=== duck_out ===
+O: Up went the duck, out of the water, into the air...
+Y: ...and onto the banana's head!
+  @duck_bonk
+O: The banana threw it straight back in.
+  @duck_back
+Y: BANANA!
+O: Grumpiness is catching.
+
+
+# TRIGGER: room 2 starts.
+=== room2 ===
+O: This time it landed deeper in, where three spouts all argue with each other.
+Y: Blobb's not scared of arguing.
+
+
+# TRIGGER: room 3 starts. The way out is a round hatch.
+=== room3 ===
+O: The last bit. Behind the mill, a round hatch led out to the shallow end.
+Y: The duck wants out. So does Blobb.
+
+
+# TRIGGER: in room 3, after a while (or a few presses). Until this plays, room 3 can't be solved.
+=== backwards ===
+Y: This is impossible. The water goes the wrong way.
+O: Water only goes one way. Downhill.
+Y: Not in my half. In my half, it can go backwards.
+  @reverse
+O: ...Backwards. Well. Turn a wheel twice and see what it does.
+# (hint appears: a wheel goes off, on, backwards)
+
+
+# TRIGGER: room 3 is solved.
+=== hatch ===
+O: Through the hatch went the duck. And Blobb, right behind it.
+
+
+# TRIGGER: the player restarts a room (R) for the first time.
+=== restart (ambient) ===
+Y: Start that bit again.
+O: From the top.
+
+
+# TRIGGER: through the hatch. Music fades, warm light, a drip.
+# Keep this ambiguous: nothing may suggest WHICH of them is unwell, or where they are.
+=== ending ===
+O: Through the hatch was the shallow end, where the sun had warmed the water all day.
+  @float_back
+O: Blobb floated on his back. The duck floated beside him, still cross.
+Y: Let's leave them there a while. In the warm bit.
+@pause 1.8
+Y: ...Lost my words. Where was I?
+O: Watching bubbles, I think. Both of us.
+Y: Where do bubbles go when they pop?
+@pause 1.2
+O: Up. Into the air. Everywhere, a little.
+Y: ...Everywhere. Okay.
+  @fade_to_black
+@pause 1.4
+Y: Tomorrow, lights. Lots of them. At night, from up high.
+O: You bring the lights. I'll bring the night.
+# (silence... two quiet beeps... then the chapter card)
+
+
+# =====================================================================
+#  Effects used in this chapter (what each @effect does)
+# ---------------------------------------------------------------------
+#  @pond_clear         the murky pond turns clear and sunny
+#  @sink               Blobb gets heavy and sinks (walks along the bottom)
+#  @swim_unlock        Blobb can swim in every direction
+#  @blobb_blue         Blobb turns blue in the cold water
+#  @whistle            the warden banana blows its whistle
+#  @gurgle             something gurgles in the mill channel
+#  @duck_bonk          the duck lands on the banana's head
+#  @duck_back          the banana throws the duck back in
+#  @reverse            a wheel can now run its spout backwards (room 3)
+#  @float_back         Blobb rolls onto his back and floats
+#  @fade_to_black      the screen slowly fades to black
+# =====================================================================

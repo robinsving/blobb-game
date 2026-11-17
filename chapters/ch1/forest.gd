@@ -106,36 +106,13 @@ func _fail() -> void:
 	player.sprite.set_form("normal")
 	player.visible = false
 	player.teleport(_checkpoint)
-	var scribble := _scribble(_checkpoint + Vector2(0, -70))
+	var scribble := Retell.scribble(self, _checkpoint + Vector2(0, -70))
 	await story.play(scene, self)
-	if scribble:
-		var tw := create_tween()
-		tw.tween_property(scribble, "scale", scribble.scale * 1.15, 0.12)
-		tw.tween_property(scribble, "modulate:a", 0.0, 0.25)
-		tw.tween_callback(scribble.queue_free)
+	Retell.clear(scribble)
 	player.visible = true
 	player.sprite.flash(0.6)
 	Game.sfx("pop", -6.0)
 	_retelling = false
-
-
-## "That's not what happened": while the younger narrator takes it back, the big grey scribble
-## from the original drawing covers the spot where Blobb will be re-drawn. The caller removes it.
-func _scribble(pos: Vector2) -> Sprite2D:
-	const TEX := "res://assets/sprites/drawn_scribble.png"
-	if not ResourceLoader.exists(TEX):
-		return null
-	var s := Sprite2D.new()
-	s.texture = load(TEX)
-	s.position = pos
-	s.rotation = randf_range(-0.4, 0.4)
-	s.z_index = 5
-	add_child(s)
-	var k := 320.0 / s.texture.get_height()
-	s.scale = Vector2.ONE * k * 0.2
-	var tw := create_tween()
-	tw.tween_property(s, "scale", Vector2.ONE * k, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	return s
 
 
 func _on_banana_bump() -> void:

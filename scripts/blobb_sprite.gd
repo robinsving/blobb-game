@@ -7,6 +7,9 @@ const FRAME_W := 321
 ## Blobb's "official" colour since the narrators settled it in ch1 ("He's green!").
 const GREEN := Color(0.62, 0.85, 0.32)
 const GREEN_AMOUNT := 0.5
+## Cold-water Blobb (ch2). The drawn blue figure is pale, so the tint does most of the work.
+const BLUE := Color(0.42, 0.66, 1.0)
+const BLUE_AMOUNT := 0.7
 const STRIPS := {
 	"idle": ["res://assets/sprites/blobb_idle.png", 24.0, true],
 	"run": ["res://assets/sprites/blobb_running.png", 40.0, true],
@@ -19,7 +22,7 @@ const STRIPS := {
 ## shown, the animated strips are hidden and the drawn figure breathes gently instead.
 const FORMS := {
 	"grumpy": "res://assets/sprites/drawn_grumpy.png",   # spiky dark crown, angry brows, jagged teeth
-	"blue": "res://assets/sprites/drawn_blue.png",       # blue, open-mouthed (planned: ch2 swimming)
+	"blue": "res://assets/sprites/drawn_blue.png",       # blue, open-mouthed (ch2: pair with set_tint(BLUE))
 	"dash": "res://assets/sprites/drawn_dash.png",       # green blur + speed lines (planned: ch3 rooftop chase)
 	"ball": "res://assets/sprites/drawn_ball.png",       # round scribble, no face (curled up / seen from above)
 	"drawn": "res://assets/sprites/drawn_blobb.png",     # the original classic Blobb, still
@@ -87,8 +90,8 @@ func set_form(name: String) -> void:
 			_drawn = Sprite2D.new()
 			add_child(_drawn)
 		_drawn.texture = load(FORMS[name])
-		# green forms get the same recolour as the animated Blobb so they match him; blue keeps its own colour
-		_drawn.use_parent_material = name != "blue"
+		# forms go through the same recolour shader as the animated Blobb (set_tint), so they match him
+		_drawn.use_parent_material = true
 		_drawn.visible = true
 		var k := FORM_HEIGHT / _drawn.texture.get_height()
 		_drawn.set_meta("k", k)

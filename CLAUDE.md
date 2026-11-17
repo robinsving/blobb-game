@@ -17,10 +17,12 @@ godot-flatpak --path .                                           # play without 
 godot-flatpak --path . -- --scene=res://chapters/ch1/forest.tscn # jump straight into a scene
 godot-flatpak --headless --path . --script res://tests/test_sokoban.gd   # puzzle rule tests (prints ALL TESTS PASSED / exit 1 on failure)
 godot-flatpak --headless --path . --script res://tests/test_story.gd     # validates every chapters/*/story.txt (run after editing dialogue)
+godot-flatpak --headless --path . --script res://tests/test_flow.gd      # ch2 mill-puzzle rules; checks each room's shortest solution (room 3 only with the "backwards" rule)
+godot-flatpak --path . -- --scene=res://chapters/ch2/pond.tscn           # chapter 2 (millpond, then chapters/ch2/mill.tscn)
 godot-flatpak -e --path .                                        # editor
 ```
 
-Debug user args (after `--`, parsed in `autoload/game.gd`): `--fast` (narration auto-advances quickly), `--lang=sv`, `--warp=COL` (forest: skip the intro and start at a tile column), `--autoplay` (crude platformer bot that runs right and jumps gaps), `--moves=RRUL…|DDR…` (clearing: auto-play box moves, one string per room), `--shots=DIR` (save a screenshot every 2 s), `--quit-after-secs=N`.
+Debug user args (after `--`, parsed in `autoload/game.gd`): `--fast` (narration auto-advances quickly), `--lang=sv`, `--warp=COL` (forest and pond: skip the intro and start at a tile column), `--autoplay` (bots: the forest one runs right and jumps gaps, the pond one swims right at mid-depth, and in the mill the rooms solve themselves), `--moves=RRUL…|DDR…` (clearing: auto-play box moves, one string per room), `--shots=DIR` (save a screenshot every 2 s), `--quit-after-secs=N`.
 
 Visual check without a window (llvmpipe under xvfb). The screenshot dir must be outside `/tmp`, because the flatpak sandbox has a private `/tmp`. Use `build/` (gitignored):
 
@@ -37,7 +39,8 @@ Python asset tools in `tools/` need numpy/scipy/pillow (use a venv; the system P
 - `key_superjump.py`: keys the beige-paper jump frames 24–32 into `assets/sprites/blobb_superjump.png` (the stretched, flying Blobb), colour-matched to the other strips.
 - `cut_drawing.py`: cuts the figures out of the original drawing into `assets/sprites/drawn_*.png` (see "Blobb's forms" in `docs/story.md`). Pass a path to also write a preview sheet.
 - `key_banana.py`: cuts out the banana creature. `make_tiled_bg.py`: mirror-tiles backgrounds into `assets/backgrounds/`.
-- `gen_audio.py`: synthesises all SFX and `music_forest.ogg` into `assets/audio/`.
+- `gen_audio.py`: synthesises ch1's SFX and `music_forest.ogg` into `assets/audio/`. `gen_audio_ch2.py` adds ch2's (whistle, drip, bubble, turn, flow, gurgle, `music_pool.ogg`) without touching ch1's.
+- `solve_flow.py`: BFS solver for the ch2 mill rooms. It mirrors `scripts/flow_room.gd`, so keep the two in sync. Run it after editing `chapters/ch2/flow_rooms.gd`, then update `SHORTEST` in `tests/test_flow.gd`.
 - `solve_sokoban.py`: BFS solver. Run it after editing any top-down room to prove it's solvable. Update the solutions in `tests/test_sokoban.gd` to match.
 
 ## Architecture
@@ -50,4 +53,12 @@ Python asset tools in `tools/` need numpy/scipy/pillow (use a venv; the system P
 - **CanvasLayer order matters.** World at 0, StyleFX 40, Game fade 55, Narrator 60, pause 90, chapter cards 101. The fade sits *below* the narrator so lines can play over black.
 - **Failure is a "retell".** There is no death. The younger narrator objects ("He didn't fall!"), StyleFX warbles, and the player is reset to the last checkpoint (`_fail()` in forest).
 - **Top-down puzzles.** `SokobanGrid` (`scripts/sokoban_grid.gd`) holds the pure rules (undo, water → bridge only when `crates_float`, gate opens when all plates are covered) and is mirrored by `tools/solve_sokoban.py`. Keep the two in sync. `scripts/clearing_board.gd` only renders.
-- **Generated art.** Requested from the `comfyui-0a` Claude session (ComfyUI image generation) and saved to `assets/gen/<chapter>/`. Code always checks `ResourceLoader.exists()` and falls back to existing or procedurally drawn art, so the game runs without them. After new files arrive, run the import command.
+- **Chapter 2.** It's set outdoors: a millpond, then the old mill's channel. `PlayerSwim` (`scripts/player_swim.gd`) has three modes: LAND on the bank, SINK (heavy, hops along the bottom) and SWIM (unlocked by the story). Each frame the level sets `player.flow` for currents, spring lifts and the whirlpool's pull. The mill puzzle is `FlowRoom` (`scripts/flow_room.gd`), which holds the pure rules:
+  - Spouts send streams that bend off boards.
+  - The duck moves one cell per tick along a stream, or floats up when no stream reaches it.
+  - Blobb uses wheels (spouts on/off, and backwards once the story allows it) and levers (flip boards) from behind a fence.
+  - It includes a BFS solver.
+
+  Rooms are in `chapters/ch2/flow_rooms.gd`, and `chapters/ch2/mill.gd` only renders and handles input. Retells in every level use `Retell.scribble()/clear()` (`scripts/retell.gd`).
+- **Listening speed.** While ambient narration plays, Blobb moves at `Game.LISTENING_SPEED` (40%), so the player can't race past what's being said. Player scripts multiply their speed by `Game.move_scale()`.
+- **Generated art.** Requested from the ComfyUI Claude session (a peer session named `comfyui-*`; find it with ListAgents) (ComfyUI image generation) and saved to `assets/gen/<chapter>/`. Code always checks `ResourceLoader.exists()` and falls back to existing or procedurally drawn art, so the game runs without them. After new files arrive, run the import command.

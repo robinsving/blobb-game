@@ -2,10 +2,12 @@ extends Control
 ## Title screen: Blobb idling on paper, a crayon-styled title, and a small keyboard/gamepad menu.
 
 const CH1 := "res://chapters/ch1/forest.tscn"
+const CH2 := "res://chapters/ch2/pond.tscn"
 
 var _begin: Button
 var _lang: Button
 var _quit: Button
+var _ch2: Button
 var _blobb: BlobbSprite
 var _t := 0.0
 
@@ -51,11 +53,13 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 8)
 	add_child(box)
 	_begin = _button(box, "begin", func(): Game.go(CH1))
+	if Game.unlocked_chapter >= 2:
+		_ch2 = _button(box, "chapter_2_btn", func(): Game.go(CH2))
 	_lang = _button(box, "language", func():
 		Game.cycle_locale()
 		_refresh())
 	_quit = _button(box, "quit", func(): get_tree().quit())
-	for b in [_begin, _lang, _quit]:
+	for b in _buttons():
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_color_override("font_color", Color(0.3, 0.24, 0.18))
 		b.add_theme_color_override("font_focus_color", Color(0.75, 0.3, 0.1))
@@ -75,8 +79,12 @@ func _button(parent: Node, key: String, cb: Callable) -> Button:
 	return b
 
 
+func _buttons() -> Array:
+	return [_begin, _ch2, _lang, _quit].filter(func(b): return b != null)
+
+
 func _refresh() -> void:
-	for b in [_begin, _lang, _quit]:
+	for b in _buttons():
 		b.text = Game.t(b.get_meta("key"))
 
 
