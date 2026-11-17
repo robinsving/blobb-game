@@ -21,6 +21,7 @@ godot-flatpak --headless --path . --script res://tests/test_flow.gd      # ch2 m
 godot-flatpak --path . -- --scene=res://chapters/ch2/pond.tscn           # chapter 2 (millpond, then chapters/ch2/mill.tscn)
 godot-flatpak --headless --path . --script res://tests/test_beams.gd     # ch3 rooftop light-bridge rules; checks each room's shortest solution
 godot-flatpak --path . -- --scene=res://chapters/ch3/city.tscn           # chapter 3 (town, then roofs.tscn, then chase.tscn)
+godot-flatpak --path . -- --scene=res://chapters/ch4/dream.tscn          # chapter 4 (the dreamscape and the short climb)
 godot-flatpak -e --path .                                        # editor
 ```
 
@@ -41,7 +42,7 @@ Python asset tools in `tools/` need numpy/scipy/pillow (use a venv; the system P
 - `key_superjump.py`: keys the beige-paper jump frames 24–32 into `assets/sprites/blobb_superjump.png` (the stretched, flying Blobb), colour-matched to the other strips.
 - `cut_drawing.py`: cuts the figures out of the original drawing into `assets/sprites/drawn_*.png` (see "Blobb's forms" in `docs/story.md`). Pass a path to also write a preview sheet.
 - `key_banana.py`: cuts out the banana creature. `make_tiled_bg.py`: mirror-tiles backgrounds into `assets/backgrounds/`.
-- `gen_audio.py`: synthesises ch1's SFX and `music_forest.ogg` into `assets/audio/`. `gen_audio_ch2.py` adds ch2's (whistle, drip, bubble, turn, flow, gurgle, `music_pool.ogg`) without touching ch1's. `gen_audio_ch3.py` adds ch3's (kick, hat, crank, lamp_on, coo, flap, `music_city.ogg`).
+- `gen_audio.py`: synthesises ch1's SFX and `music_forest.ogg` into `assets/audio/`. `gen_audio_ch2.py` adds ch2's (whistle, drip, bubble, turn, flow, gurgle, `music_pool.ogg`) without touching ch1's. `gen_audio_ch3.py` adds ch3's (kick, hat, crank, lamp_on, coo, flap, `music_city.ogg`). `gen_audio_ch4.py` makes `music_dream.ogg`.
 - `solve_flow.py`: BFS solver for the ch2 mill rooms. It mirrors `scripts/flow_room.gd`, so keep the two in sync. Run it after editing `chapters/ch2/flow_rooms.gd`, then update `SHORTEST` in `tests/test_flow.gd`.
 - `solve_beams.py`: BFS solver for the ch3 rooftop rooms. It mirrors `scripts/beam_room.gd`, so keep the two in sync. Run it after editing `chapters/ch3/beam_rooms.gd`, then update `SHORTEST` in `tests/test_beams.gd`. Its docstring explains the jump model (how far Blobb can jump, in cells) and the gap rule that keeps it honest.
 - `solve_sokoban.py`: BFS solver. Run it after editing any top-down room to prove it's solvable. Update the solutions in `tests/test_sokoban.gd` to match.
@@ -67,5 +68,6 @@ Python asset tools in `tools/` need numpy/scipy/pillow (use a venv; the system P
   - `chapters/ch3/city.gd`: a poster title page, then a side-view street (PlayerSide). Lamps come on, Blobb turns gold and back to green, a banana sweeper, the dash form over a canal, a drainpipe up.
   - `chapters/ch3/roofs.gd`: the light-bridge puzzle. `BeamRoom` (`scripts/beam_room.gd`) holds the pure rules plus a BFS solver: cranks turn rooftop lamps, and every beam becomes something to stand on (one-way collision; diagonal beams are 45° ramps, vertical beams are ladders of rungs). Rooms are in `chapters/ch3/beam_rooms.gd`.
   - `chapters/ch3/chase.gd`: an isometric rooftop chase drawn entirely in code (faux-3D Blobb, roofs, chimneys, birds, the hospital). One beat clock drives everything: Blobb's distance is the beat, so gaps arrive on the beat. The drum (kick and hat) crossfades into the monitor beep, then speeds up. Only Y speaks there (`LINES`, by beat). A hit never restarts the run: Blobb blinks (briefly unhittable), and a missed gap pops him back up with a hop.
+- **Chapter 4.** `chapters/ch4/dream.gd`: one short side-view scene. Blobb only walks (no pits, hazards or retells) past drifting props from earlier chapters, while StyleFX drifts between looks and never settles. Only Y speaks (`TRIGGERS`, by column). After "Wake up." `fx_mountain` lifts the mist off a few ledges; the climb brings the monitor beep back, uneven at the foot and even at the top, then the chapter card.
 - **Listening speed.** While ambient narration plays, Blobb moves at `Game.LISTENING_SPEED` (40%), so the player can't race past what's being said. Player scripts multiply their speed by `Game.move_scale()`.
 - **Generated art.** Requested from the ComfyUI Claude session (a peer session named `comfyui-*`; find it with ListAgents) (ComfyUI image generation) and saved to `assets/gen/<chapter>/`. Code always checks `ResourceLoader.exists()` and falls back to existing or procedurally drawn art, so the game runs without them. After new files arrive, run the import command.

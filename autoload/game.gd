@@ -60,6 +60,10 @@ const UI := {
 	"hint_dash": {"en": "Space / Ⓐ to jump the canal", "sv": "Mellanslag / Ⓐ för att hoppa över kanalen"},
 	"hint_roofs": {"en": "E / Ⓑ at a crank turns its lamp · R starts the roof again", "sv": "E / Ⓑ vid en vev vrider dess lampa · R börjar om taket"},
 	"hint_chase": {"en": "← → change lanes · Space / Ⓐ jump on the beat", "sv": "← → byt fil · Mellanslag / Ⓐ hoppa i takt"},
+	"chapter_4_btn": {"en": "Chapter 4", "sv": "Kapitel 4"},
+	"chapter_4": {"en": "Chapter 4", "sv": "Kapitel 4"},
+	"chapter_4_name": {"en": "The Other Half", "sv": "Den andra halvan"},
+	"chapter_end_4": {"en": "End of chapter four.", "sv": "Slut på kapitel fyra."},
 }
 
 const SFX_NAMES := ["jump", "blip_old", "blip_young", "pop", "push", "splash", "plate", "gate",
