@@ -3,11 +3,13 @@ extends Control
 
 const CH1 := "res://chapters/ch1/forest.tscn"
 const CH2 := "res://chapters/ch2/pond.tscn"
+const CH3 := "res://chapters/ch3/city.tscn"
 
 var _begin: Button
 var _lang: Button
 var _quit: Button
 var _ch2: Button
+var _ch3: Button
 var _blobb: BlobbSprite
 var _t := 0.0
 
@@ -55,6 +57,8 @@ func _ready() -> void:
 	_begin = _button(box, "begin", func(): Game.go(CH1))
 	if Game.unlocked_chapter >= 2:
 		_ch2 = _button(box, "chapter_2_btn", func(): Game.go(CH2))
+	if Game.unlocked_chapter >= 3:
+		_ch3 = _button(box, "chapter_3_btn", func(): Game.go(CH3))
 	_lang = _button(box, "language", func():
 		Game.cycle_locale()
 		_refresh())
@@ -80,7 +84,7 @@ func _button(parent: Node, key: String, cb: Callable) -> Button:
 
 
 func _buttons() -> Array:
-	return [_begin, _ch2, _lang, _quit].filter(func(b): return b != null)
+	return [_begin, _ch2, _ch3, _lang, _quit].filter(func(b): return b != null)
 
 
 func _refresh() -> void:

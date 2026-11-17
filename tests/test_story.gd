@@ -43,6 +43,14 @@ func _check_chapter(base: String) -> void:
 	if tm:
 		for m in RegEx.create_from_string("\"([a-z0-9_]+)\"").search_all(tm.get_string(1)):
 			_check(story.has_scene(m.get_string(1)), "%s: trigger scene '%s' missing" % [base, m.get_string(1)])
+	# beat tables: {beat: "scene"} in LINES (ch3 chase)
+	var lines := RegEx.create_from_string("const LINES := \\{([^}]*)\\}").search(code)
+	if lines:
+		for m in RegEx.create_from_string("\"([a-z0-9_]+)\"").search_all(lines.get_string(1)):
+			_check(story.has_scene(m.get_string(1)), "%s: beat scene '%s' missing" % [base, m.get_string(1)])
+	if code.contains("\"chase_fail_%d\""):
+		for i in range(1, 4):
+			_check(story.has_scene("chase_fail_%d" % i), "%s: chase_fail_%d missing" % [base, i])
 	if code.contains("\"fail_%d\""):
 		for i in range(1, 5):
 			_check(story.has_scene("fail_%d" % i), "%s: fail_%d missing" % [base, i])

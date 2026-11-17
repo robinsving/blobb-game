@@ -1,0 +1,225 @@
+# =====================================================================
+#  BLOBB, Chapter 3: Lights
+# =====================================================================
+#
+#  Same format as chapters/ch1/story.txt (see its header):
+#   === name ===   scene (blocking)      === name (ambient) ===   player keeps control
+#   O: / Y:        older / younger narrator     sv: optional Swedish line
+#     @effect      runs fx_effect() on the level after the line above has typed
+#     @hold 0.6    extra wait after a line      @pause 0.8   silence before the next line
+#
+#  Rules (docs/story.md): equals building a story half each, never parent/child. No family
+#  words, no bedtime or caretaker talk, nobody asks permission, reassures or grants. Never
+#  mention drawing, crayons, paper or pencils. Blobb is "he".
+#  This chapter is where the frame starts to show. O drifts (forgets Blobb's colour), then
+#  goes silent for the whole rooftop chase: Y talks alone, keeps leaving gaps for O's half,
+#  and finally calls for help. The beat under the chase turns into a monitor beep.
+#
+#  Scene names must match the level code:
+#    city:  chapters/ch3/city.gd    (TRIGGERS table = tile columns)
+#    roofs: chapters/ch3/roofs.gd   (the light-bridge rooms)
+#    chase: chapters/ch3/chase.gd   (LINES table = beats)
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+#  PART 1: THE TOWN AT NIGHT (side view)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the chapter starts, over the poster. Then the street fades in at dusk.
+=== intro ===
+O: Now. Where had we got to?
+Y: Lights. Lots of them. And you were bringing the night.
+O: So I was. The river carried Blobb all the way into town, and the sun went down behind the roofs.
+  @nightfall
+O: There. One night, as promised. Deep and blue, with the stars put in.
+Y: Too dark. My half: lights.
+  @lamps_on
+Y: There. And there. And THERE.
+O: One by one, all the way down the street.
+# (hint appears: walk)
+
+
+# TRIGGER: Blobb walks into the light of the first lamps (column 12).
+# O's crack: the colour slips. Settled in ch1 ("He's green!"), now it's forgotten.
+=== glow ===
+O: Under the lamps, Blobb's fuzz shone like honey. Gold, all over.
+  @blobb_yellow
+Y: Wait. Wasn't he green?
+@pause 1.4
+O: ...Was he?
+Y: Green. We said. Ages ago.
+O: Green. Of course he was. I don't know where yellow came from.
+  @blobb_green
+Y: Green, but shiny. Both.
+  @blobb_shine
+
+
+# TRIGGER: the sweeper's corner (column 30).
+=== sweeper (ambient) ===
+O: Halfway down the street, someone was sweeping. Someone small, and yellow, and cross.
+Y: The banana! He's got ANOTHER job!
+O: "No loitering," said the banana.
+Y: He's not loitering. He's walking.
+
+
+# TRIGGER: the banana's broom catches Blobb for the first time.
+=== banana_bump (ambient) ===
+Y: Hey! Sweep round him!
+
+
+# TRIGGER: the open stretch before the canal (column 46).
+=== dash ===
+Y: Then Blobb ran. So fast he went all blurry.
+  @dash
+O: A green streak, all down the high street.
+# (hint appears: run and jump the canal)
+
+
+# TRIGGER: the pigeons on the shop sign (column 66).
+=== pigeons (ambient) ===
+Y: Pigeons. Asleep.
+O: Pigeons sleep standing up, with one eye open.
+Y: Shh. Don't wake them.
+
+
+# TRIGGER: Blobb falls into the canal. The scene rewinds to the last checkpoint.
+# The game cycles fail_1 to fail_4 here and on the roofs.
+=== fail_1 ===
+Y: Nope. He didn't fall.
+O: Didn't he?
+Y: He jumped further. Much further.
+
+=== fail_2 ===
+O: And down he went...
+Y: Up. He went UP. Again.
+
+=== fail_3 ===
+Y: Again!
+O: Again.
+
+=== fail_4 ===
+Y: Blobbs don't fall. They bounce.
+O: They bounce. I'll try to keep that in mind.
+
+
+# TRIGGER: the drainpipe at the end of the street (column 84). Then up to the roofs.
+=== climb ===
+O: At the end of the street, an old drainpipe went all the way up to the roofs.
+Y: Up! Lights from up high, that was the deal.
+  @climb
+
+
+# ---------------------------------------------------------------------
+#  PART 2: THE ROOFTOPS (light is solid)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the roofs scene starts (room 1).
+=== roofs ===
+O: Up on the roofs, the whole town was lit up below.
+Y: Told you. Lights from up high.
+O: But the roofs had gaps between them. Too wide, even for a super jump.
+Y: Then the lights help. In my half, light is solid. You can walk on it.
+  @solid_light
+O: Solid light. Mind your step on it, then.
+# (hint appears: cranks turn the lamps)
+
+
+# TRIGGER: room 2 starts.
+=== room2 ===
+O: The next roof had two lamps, and they didn't agree about anything.
+Y: Stand on one. Turn the other.
+
+
+# TRIGGER: room 3 starts.
+=== room3 ===
+O: The last roof. Chimneys in the way, and a long way down.
+Y: Light goes through chimneys.
+O: It doesn't, you know.
+Y: ...Fine. Climb them, then.
+
+
+# TRIGGER: the player restarts a roof (R) for the first time.
+=== restart (ambient) ===
+Y: That roof again.
+O: From the top.
+
+
+# TRIGGER: room 3 is solved. O's last line breaks off; Y finishes it alone.
+# From here on, O says nothing.
+=== birds ===
+Y: Look. All of it. Every light in the whole town.
+O: And up on the roofs, the birds were...
+@pause 2.2
+Y: The birds were what?
+@pause 1.6
+Y: ...Waking up. The birds were waking up.
+  @birds_wake
+Y: And they were ANGRY.
+
+
+# ---------------------------------------------------------------------
+#  PART 3: THE CHASE (isometric rooftops, on the beat)
+#  Only Y speaks. Lines fire at beats (chase.gd LINES). The beat slowly
+#  becomes a monitor beep, then speeds up.
+# ---------------------------------------------------------------------
+
+=== chase_go (ambient) ===
+Y: Run, Blobb! Jump on the beat!
+
+=== chase_1 (ambient) ===
+Y: He's faster than the birds. They're SO slow.
+
+=== chase_2 (ambient) ===
+Y: Your turn.
+@pause 1.6
+Y: ...Your half!
+
+=== chase_3 (ambient) ===
+Y: You're doing the quiet thing again.
+
+=== chase_4 (ambient) ===
+Y: Say the birds are slow. Say it.
+
+=== chase_5 (ambient) ===
+Y: What's that noise?
+
+=== chase_6 (ambient) ===
+Y: What is going on?
+
+=== chase_7 (ambient) ===
+Y: Why is it so fast?
+
+# TRIGGER: Blobb falls or a bird catches him. Nobody answers now.
+=== chase_fail_1 (ambient) ===
+Y: He didn't fall. He didn't.
+
+=== chase_fail_2 (ambient) ===
+Y: Again. ...Again.
+
+=== chase_fail_3 (ambient) ===
+Y: Not like that. Tell it right.
+
+# TRIGGER: the last roof. The tall building with the lit sign fills the view.
+# Silence after this: the beeps stop, a slow fade to white, then the chapter card.
+=== help ===
+Y: ...Help.
+@pause 1.2
+Y: HELP!
+  @white_out
+
+
+# =====================================================================
+#  Effects used in this chapter (what each @effect does)
+# ---------------------------------------------------------------------
+#  @nightfall      dusk turns to deep blue night
+#  @lamps_on       the street lamps come on one by one
+#  @blobb_yellow   Blobb turns gold in the lamplight
+#  @blobb_green    Blobb goes back to green
+#  @blobb_shine    green, with a soft glow near the lamps
+#  @dash           Blobb runs blurry-fast for a while (the dash form from the original drawing)
+#  @climb          Blobb climbs the drainpipe; on to the roofs
+#  @solid_light    lamp beams become solid (walkable)
+#  @birds_wake     the pigeons wake and take off; on to the chase
+#  @white_out      slow fade to white, the beeps stop
+# =====================================================================

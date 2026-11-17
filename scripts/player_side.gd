@@ -15,6 +15,10 @@ const STRONG_JUMP := -1060.0
 const SPRITE_SCALE := 0.42
 
 var jump_velocity := WEAK_JUMP
+## Extra run speed set by a level (ch3's dash).
+var speed_mul := 1.0
+## The --autoplay run-right bot. Levels with their own test bot (ch3 roofs) turn it off.
+var use_bot := true
 var sprite: BlobbSprite
 var _pivot: Node2D
 var _coyote := 0.0
@@ -49,12 +53,12 @@ func _physics_process(delta: float) -> void:
 	var dir := 0.0
 	if not Game.control_locked and _knock <= 0.0:
 		dir = Input.get_axis("left", "right")
-		if Game.autoplay:
+		if Game.autoplay and use_bot:
 			dir = 1.0
 	_knock -= delta
 
 	if _knock <= 0.0:
-		var target := dir * SPEED * Game.move_scale()
+		var target := dir * SPEED * speed_mul * Game.move_scale()
 		var rate := ACCEL if dir != 0.0 else FRICTION
 		velocity.x = move_toward(velocity.x, target, rate * delta)
 
@@ -64,7 +68,7 @@ func _physics_process(delta: float) -> void:
 		_coyote -= delta
 		velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
 
-	if not Game.control_locked and (Input.is_action_just_pressed("jump") or (Game.autoplay and _bot_wants_jump())):
+	if not Game.control_locked and (Input.is_action_just_pressed("jump") or (Game.autoplay and use_bot and _bot_wants_jump())):
 		_buffer = 0.13
 	_buffer -= delta
 	if _buffer > 0.0 and _coyote > 0.0:

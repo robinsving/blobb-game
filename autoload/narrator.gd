@@ -183,7 +183,7 @@ func _type_line(line: Dictionary) -> void:
 	icon.modulate.a = 1.0
 	icon.pop()
 	# dim the other voice only if it is currently showing (not a faded line from an earlier scene)
-	if other.modulate.a > 0.05:
+	if other.modulate.a > 0.05 and other.text != "" and other_icon.modulate.a > 0.05:
 		var dim := create_tween().set_parallel()
 		dim.tween_property(other, "modulate:a", 0.38, 0.25)
 		dim.tween_property(other_icon, "modulate:a", 0.38, 0.25)

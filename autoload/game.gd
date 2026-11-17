@@ -7,10 +7,12 @@ extends Node
 ##   --lang=sv                                force language
 ##   --shots=DIR                              save a screenshot every 2s into DIR (for visual checks)
 ##   --quit-after-secs=N                      quit after N seconds
-##   --warp=N                                 (forest, pond) skip the intro and start at tile column N
+##   --warp=N                                 (forest, pond, city) skip the intro and start at tile column N;
+##                                            (chase) start at beat N
 ##   --moves=RRUL|DDR..                       (clearing) auto-play box-pusher moves, one string per room
 ##   --autoplay                               crude bot: platformer runs right & jumps gaps; pond swims right;
-##                                            mill rooms solve themselves (for screenshots)
+##                                            mill and roof rooms solve themselves; the chase bot jumps
+##                                            and dodges (for screenshots)
 
 signal locale_changed
 
@@ -51,11 +53,19 @@ const UI := {
 	"hint_swim": {"en": "Arrows to swim"},
 	"hint_mill": {"en": "Arrows to swim · Space / Ⓐ at a wheel or lever · R starts the room again"},
 	"hint_backwards": {"en": "A wheel now goes: off → on → backwards"},
+	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
+	"chapter_3": {"en": "Chapter 3", "sv": "Kapitel 3"},
+	"chapter_3_name": {"en": "Lights"},
+	"chapter_end_3": {"en": "End of chapter three."},
+	"hint_dash": {"en": "Space / Ⓐ to jump the canal"},
+	"hint_roofs": {"en": "E / Ⓑ at a crank turns its lamp · R starts the roof again"},
+	"hint_chase": {"en": "← → change lanes · Space / Ⓐ jump on the beat"},
 }
 
 const SFX_NAMES := ["jump", "blip_old", "blip_young", "pop", "push", "splash", "plate", "gate",
 	"rewind", "whoosh", "beep", "shrink", "rumble", "bonk", "land", "grow", "chime",
-	"whistle", "drip", "bubble", "turn", "flow", "gurgle"]
+	"whistle", "drip", "bubble", "turn", "flow", "gurgle",
+	"kick", "hat", "crank", "lamp_on", "coo", "flap"]
 
 var _sfx := {}
 var _fade_layer: CanvasLayer
@@ -313,6 +323,7 @@ func _setup_input() -> void:
 	_action("down", [KEY_DOWN, KEY_S], [JOY_BUTTON_DPAD_DOWN], JOY_AXIS_LEFT_Y, 1.0)
 	_action("jump", [KEY_SPACE, KEY_UP, KEY_W], [JOY_BUTTON_A])
 	_action("advance", [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_E], [JOY_BUTTON_A, JOY_BUTTON_B])
+	_action("use", [KEY_E, KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_B])
 	_action("undo", [KEY_Z, KEY_BACKSPACE], [JOY_BUTTON_X])
 	_action("restart", [KEY_R], [JOY_BUTTON_Y])
 	_action("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START])
