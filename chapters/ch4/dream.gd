@@ -425,19 +425,30 @@ func _draw_mountain() -> void:
 	var x0 := LEDGES[0][0] * TILE - 200.0
 	var gy := GROUND_ROW * TILE
 	if ResourceLoader.exists(ART + "mountain.png"):
-		pass  # the painted peak is a Sprite2D child (see _build_world); only the ledges are drawn here
+		# the painting has the ledges in it, lined up with LEDGES (see build/mountain_guide.png in
+		# git history: tops at image rows 1610/1457/1303/1150/996). Only the top ledge runs on past
+		# the painting's right edge, so draw that bit.
+		var edge := LEDGES[0][0] * TILE - 80.0 + 1400.0 * 1500.0 / 1800.0
+		var l: Array = LEDGES[-1]
+		_ledge(Rect2(edge - 2.0, l[2] * TILE, (l[1] + 1) * TILE - edge + 2.0, (GROUND_ROW - l[2]) * TILE))
+		return
 	else:
 		_mountain.draw_colored_polygon(PackedVector2Array([Vector2(x0, gy), Vector2(x0 + 700, gy - 1250), Vector2(x0 + 900, gy - 1150),
 			Vector2(x0 + 1500, gy)]), Color(0.66, 0.68, 0.8))
 		_mountain.draw_colored_polygon(PackedVector2Array([Vector2(x0 + 640, gy - 1140), Vector2(x0 + 700, gy - 1250),
 			Vector2(x0 + 780, gy - 1180), Vector2(x0 + 720, gy - 1150)]), Color(0.96, 0.96, 1.0))
 	for l in LEDGES:
-		var r := Rect2(l[0] * TILE, l[2] * TILE, (l[1] - l[0] + 1) * TILE, (GROUND_ROW - l[2]) * TILE)
-		# rock in the painted mountain's colours: lavender body, a warm lit top, a cool shadow side
-		_mountain.draw_rect(r, Color(0.7, 0.6, 0.78))
-		_mountain.draw_rect(Rect2(r.position, Vector2(r.size.x, 18)), Color(0.98, 0.84, 0.78))
-		_mountain.draw_rect(Rect2(r.position + Vector2(0, 18), Vector2(r.size.x, 10)), Color(0.86, 0.7, 0.76))
-		_mountain.draw_rect(Rect2(r.position + Vector2(r.size.x - 14, 18), Vector2(14, r.size.y - 18)), Color(0.56, 0.48, 0.66))
+		_ledge(Rect2(l[0] * TILE, l[2] * TILE, (l[1] - l[0] + 1) * TILE, (GROUND_ROW - l[2]) * TILE))
+
+
+## One drawn ledge, in the painted mountain's colours: lavender rock, a warm lit top, a cool side.
+func _ledge(r: Rect2) -> void:
+	_mountain.draw_rect(r, Color(0.79, 0.67, 0.76))
+	for i in range(1, int(r.size.y / 34.0)):
+		_mountain.draw_rect(Rect2(r.position + Vector2(0, 18 + i * 34.0), Vector2(r.size.x, 3)), Color(0.72, 0.6, 0.72, 0.6))
+	_mountain.draw_rect(Rect2(r.position, Vector2(r.size.x, 22)), Color(0.98, 0.9, 0.82))
+	_mountain.draw_rect(Rect2(r.position + Vector2(0, 22), Vector2(r.size.x, 4)), Color(0.93, 0.74, 0.7))
+	_mountain.draw_rect(Rect2(r.position + Vector2(r.size.x - 14, 26), Vector2(14, r.size.y - 26)), Color(0.66, 0.55, 0.68))
 
 
 ## Mist: a low band along the path, and a thick wall hiding the mountain until @mountain.
