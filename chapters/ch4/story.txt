@@ -1,0 +1,113 @@
+# =====================================================================
+#  BLOBB, Chapter 4: The Other Half
+# =====================================================================
+#
+#  Format: see chapters/ch1/story.txt.
+#
+#  A short dreamscape. No puzzles, no danger, no retells: Blobb only walks,
+#  on a path that keeps quietly looping, through a soft world that never
+#  settles on one style. Bits of the earlier chapters drift past.
+#
+#  ONLY Y SPEAKS. O never answers; every gap Y leaves is O's half, empty.
+#  For the first time Y's rules do nothing: the story only works with both
+#  halves. Y slowly stops talking about Blobb and starts talking to O.
+#  The family word at the very end is the one place the game breaks the
+#  "no family words" rule (the director's decision; see docs/story.md).
+#
+#  Ending: "...Dad?" / "Wake up." Then the mountain, and a short, simple
+#  climb: this is O climbing back to consciousness. The monitor beep comes
+#  back as Blobb climbs, faint and uneven at the foot, steadier with every
+#  ledge, slow and normal at the top. (ch5 is the real climb, later.)
+#
+#  Scene names must match the level code (not built yet):
+#    dream: chapters/ch4/dream.gd   (TRIGGERS table = distance walked)
+# =====================================================================
+
+
+# TRIGGER: the chapter starts, out of ch3's white. The white thins into
+# a pale, soft world. Blobb is already standing there. No O opening line.
+=== intro (ambient) ===
+@pause 2.0
+Y: ...Hello?
+  sv: ...Hallå?
+@pause 2.5
+Y: Where had we got to?
+  sv: Var var vi någonstans?
+@pause 2.0
+Y: That's your line. You always say that.
+  sv: Det är din replik. Det säger du alltid.
+
+# TRIGGER: Blobb has walked a little way.
+=== roofs (ambient) ===
+Y: Blobb was running. On the roofs. And then...
+  sv: Blobb sprang. På taken. Och sen...
+@pause 2.5
+Y: I don't know the next bit. That's your half.
+  sv: Jag kan inte nästa bit. Det är din halva.
+
+# TRIGGER: a patch of moss drifts past, glowing a little.
+=== moss (ambient) ===
+Y: Once, in the days when the moss was still young...
+  sv: En gång, på den tiden när mossan fortfarande var ung...
+@pause 2.0
+Y: That's how you start it. You do it better.
+  sv: Det är så du börjar. Du gör det bättre.
+
+# TRIGGER: Y tries a rule. NOTHING happens: no change of light, no effect.
+# The silence after it matters; don't fill it.
+=== morning (ambient) ===
+Y: In my half, it's morning.
+  sv: I min halva är det morgon.
+@pause 2.5
+Y: In my half, it's MORNING.
+  sv: I min halva är det MORGON.
+@pause 3.0
+Y: ...It's not working.
+  sv: ...Det funkar inte.
+
+# TRIGGER: the rubber duck floats by in mid-air, still cross.
+=== duck (ambient) ===
+Y: The duck. He's still cross.
+  sv: Ankan. Han är fortfarande arg.
+@pause 1.5
+Y: Say something cross back. You always do.
+  sv: Säg nåt surt tillbaka. Det gör du alltid.
+
+# TRIGGER: a street lamp from ch3 stands alone on the path, lit.
+=== lamp (ambient) ===
+Y: I left the lights on. For you.
+  sv: Jag lät ljusen vara tända. För din skull.
+
+# TRIGGER: the path has quietly looped; the same stump/lamp comes round again.
+=== again (ambient) ===
+Y: We've been here before.
+  sv: Här har vi varit förut.
+@pause 2.0
+Y: Blobb's just walking. He doesn't know where. You have to tell him.
+  sv: Blobb bara går. Han vet inte vart. Du måste säga det till honom.
+
+# TRIGGER: the last stretch. The world goes very quiet and plain.
+# Short lines, long gaps.
+=== ending ===
+@pause 2.5
+Y: ...Dad?
+  sv: ...pappa?
+@pause 3.0
+Y: Wake up.
+  sv: Pappa, vakna.
+  @hold 2.0
+  @mountain
+
+# At the top of the short climb nobody speaks: a few seconds of the slow,
+# even beep (the answer), then the chapter card. No scene needed.
+
+
+# =====================================================================
+#  Effects used in this chapter (what each @effect does)
+# ---------------------------------------------------------------------
+#  @mountain      the mist ahead thins: a mountain, and a short climb up its
+#                 first ledges (simple jumps, no falling off, no retells).
+#                 The beep comes back as Blobb climbs, faint and uneven at
+#                 the foot and steadier with every ledge, until it's slow and
+#                 normal at the top. It keeps going under the chapter card.
+# =====================================================================
