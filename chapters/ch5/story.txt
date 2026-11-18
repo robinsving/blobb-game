@@ -1,0 +1,279 @@
+# =====================================================================
+#  BLOBB, Chapter 5: The Climb   (DRAFT: the level isn't built yet)
+# =====================================================================
+#
+#  Format: see chapters/ch1/story.txt.
+#
+#  The last chapter. Up the mountain from where ch4 ended, from night
+#  through blue hour to sunrise. It ends hopeful: O recovers.
+#
+#  O COMES BACK, FAINT. At the foot O only manages fragments and Y fills
+#  the gaps (often with O's own words). The lines grow as Blobb climbs;
+#  the dry humour returns; halfway up O makes a rule of O's own for the
+#  first time. By the top they're equals again, half each, which is
+#  exactly what failed in ch4. Lighter again: jokes and playful retells
+#  come back, from both voices now.
+#
+#  No family words: ch4's "...Dad?" was the one break. They're back to
+#  being two story-tellers. No caretaking, no reassurance, no permission.
+#
+#  Mechanics (docs/story.md):
+#    heartbeat ledges  on each monitor beat some ledges kick up like a
+#                      springboard; jump on the beat to go higher. The beat
+#                      is uneven at the foot and steadies as O recovers.
+#    stretch & swing   glowing holds (roots, pegs; stars near the top).
+#                      Near one, press a button: Blobb stretches to it and
+#                      swings; let go to fling. Unlocked by O's rule.
+#
+#  Effects are written as comments ("#  @name") until the level code has
+#  its fx_ methods; then they become real @ lines. Planned effects are
+#  listed at the bottom.
+#
+#  Scene names will match the level code (chapters/ch5/climb.gd, with a
+#  TRIGGERS table of heights or columns).
+# =====================================================================
+
+
+# ---------------------------------------------------------------------
+#  PART 1: THE FOOT  (night; the beat uneven; O in fragments)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the chapter starts on the ledges where ch4 ended. Night, the
+# slow, even beep from ch4's last seconds. Blocking: this is O's return.
+=== intro ===
+@pause 2.0
+O: ...Where...
+  sv: ...Var...
+@pause 2.0
+O: ...had...
+  sv: ...var vi...
+Y: ...had we got to. That's your line. You're back.
+  sv: ...någonstans. Det är din replik. Du är tillbaka.
+@pause 1.5
+O: Was I... away?
+  sv: Var jag... borta?
+Y: A bit. Blobb waited.
+  sv: Lite grann. Blobb väntade.
+O: ...Good of him.
+  sv: ...Hyggligt av honom.
+
+
+# TRIGGER: the first heartbeat ledge (a few steps in). It kicks on each
+# beat, unevenly.
+=== heartbeat (ambient) ===
+Y: Listen. The mountain has a heartbeat.
+  sv: Lyssna. Berget har hjärtslag.
+@pause 1.5
+O: ...An uneven one.
+  sv: ...Ett ojämnt.
+Y: Then jump when it beats. Not before.
+  sv: Då hoppar man när det slår. Inte före.
+
+
+# TRIGGER: a patch of moss on a ledge (the same glowing moss as ch4).
+=== moss (ambient) ===
+O: Once... in the days when...
+  sv: En gång... på den tiden när...
+@pause 2.0
+Y: ...when the moss was still young. I know it now.
+  sv: ...när mossan fortfarande var ung. Jag kan den nu.
+O: You do it better.
+  sv: Du gör det bättre.
+Y: I don't. I just remembered it.
+  sv: Nix. Jag kom bara ihåg den.
+
+
+# TRIGGER: higher up the foot. O's first joke: the ch1 colour mix-up,
+# on purpose this time.
+=== colour (ambient) ===
+O: Blobb climbed on, purple as a...
+  sv: Blobb klättrade vidare, lila som en...
+Y: GREEN.
+  sv: GRÖN.
+O: ...Green. Just checking you were listening.
+  sv: ...Grön. Jag ville bara se om du lyssnade.
+Y: You weren't checking.
+  sv: Det ville du inte alls.
+@pause 1.0
+O: No.
+  sv: Nej.
+
+
+# ---------------------------------------------------------------------
+#  PART 2: THE MIDDLE  (blue hour; the beat steadier; O's rule)
+# ---------------------------------------------------------------------
+
+# TRIGGER: a ledge too high to reach, even off a heartbeat ledge on the
+# beat. A glowing root hangs above it. Blocking: O's first rule.
+=== rule ===
+Y: Too high. Even on the beat.
+  sv: För högt. Även i takt.
+O: Then... in my half...
+  sv: Då... i min halva...
+@pause 1.5
+O: In my half, Blobb is a good deal longer than he looks.
+  sv: I min halva är Blobb betydligt längre än han ser ut.
+#  @stretch      (stretch & swing unlocked; the hint shows the button)
+Y: That's a rule. You made a RULE.
+  sv: Det där är en regel. Du hittade på en REGEL.
+O: Somebody has to, now and then.
+  sv: Någon måste ju, då och då.
+Y: That's MY job.
+  sv: Det är MITT jobb.
+O: Half each.
+  sv: Hälften var.
+
+
+# TRIGGER: the first swing (Blobb lets go of the first hold).
+=== swing (ambient) ===
+Y: He's like a sock with a stone in it.
+  sv: Han är som en strumpa med en sten i.
+O: A very determined sock.
+  sv: En mycket beslutsam strumpa.
+
+
+# TRIGGER: the end of the middle stretch. The beat is regular now.
+=== steady (ambient) ===
+Y: It's beating properly now. Hear it?
+  sv: Nu slår det ordentligt. Hör du?
+@pause 1.0
+O: I hear it.
+  sv: Jag hör.
+
+
+# ---------------------------------------------------------------------
+#  PART 3: THE HIGH STRETCH  (the last stars; equals again)
+# ---------------------------------------------------------------------
+
+# TRIGGER: the high stretch starts. The holds up here are low stars.
+=== stars (ambient) ===
+O: Up here the stars hang so low you could hang a coat on one.
+  sv: Här uppe hänger stjärnorna så lågt att man kunde hänga en rock på dem.
+Y: Blobb hasn't got a coat.
+  sv: Blobb har ingen rock.
+O: Then he'll have to swing from one instead.
+  sv: Då får han väl svinga sig i en i stället.
+
+
+# TRIGGER: the pigeons from ch3 fly up alongside (friendly now; they
+# keep pace a while, then peel away toward the top).
+=== pigeons (ambient) ===
+Y: The pigeons! ...They're not chasing him.
+  sv: Duvorna! ...De jagar honom inte.
+O: They never were. They were keeping up.
+  sv: Det gjorde de aldrig. De höll bara jämna steg.
+Y: In my half they're showing him the way.
+  sv: I min halva visar de honom vägen.
+O: In mine they're arguing about it.
+  sv: I min grälar de om den.
+
+
+# TRIGGER: near the top, the last stars going out one by one.
+# The softened question (the director's decision). Long gaps; don't fill them.
+=== question (ambient) ===
+Y: Where do stories go when they end?
+  sv: Vart tar sagor vägen när de tar slut?
+@pause 2.5
+O: Up. Into the air. Everywhere, a little.
+  sv: Upp. Ut i luften. Lite överallt.
+Y: That's what you said about bubbles.
+  sv: Det sa du om bubblor.
+O: It's true of most things.
+  sv: Det stämmer på det mesta.
+@pause 2.0
+Y: In my half, this one doesn't end yet.
+  sv: I min halva tar den här inte slut än.
+O: ...In mine it goes on a good while.
+  sv: ...I min fortsätter den en bra stund till.
+Y: Good. That's both halves.
+  sv: Bra. Då är det båda halvorna.
+
+
+# ---------------------------------------------------------------------
+#  PART 4: THE SUMMIT, AND THE ROOM
+# ---------------------------------------------------------------------
+
+# TRIGGER: Blobb stands on the summit. Deep blue, one star left.
+# Blocking. Pays off ch4, where "In my half, it's morning." did nothing:
+# a rule only works with both halves.
+=== summit ===
+@pause 2.0
+Y: In my half, it's morning.
+  sv: I min halva är det morgon.
+@pause 2.5
+O: ...In mine too.
+  sv: ...I min också.
+#  @sunrise      (the sun comes up over the summit; the beep slow, even)
+#  @hold 3.0
+Y: It worked.
+  sv: Det funkade.
+O: It took both halves.
+  sv: Det krävdes båda halvorna.
+Y: It always does.
+  sv: Det gör det alltid.
+
+
+# TRIGGER: after the sunrise, a slow cross-fade to the real room in
+# morning light: two silhouettes, the window, and the drawing of Blobb
+# on the wall (assets/drawing.jpeg). The steady beep, quieter. Ambient,
+# short; then the end card.
+=== room (ambient) ===
+@pause 3.0
+O: Where had we got to?
+  sv: Var var vi någonstans?
+@pause 2.0
+Y: ...The other side of the forest.
+  sv: ...Andra sidan skogen.
+#  @hold 3.0
+#  @the_end      (end card)
+
+
+# ---------------------------------------------------------------------
+#  RETELLS (Blobb falls off the mountain; playful, from both voices now)
+# ---------------------------------------------------------------------
+
+# TRIGGER: falls 1-4, in turn.
+=== fail_1 (ambient) ===
+Y: He didn't fall!
+  sv: Han ramlade inte!
+O: He didn't. I'd remember.
+  sv: Nej. Det skulle jag minnas.
+Y: You'd forget.
+  sv: Du skulle glömma.
+O: Not that.
+  sv: Inte det.
+
+=== fail_2 (ambient) ===
+O: And then Blobb fell all the way down to...
+  sv: Och sen föll Blobb hela vägen ner till...
+Y: Nope.
+  sv: Nix.
+O: ...to a slightly lower ledge. And climbed straight back up.
+  sv: ...till en lite lägre avsats. Och klättrade genast upp igen.
+Y: Better.
+  sv: Bättre.
+
+=== fail_3 (ambient) ===
+Y: That was the mountain's fault.
+  sv: Det var bergets fel.
+O: Mountains have a great deal to answer for.
+  sv: Berg har mycket att stå till svars för.
+
+=== fail_4 (ambient) ===
+O: Again. From the last good bit.
+  sv: Igen. Från senaste bra biten.
+Y: The last good bit was ALL of it.
+  sv: Senaste bra biten var ALLTIHOP.
+
+
+# =====================================================================
+#  Effects planned for this chapter (become @ lines once the level has
+#  its fx_ methods)
+# ---------------------------------------------------------------------
+#  @stretch       stretch & swing unlocked (holds start to glow; hint)
+#  @sunrise       the sun comes up over the summit; sky to morning; the
+#                 beep slow and even, a little quieter
+#  @the_end       the end card (after the room)
+#  The beat itself (uneven at the foot, steadier at "steady", even at the
+#  top) is driven by height climbed, not by lines.
+# =====================================================================
