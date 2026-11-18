@@ -28,6 +28,11 @@ var _gate_told := false
 var _pancake := false
 var _done := false
 var _t := 0.0
+var _hint: HintMarker
+var _stuck_time := 0.0         # time in this room, across restarts
+var _restarts := 0
+var _nudged := false
+const NUDGE_SECS := 90.0       # stuck this long (or 2 restarts): the legend flashes, hint key and all
 var story := StoryScript.load_file("res://chapters/ch1/story.txt")
 
 
@@ -36,7 +41,7 @@ func _ready() -> void:
 	fx = StyleFX.new()
 	fx.set_look("crayon", 0.0)
 	add_child(fx)
-	_load_room(0)
+	_load_room(clampi(Game.warp - 1, 0, ROOMS.size() - 1) if Game.warp > 0 else 0)  # --warp=N: room N
 	_room_intro()
 	if Game.debug_moves != "":
 		_debug_play(Game.debug_moves)
@@ -66,9 +71,9 @@ func _room_intro() -> void:
 	if room == 0:
 		await get_tree().create_timer(0.8).timeout
 		await story.play("room1", self)
-		Narrator.hint(Game.t("hint_push"), 7.0)
 	else:
 		await story.play("room2", self)
+	Narrator.legend("hint_push")
 
 
 ## retry_dir: the push that bumped into the water; Blobb tries it again once crates float.
@@ -226,6 +231,13 @@ func _process(delta: float) -> void:
 	_t += delta
 	if _done or _moving or Game.control_locked:
 		return
+	_stuck_time += delta
+	if not _nudged and (_stuck_time > NUDGE_SECS or _restarts >= 2):
+		_nudged = true
+		Narrator.legend_nudge()
+	if Input.is_action_just_pressed("hint"):
+		_show_hint()
+		return
 	if Input.is_action_just_pressed("undo"):
 		_undo()
 		return
@@ -250,7 +262,30 @@ func _process(delta: float) -> void:
 		_move(dir)
 
 
+## The next box to push (and which way), with the way to walk there, worked out from the room as
+## it is now. Before the story has made crates float, the hint may be a push into the water,
+## which is exactly what makes them float.
+func _show_hint() -> void:
+	var moves := grid.solve(true)
+	if moves.is_empty():
+		Narrator.hint(Game.t("hint_stuck"), 5.0)
+		return
+	var p := grid.player
+	var trail := PackedVector2Array()
+	for d in moves:
+		var n: Vector2i = p + d
+		if grid.crates.has(n):
+			_hint = HintMarker.at(self, _cell_pos(n), CELL * 0.55, Vector2(d), trail, _hint)
+			return
+		trail.append(_cell_pos(n))
+		p = n
+	# no box left to push: just the way out
+	_hint = HintMarker.at(self, _cell_pos(p), CELL * 0.55, Vector2.ZERO, trail, _hint)
+
+
 func _move(dir: Vector2i) -> void:
+	if is_instance_valid(_hint):
+		_hint.queue_free()
 	if dir.x != 0 and player_sprite is BlobbSprite:
 		(player_sprite as BlobbSprite).face(dir.x)
 	var was_open := grid.gate_open()
@@ -315,6 +350,9 @@ func _undo() -> void:
 
 
 func _restart() -> void:
+	_restarts += 1
+	if is_instance_valid(_hint):
+		_hint.queue_free()
 	Game.sfx("rewind", -8.0)
 	fx.rewind_pulse(0.7)
 	while grid.undo():
@@ -341,6 +379,10 @@ func _sync_nodes() -> void:
 
 func _exit_room() -> void:
 	Game.control_locked = true
+	Narrator.legend("")
+	_stuck_time = 0.0
+	_restarts = 0
+	_nudged = false
 	if room + 1 < ROOMS.size():
 		Game.sfx("whoosh", -6.0)
 		await Game.fade_out(Color(0.1, 0.15, 0.08), 0.6)

@@ -1,5 +1,5 @@
 # =====================================================================
-#  BLOBB, Chapter 5: The Climb   (DRAFT: the level isn't built yet)
+#  BLOBB, Chapter 5: The Climb
 # =====================================================================
 #
 #  Format: see chapters/ch1/story.txt.
@@ -19,18 +19,15 @@
 #
 #  Mechanics (docs/story.md):
 #    heartbeat ledges  on each monitor beat some ledges kick up like a
-#                      springboard; jump on the beat to go higher. The beat
-#                      is uneven at the foot and steadies as O recovers.
+#                      springboard and launch Blobb (no timing needed). The
+#                      beat is uneven at the foot and steadies as O recovers.
 #    stretch & swing   glowing holds (roots, pegs; stars near the top).
 #                      Near one, press a button: Blobb stretches to it and
 #                      swings; let go to fling. Unlocked by O's rule.
 #
-#  Effects are written as comments ("#  @name") until the level code has
-#  its fx_ methods; then they become real @ lines. Planned effects are
-#  listed at the bottom.
-#
-#  Scene names will match the level code (chapters/ch5/climb.gd, with a
-#  TRIGGERS table of heights or columns).
+#  Scene names must match the level code (chapters/ch5/climb.gd: the
+#  TRIGGERS table is by height; "swing" plays after the first swing,
+#  "summit" on the top, "room" after it, fail_1..4 on a long fall).
 # =====================================================================
 
 
@@ -66,8 +63,8 @@ Y: Listen. The mountain has a heartbeat.
 @pause 1.5
 O: ...An uneven one.
   sv: ...Ett ojämnt.
-Y: Then jump when it beats. Not before.
-  sv: Då hoppar man när det slår. Inte före.
+Y: Then stand on it and wait for the beat.
+  sv: Då ställer man sig på den och väntar på slaget.
 
 
 # TRIGGER: a patch of moss on a ledge (the same glowing moss as ch4).
@@ -113,7 +110,7 @@ O: Then... in my half...
 @pause 1.5
 O: In my half, Blobb is a good deal longer than he looks.
   sv: I min halva är Blobb betydligt längre än han ser ut.
-#  @stretch      (stretch & swing unlocked; the hint shows the button)
+  @stretch
 Y: That's a rule. You made a RULE.
   sv: Det där är en regel. Du hittade på en REGEL.
 O: Somebody has to, now and then.
@@ -203,8 +200,8 @@ Y: In my half, it's morning.
 @pause 2.5
 O: ...In mine too.
   sv: ...I min också.
-#  @sunrise      (the sun comes up over the summit; the beep slow, even)
-#  @hold 3.0
+  @sunrise
+  @hold 3.0
 Y: It worked.
   sv: Det funkade.
 O: It took both halves.
@@ -224,8 +221,7 @@ O: Where had we got to?
 @pause 2.0
 Y: ...The other side of the forest.
   sv: ...Andra sidan skogen.
-#  @hold 3.0
-#  @the_end      (end card)
+  @hold 3.0
 
 
 # ---------------------------------------------------------------------
@@ -267,13 +263,11 @@ Y: The last good bit was ALL of it.
 
 
 # =====================================================================
-#  Effects planned for this chapter (become @ lines once the level has
-#  its fx_ methods)
+#  Effects used in this chapter (what each @effect does)
 # ---------------------------------------------------------------------
-#  @stretch       stretch & swing unlocked (holds start to glow; hint)
-#  @sunrise       the sun comes up over the summit; sky to morning; the
-#                 beep slow and even, a little quieter
-#  @the_end       the end card (after the room)
+#  @stretch       stretch & swing unlocked (the holds wake up; hint)
+#  @sunrise       the sun comes up over the summit; the sky to morning
+#  After "room", the level shows the end card and goes to the title.
 #  The beat itself (uneven at the foot, steadier at "steady", even at the
 #  top) is driven by height climbed, not by lines.
 # =====================================================================

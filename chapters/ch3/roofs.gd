@@ -39,6 +39,11 @@ var _fail_count := 0
 var _linked := Vector2i(-1, -1)
 var _t := 0.0
 var _room_gen := 0
+var _hint: HintMarker
+var _room_time := 0.0
+var _restarts := 0
+var _nudged := false
+const NUDGE_SECS := 90.0       # stuck this long (or 2 restarts): the legend flashes, hint key and all
 var story := StoryScript.load_file("res://chapters/ch3/story.txt")
 
 
@@ -63,12 +68,12 @@ func _room_intro() -> void:
 	match room_i:
 		0:
 			await story.play("roofs", self)
-			Narrator.hint(Game.t("hint_roofs"), 7.0)
 		1:
 			await story.play("room2", self)
 		2:
 			await story.play("room3", self)
 	_busy = false
+	Narrator.legend("hint_roofs")
 	if Game.autoplay:
 		_autoplay()
 
@@ -101,6 +106,10 @@ func _process(delta: float) -> void:
 	_pulse()
 	if _busy or _done or _retelling or Game.control_locked:
 		return
+	_room_time += delta
+	if not _nudged and (_room_time > NUDGE_SECS or _restarts >= 2):
+		_nudged = true
+		Narrator.legend_nudge()
 	if room.solved_by(_player_cell()) and player.is_on_floor():
 		_solved()
 		return
@@ -112,6 +121,28 @@ func _process(delta: float) -> void:
 			_turn(c)
 	elif Input.is_action_just_pressed("restart"):
 		_restart()
+	elif Input.is_action_just_pressed("hint"):
+		_show_hint()
+
+
+## The next crank to turn, worked out from where Blobb stands now (the same solver the tests use).
+func _show_hint() -> void:
+	if not player.is_on_floor():
+		Narrator.hint(Game.t("hint_wait"), 3.0)
+		return
+	var here := _model_pos()
+	var surf := room.surfaces(room.states())
+	for p in room.region(here, surf):
+		if room.at(room.goal, p):
+			# the way is already open: point at the goal
+			_hint = HintMarker.at(self, _cell_pos(room.goal), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
+			return
+	var path := room.solve(here) if here.x >= 0 else []
+	if path.is_empty():
+		Narrator.hint(Game.t("hint_stuck"), 5.0)
+		return
+	var c: Vector2i = path[0]
+	_hint = HintMarker.at(self, _cell_pos(c), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
 
 
 func _physics_process(_delta: float) -> void:
@@ -143,6 +174,7 @@ func _turn(c: Vector2i) -> void:
 
 
 func _restart() -> void:
+	_restarts += 1
 	_load_room(room_i)
 	Game.sfx("whoosh", -10.0)
 	if not _restart_told:
@@ -157,9 +189,9 @@ func _fail() -> void:
 	fx.rewind_pulse(1.2)
 	var scene := "fail_%d" % (_fail_count % 4 + 1)
 	_fail_count += 1
-	var start := _stand_pos(room.start_pos(room.states()))
 	player.visible = false
-	player.teleport(start)
+	_load_room(room_i)  # the whole roof starts over, lamps too (or it could be solved the wrong way)
+	var start := _stand_pos(room.start_pos(room.states()))
 	var scribble := Retell.scribble(self, start + Vector2(0, -70))
 	await story.play(scene, self)
 	Retell.clear(scribble)
@@ -172,6 +204,7 @@ func _fail() -> void:
 func _solved() -> void:
 	_busy = true
 	Game.control_locked = true
+	Narrator.legend("")
 	Game.sfx("chime", -6.0)
 	if room_i < ROOMS.size() - 1:
 		await get_tree().create_timer(0.8).timeout
@@ -190,6 +223,12 @@ func _solved() -> void:
 # ================================================================ room building
 
 func _load_room(i: int) -> void:
+	if i != room_i or _room_gen == 0:  # a new room (not a restart): the stuck clock starts over
+		_room_time = 0.0
+		_restarts = 0
+		_nudged = false
+	if is_instance_valid(_hint):
+		_hint.queue_free()
 	room_i = i
 	_room_gen += 1
 	for n in [_room_node, _beam_node, _overlay, _beam_bodies]:

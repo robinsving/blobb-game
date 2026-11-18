@@ -207,9 +207,9 @@ func press(c: Vector2i) -> bool:
 
 
 ## Shortest list of crank cells to turn (in order) that lets Blobb reach the goal, or [] if none.
-func solve() -> Array:
+func solve(from := Vector2i(-1, -1)) -> Array:
 	var s0 := states()
-	var p0 := start_pos(s0)
+	var p0 := start_pos(s0) if from.x < 0 else from
 	var queue := [[s0, p0, []]]
 	var seen := {[s0, p0]: true}
 	while not queue.is_empty():

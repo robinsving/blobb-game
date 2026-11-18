@@ -34,8 +34,7 @@ const LINES := {2: "chase_go", 14: "chase_1", 28: "chase_2", 44: "chase_3", 58: 
 ## gaps, on roofs left clear so nothing stands between him and the hospital. Y: "What is
 ## happening?", about the real room now, not the story.
 const AUTO_BEAT := 112
-## The monitor beep, pitched up from the shared beep.wav (988 Hz) so it reads as a hospital monitor.
-const BEEP_PITCH := 1.4
+## The monitor beep is assets/audio/monitor.wav (tools/gen_monitor.py).
 
 var fx: StyleFX
 var camera: Camera2D
@@ -184,7 +183,7 @@ func _on_beat(b: int) -> void:
 	if m < 0.98:
 		Game.sfx("kick", lerpf(-3.0, -36.0, m))
 	if m > 0.02:
-		Game.sfx("beep", lerpf(-36.0, -9.0, m), BEEP_PITCH)
+		Game.sfx("monitor", lerpf(-36.0, -9.0, m))
 	if LINES.has(b) and not _fired.has(b):
 		_fired[b] = true
 		story.play(LINES[b], self)
@@ -243,7 +242,7 @@ func _tick_end(delta: float) -> void:
 	var w := floori(_end_clock)
 	if w != _end_last:
 		_end_last = w
-		Game.sfx("beep", -8.0, BEEP_PITCH)
+		Game.sfx("monitor", -8.0)
 
 
 func _move(delta: float, db: float) -> void:

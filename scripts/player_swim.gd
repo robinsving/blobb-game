@@ -112,13 +112,13 @@ func set_can_swim(on: bool) -> void:
 
 
 func _move_land(input: Vector2, delta: float) -> void:
-	velocity.x = move_toward(velocity.x, input.x * WALK * Game.move_scale(), 3200.0 * delta)
+	velocity.x = move_toward(velocity.x, input.x * WALK, 3200.0 * delta)
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + GRAVITY * delta, 1400.0)
 
 
 func _move_sink(input: Vector2, delta: float) -> void:
-	velocity.x = move_toward(velocity.x, input.x * SINK_WALK * Game.move_scale(), 1200.0 * delta)
+	velocity.x = move_toward(velocity.x, input.x * SINK_WALK, 1200.0 * delta)
 	velocity.y = minf(velocity.y + SINK_GRAVITY * delta, SINK_MAX_FALL)
 	var hop := Input.is_action_just_pressed("jump") or (Game.autoplay and use_bot and is_on_wall())
 	if is_on_floor() and hop and not Game.control_locked:
@@ -128,7 +128,7 @@ func _move_sink(input: Vector2, delta: float) -> void:
 
 
 func _move_swim(input: Vector2, delta: float) -> void:
-	var want := input.limit_length(1.0) * SWIM * Game.move_scale()
+	var want := input.limit_length(1.0) * SWIM
 	if input == Vector2.ZERO:
 		velocity = velocity.move_toward(Vector2(0, BUOYANCY), SWIM_DRAG * delta)
 	else:

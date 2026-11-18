@@ -275,6 +275,7 @@ func _build_world() -> void:
 	player.position = _checkpoint
 	player.visible = false
 	add_child(player)
+	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
 
 	camera = Camera2D.new()
 	camera.position_smoothing_enabled = true

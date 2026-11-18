@@ -12,23 +12,24 @@ const NEXT_SCENE := "res://chapters/ch3/roofs.tscn"
 const ART := "res://assets/gen/ch3/"
 const STREET_ROW := 13
 
-## [x0, x1, top_row] solid ground down to the bottom row. The gap 47..50 is the canal.
-const GROUND := [[0, 46, 13], [51, 95, 13]]
+## [x0, x1, top_row] solid ground down to the bottom row. The gap 47..53 is the canal: too wide for
+## a normal jump (~365 px), so the dash (1.7x speed) is how Blobb gets over.
+const GROUND := [[0, 46, 13], [54, 95, 13]]
 ## [x0, x1, row] doorsteps and a bench to hop on
 const STEPS := [[21, 23, 12], [37, 38, 12], [58, 60, 12], [76, 77, 12]]
 const LAMPS := [6, 14, 22, 30, 38, 45, 54, 62, 70, 78, 86]
-const CHECKPOINTS := [4, 18, 36, 53, 72]
+const CHECKPOINTS := [4, 18, 36, 56, 72]
 const TRIGGERS := {12: "glow", 28: "sweeper", 41: "dash", 66: "pigeons", 86: "climb"}
-const CANAL := [47, 50]
+const CANAL := [47, 53]
 const SWEEP_FROM := 27
 const SWEEP_TO := 36
 const PIGEON_COL := 66
 const PIPE_COL := 90
-const DASH_SECS := 5.0
 const NIGHT_TINT := Color(0.55, 0.66, 1.0)
 const GOLD := Color(1.0, 0.8, 0.25)
 
 var player: PlayerSide
+var _dashing := false
 var fx: StyleFX
 var camera: Camera2D
 var _sky_dusk: TextureRect
@@ -165,8 +166,6 @@ func _fail() -> void:
 	var scene := "fail_%d" % (_fail_count % 4 + 1)
 	_fail_count += 1
 	player.visible = false
-	player.speed_mul = 1.0
-	player.sprite.set_form("normal")
 	player.teleport(_checkpoint)
 	var scribble := Retell.scribble(self, _checkpoint + Vector2(0, -70))
 	await story.play(scene, self)
@@ -228,15 +227,18 @@ func fx_blobb_shine() -> void:
 	Game.sfx("chime", -8.0, 1.2)
 
 
+## "So fast he went all blurry": the green streak lasts until he's landed over the canal (through
+## any retells), so the dash is what gets him across.
 func fx_dash() -> void:
 	player.jump_velocity = PlayerSide.STRONG_JUMP
-	player.speed_mul = 1.7
-	player.sprite.set_form("dash")
+	_dashing = true
+	_set_dash(true)
 	Game.sfx("whoosh", -6.0)
-	await get_tree().create_timer(DASH_SECS).timeout
-	if not _retelling:
-		player.speed_mul = 1.0
-		player.sprite.set_form("normal")
+
+
+func _set_dash(on: bool) -> void:
+	player.speed_mul = 1.7 if on else 1.0
+	player.sprite.set_form("dash" if on else "normal")
 
 
 func fx_climb() -> void:
@@ -245,13 +247,12 @@ func fx_climb() -> void:
 	var tw := create_tween()
 	tw.tween_property(player, "position:x", pipe_x, absf(pipe_x - player.position.x) / 380.0)
 	await tw.finished
-	camera.reparent(self)
+	# the camera stays on Blobb (moving it to the level here made the picture jump)
 	player.set_physics_process(false)
 	Game.sfx("whoosh", -10.0, 0.7)
 	var up := create_tween()
-	up.tween_property(player, "position:y", -300.0, 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	up.parallel().tween_property(camera, "position:y", camera.position.y - 500.0, 2.2).set_trans(Tween.TRANS_SINE)
-	await get_tree().create_timer(1.4).timeout
+	up.tween_property(player, "position:y", -300.0, 2.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await get_tree().create_timer(2.0).timeout
 	Game.go(NEXT_SCENE, Color(0.02, 0.03, 0.08), 0.9)
 
 
@@ -259,6 +260,10 @@ func fx_climb() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _dashing and player.is_on_floor() and player.position.x > (CANAL[1] + 2) * TILE:
+		_dashing = false  # over the canal: back to his usual self
+		_set_dash(false)
+		Game.sfx("pop", -8.0)
 	_update_sweeper(delta)
 	if _shine:
 		# green, with a warm glow that grows under each lamp
@@ -377,6 +382,7 @@ func _build_world() -> void:
 	player.visible = false
 	player.z_index = 2
 	add_child(player)
+	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
 	player.jump_velocity = PlayerSide.STRONG_JUMP  # unlocked back in ch1
 

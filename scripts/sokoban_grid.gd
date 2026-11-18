@@ -128,3 +128,61 @@ func player_near_water() -> bool:
 		if water.has(player + d):
 			return true
 	return false
+
+
+## Shortest list of moves (directions) from the current state to the exit, or [] if there is
+## none (or the player is already out). For hints. `assume_float` solves as if crates float
+## (before the story has said so, the first hint is then a push into the water, which tells it).
+## The state is restored afterwards.
+func solve(assume_float := false, max_states := 200000) -> Array:
+	var saved := {"player": player, "crates": crates.duplicate(), "water": water.duplicate(), "bridges": bridges.duplicate(), "float": crates_float, "history": _history.duplicate()}
+	crates_float = crates_float or assume_float
+	var dirs := [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
+	var start := _state()
+	var queue := [[start, []]]
+	var seen := {_state_key(): true}
+	var answer := []
+	while not queue.is_empty() and seen.size() < max_states and answer.is_empty():
+		var item: Array = queue.pop_front()
+		for d in dirs:
+			_set_state(item[0])
+			var res := try_move(d)
+			_history.clear()  # no undo trail while searching
+			if not res["moved"]:
+				continue
+			var path: Array = item[1].duplicate()
+			path.append(d)
+			if res["exit"]:
+				answer = path
+				break
+			var k := _state_key()
+			if seen.has(k):
+				continue
+			seen[k] = true
+			queue.append([_state(), path])
+	player = saved["player"]
+	crates = saved["crates"]
+	water = saved["water"]
+	bridges = saved["bridges"]
+	crates_float = saved["float"]
+	_history = saved["history"]
+	return answer
+
+
+func _state() -> Dictionary:
+	return {"player": player, "crates": crates.duplicate(), "water": water.duplicate(), "bridges": bridges.duplicate()}
+
+
+func _set_state(s: Dictionary) -> void:
+	player = s["player"]
+	crates = s["crates"].duplicate()
+	water = s["water"].duplicate()
+	bridges = s["bridges"].duplicate()
+
+
+func _state_key() -> String:
+	var cs := crates.keys()
+	cs.sort()
+	var bs := bridges.keys()
+	bs.sort()
+	return "%s|%s|%s" % [player, cs, bs]

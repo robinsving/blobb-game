@@ -26,6 +26,11 @@ var _young_icon: NarratorIcon
 var _arrow: Label
 var _taught_advance := false  # the first line that waits says which key moves the story on
 var _hint: Label
+## The controls legend that stays on screen in puzzle rooms (a Game.UI key, re-translated when
+## the language or the input device changes).
+var _legend: Label
+var _legend_key := ""
+var _legend_tween: Tween
 var _hint_tween: Tween
 var _band_tween: Tween
 var _skip_typing := false
@@ -86,6 +91,24 @@ func _ready() -> void:
 	_hint.size = Vector2(1920, 60)
 	_hint.modulate.a = 0.0
 	add_child(_hint)
+
+	_legend = Label.new()
+	_legend.add_theme_font_override("font", Fonts.hand())
+	_legend.add_theme_font_size_override("font_size", 28)
+	_legend.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
+	_legend.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+	_legend.add_theme_constant_override("outline_size", 8)
+	_legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_legend.position = Vector2(0, 1032)
+	_legend.size = Vector2(1920, 48)
+	_legend.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var strip := StyleBoxFlat.new()  # a soft dark strip, so it reads on gravel and roofs alike
+	strip.bg_color = Color(0.0, 0.0, 0.0, 0.42)
+	_legend.add_theme_stylebox_override("normal", strip)
+	_legend.modulate.a = 0.0
+	add_child(_legend)
+	Game.input_device_changed.connect(_refresh_legend)
+	Game.locale_changed.connect(_refresh_legend)
 
 
 func _make_label(font: Font, size: int, color: Color, pos: Vector2, align: HorizontalAlignment) -> Label:
@@ -169,6 +192,35 @@ func clear() -> void:
 	_young_icon.modulate.a = 0.0
 	_arrow.visible = false
 	_skip_typing = true
+	legend("")
+
+
+## Shows a controls legend that stays until legend("") (or a scene change). Pass a Game.UI key.
+func legend(key: String) -> void:
+	_legend_key = key
+	if _legend_tween:
+		_legend_tween.kill()
+	_refresh_legend()
+	_legend_tween = create_tween()
+	_legend_tween.tween_property(_legend, "modulate:a", 0.8 if key != "" else 0.0, 0.5)
+
+
+## Draws the eye to the legend for a moment (a player who seems stuck: the hint key is there).
+func legend_nudge() -> void:
+	if _legend_key == "":
+		return
+	if _legend_tween:
+		_legend_tween.kill()
+	_legend_tween = create_tween()
+	for i in 3:
+		_legend_tween.tween_property(_legend, "modulate:a", 1.0, 0.35)
+		_legend_tween.tween_property(_legend, "modulate:a", 0.45, 0.35)
+	_legend_tween.tween_property(_legend, "modulate:a", 0.8, 0.4)
+
+
+func _refresh_legend() -> void:
+	if _legend_key != "":
+		_legend.text = Game.t(_legend_key)
 
 
 func hint(text: String, dur := 5.0) -> void:

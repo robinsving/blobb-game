@@ -15,11 +15,24 @@ extends Node
 ##                                            and dodges (for screenshots)
 
 signal locale_changed
+## Keyboard or controller: the last one the player touched. Prompts show that one's keys.
+signal input_device_changed
 
 const SAVE_PATH := "user://save.cfg"
 const LOCALES := ["en", "sv"]
 
 var locale := "en"
+var using_pad := false
+## What each {token} in a UI string shows, on keyboard and on a controller (Xbox-style letters).
+const KEYS := {
+	"jump": {"kb": {"en": "Space", "sv": "Mellanslag"}, "pad": "Ⓐ"},
+	"advance": {"kb": {"en": "Space", "sv": "Mellanslag"}, "pad": "Ⓐ"},
+	"use": {"kb": "E", "pad": "Ⓑ"},
+	"undo": {"kb": "Z", "pad": "Ⓧ"},
+	"restart": {"kb": "R", "pad": "Ⓨ"},
+	"hint": {"kb": "H", "pad": "LB"},
+	"arrows": {"kb": {"en": "Arrows", "sv": "Piltangenterna"}, "pad": {"en": "Stick", "sv": "Spaken"}},
+}
 ## True while blocking narration plays or a cutscene runs; player scripts must ignore input then.
 var control_locked := false
 var unlocked_chapter := 1
@@ -27,6 +40,7 @@ var fast := false
 var autoplay := false
 var debug_moves := ""
 var warp := -1
+var _next_warp := -1  # the warp for the next go() (start_at), then back to none
 
 const UI := {
 	"begin": {"en": "Begin", "sv": "Börja"},
@@ -37,9 +51,9 @@ const UI := {
 	"to_title": {"en": "Back to title", "sv": "Till startskärmen"},
 	"paused": {"en": "Paused", "sv": "Paus"},
 	"hint_move": {"en": "← → to move", "sv": "← → för att gå"},
-	"hint_jump": {"en": "Space / Ⓐ to jump", "sv": "Mellanslag / Ⓐ för att hoppa"},
-	"hint_advance": {"en": "Space / Enter / Ⓐ for the next line", "sv": "Mellanslag / Enter / Ⓐ för nästa rad"},
-	"hint_push": {"en": "Arrows to move · Z undo · R restart", "sv": "Piltangenter för att gå · Z ångra · R börja om"},
+	"hint_jump": {"en": "{jump} to jump", "sv": "{jump} för att hoppa"},
+	"hint_advance": {"en": "{advance} for the next line", "sv": "{advance} för nästa rad"},
+	"hint_push": {"en": "{arrows} to move · {undo} undo · {restart} start again · {hint} hint", "sv": "{arrows} för att gå · {undo} ångra · {restart} börja om · {hint} ledtråd"},
 	"chapter_1": {"en": "Chapter 1", "sv": "Kapitel 1"},
 	"chapter_1_name": {"en": "The Other Side of the Forest", "sv": "Andra sidan skogen"},
 	"chapter_end": {"en": "End of chapter one. More tomorrow.", "sv": "Slut på kapitel ett. Mer i morgon."},
@@ -49,18 +63,25 @@ const UI := {
 	"chapter_2_name": {"en": "Learning to Swim", "sv": "Lära sig simma"},
 	"chapter_end_2": {"en": "End of chapter two. More tomorrow.", "sv": "Slut på kapitel två. Mer i morgon."},
 	"hint_walk_in": {"en": "→ to walk in", "sv": "→ för att gå i"},
-	"hint_hop": {"en": "← → to walk · Space / Ⓐ to hop", "sv": "← → för att gå · Mellanslag / Ⓐ för att hoppa"},
-	"hint_swim": {"en": "Arrows to swim", "sv": "Piltangenterna för att simma"},
-	"hint_mill": {"en": "Arrows to swim · Space / Ⓐ at a wheel or lever · R starts the room again", "sv": "Piltangenterna för att simma · Mellanslag / Ⓐ vid ett hjul eller en spak · R börjar om rummet"},
+	"hint_hop": {"en": "← → to walk · {jump} to hop", "sv": "← → för att gå · {jump} för att hoppa"},
+	"hint_swim": {"en": "{arrows} to swim", "sv": "{arrows} för att simma"},
+	"hint_mill": {"en": "{arrows} to swim · {jump} at a wheel or lever · {restart} start again · {hint} hint", "sv": "{arrows} för att simma · {jump} vid ett hjul eller en spak · {restart} börja om · {hint} ledtråd"},
 	"hint_backwards": {"en": "A wheel now goes: off → on → backwards", "sv": "Ett hjul går nu: av → på → baklänges"},
 	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3_name": {"en": "Lights", "sv": "Ljus"},
 	"chapter_end_3": {"en": "End of chapter three.", "sv": "Slut på kapitel tre."},
-	"hint_dash": {"en": "Space / Ⓐ to jump the canal", "sv": "Mellanslag / Ⓐ för att hoppa över kanalen"},
-	"hint_roofs": {"en": "E / Ⓑ at a crank turns its lamp · R starts the roof again", "sv": "E / Ⓑ vid en vev vrider dess lampa · R börjar om taket"},
-	"hint_chase": {"en": "← → change lanes · Space / Ⓐ jump on the beat", "sv": "← → byt fil · Mellanslag / Ⓐ hoppa i takt"},
+	"hint_dash": {"en": "{jump} to jump the canal", "sv": "{jump} för att hoppa över kanalen"},
+	"hint_roofs": {"en": "{use} at a crank turns its lamp · {restart} start again · {hint} hint", "sv": "{use} vid en vev vrider dess lampa · {restart} börja om · {hint} ledtråd"},
+	"hint_chase": {"en": "← → change lanes · {jump} jump on the beat", "sv": "← → byt fil · {jump} hoppa i takt"},
 	"chapter_4_btn": {"en": "Chapter 4", "sv": "Kapitel 4"},
+	"chapter_5_btn": {"en": "Chapter 5", "sv": "Kapitel 5"},
+	"chapter_5": {"en": "Chapter 5", "sv": "Kapitel 5"},
+	"chapter_5_name": {"en": "The Climb", "sv": "Klättringen"},
+	"the_end": {"en": "The end.", "sv": "Slut."},
+	"hint_swing": {"en": "Hold {use} near a glowing hold to stretch and swing. Let go to fly.", "sv": "Håll {use} nära ett lysande grepp för att sträcka dig och svinga. Släpp för att flyga."},
+	"hint_stuck": {"en": "No way on from here. {restart} starts the room again.", "sv": "Härifrån kommer man inte vidare. {restart} börjar om rummet."},
+	"hint_wait": {"en": "Stand still a moment, then ask for a hint again.", "sv": "Stå still en stund och be om en ledtråd igen."},
 	"chapter_4": {"en": "Chapter 4", "sv": "Kapitel 4"},
 	"chapter_4_name": {"en": "The Other Half", "sv": "Den andra halvan"},
 	"chapter_end_4": {"en": "End of chapter four.", "sv": "Slut på kapitel fyra."},
@@ -69,7 +90,7 @@ const UI := {
 const SFX_NAMES := ["jump", "blip_old", "blip_young", "pop", "push", "splash", "plate", "gate",
 	"rewind", "whoosh", "beep", "shrink", "rumble", "bonk", "land", "grow", "chime",
 	"whistle", "drip", "bubble", "turn", "flow", "gurgle",
-	"kick", "hat", "crank", "lamp_on", "coo", "flap"]
+	"kick", "hat", "crank", "lamp_on", "coo", "flap", "monitor"]
 
 var _sfx := {}
 var _fade_layer: CanvasLayer
@@ -156,19 +177,36 @@ func _unhandled_input(event: InputEvent) -> void:
 # ---------------------------------------------------------------- text
 
 func t(key: String) -> String:
-	if UI.has(key):
-		return UI[key].get(locale, UI[key]["en"])
-	return key
+	if not UI.has(key):
+		return key
+	var s: String = UI[key].get(locale, UI[key]["en"])
+	if s.contains("{"):
+		for k in KEYS:
+			s = s.replace("{%s}" % k, key_label(k))
+	return s
 
 
-## While the narrators talk and the player still has control (ambient lines), Blobb moves at this
-## fraction of his speed, so the player can't race far past what's being said. Player scripts
-## multiply their move speed by move_scale().
-const LISTENING_SPEED := 0.4
+## The key or button for an action, for the device in use (and in the current language).
+func key_label(action: String) -> String:
+	var v: Variant = KEYS[action]["pad" if using_pad else "kb"]
+	if v is Dictionary:
+		return v.get(locale, v["en"])
+	return v
 
 
-func move_scale() -> float:
-	return LISTENING_SPEED if Narrator.busy and not control_locked else 1.0
+func _input(event: InputEvent) -> void:
+	var pad := using_pad
+	if event is InputEventJoypadButton and event.pressed:
+		pad = true
+	elif event is InputEventJoypadMotion and absf(event.axis_value) > 0.5:
+		pad = true
+	elif event is InputEventKey and event.pressed:
+		pad = false
+	if pad != using_pad:
+		using_pad = pad
+		input_device_changed.emit()
+
+
 
 
 ## Pick the current-locale string from a {"en": ..., "sv": ...} dictionary.
@@ -234,6 +272,13 @@ func fade_in(dur := 0.6) -> void:
 
 
 ## Fade, swap scene, fade back. Clears the narrator and unlocks controls.
+## Starts a scene at a given spot (the same numbers as --warp: a column, a room, a beat or a
+## section, depending on the scene). Used by the test menu on the title screen.
+func start_at(path: String, at: int) -> void:
+	_next_warp = at
+	go(path)
+
+
 func go(path: String, color := Color.BLACK, dur := 0.7) -> void:
 	if _transitioning:
 		return
@@ -242,6 +287,8 @@ func go(path: String, color := Color.BLACK, dur := 0.7) -> void:
 	Narrator.clear()
 	control_locked = false
 	get_tree().paused = false
+	warp = _next_warp  # a warp only ever applies to the scene it was asked for
+	_next_warp = -1
 	get_tree().change_scene_to_file(path)
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -331,6 +378,7 @@ func _setup_input() -> void:
 	_action("use", [KEY_E, KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_B])
 	_action("undo", [KEY_Z, KEY_BACKSPACE], [JOY_BUTTON_X])
 	_action("restart", [KEY_R], [JOY_BUTTON_Y])
+	_action("hint", [KEY_H], [JOY_BUTTON_LEFT_SHOULDER])
 	_action("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START])
 
 

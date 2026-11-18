@@ -5,6 +5,7 @@ const CH1 := "res://chapters/ch1/forest.tscn"
 const CH2 := "res://chapters/ch2/pond.tscn"
 const CH3 := "res://chapters/ch3/city.tscn"
 const CH4 := "res://chapters/ch4/dream.tscn"
+const CH5 := "res://chapters/ch5/climb.tscn"
 
 var _begin: Button
 var _lang: Button
@@ -12,6 +13,7 @@ var _quit: Button
 var _ch2: Button
 var _ch3: Button
 var _ch4: Button
+var _ch5: Button
 var _blobb: BlobbSprite
 var _t := 0.0
 
@@ -53,8 +55,8 @@ func _ready() -> void:
 		add_child(title)
 
 	var box := VBoxContainer.new()
-	box.position = Vector2(190, 520)
-	box.add_theme_constant_override("separation", 8)
+	box.position = Vector2(190, 430)  # room for five chapters
+	box.add_theme_constant_override("separation", -10)  # seven rows must fit under the title
 	add_child(box)
 	_begin = _button(box, "begin", func(): Game.go(CH1))
 	if Game.unlocked_chapter >= 2:
@@ -63,6 +65,8 @@ func _ready() -> void:
 		_ch3 = _button(box, "chapter_3_btn", func(): Game.go(CH3))
 	if Game.unlocked_chapter >= 4:
 		_ch4 = _button(box, "chapter_4_btn", func(): Game.go(CH4, Color.WHITE, 1.0))
+		# for now open to anyone who has reached ch4 (finishing ch4 also unlocks it)
+		_ch5 = _button(box, "chapter_5_btn", func(): Game.go(CH5))
 	_lang = _button(box, "language", func():
 		Game.cycle_locale()
 		_refresh())
@@ -88,12 +92,21 @@ func _button(parent: Node, key: String, cb: Callable) -> Button:
 
 
 func _buttons() -> Array:
-	return [_begin, _ch2, _ch3, _ch4, _lang, _quit].filter(func(b): return b != null)
+	return [_begin, _ch2, _ch3, _ch4, _ch5, _lang, _quit].filter(func(b): return b != null)
 
 
 func _refresh() -> void:
 	for b in _buttons():
 		b.text = Game.t(b.get_meta("key"))
+
+
+## F1 opens the test menu (every scene, and spots inside them).
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F1 and not has_node("TestMenu"):
+		var m: CanvasLayer = preload("res://scenes/test_menu.gd").new()
+		m.name = "TestMenu"
+		add_child(m)
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:

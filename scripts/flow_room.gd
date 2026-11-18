@@ -164,6 +164,14 @@ func press(p: Vector2i) -> bool:
 	return true
 
 
+## True if the duck will get to the goal from here without another press (for hints).
+func will_finish() -> bool:
+	var s := _snapshot()
+	var r := settle()
+	_restore(s)
+	return r == "goal"
+
+
 func solved() -> bool:
 	return duck == goal
 

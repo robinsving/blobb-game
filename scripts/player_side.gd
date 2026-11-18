@@ -19,6 +19,11 @@ var jump_velocity := WEAK_JUMP
 var speed_mul := 1.0
 ## The --autoplay run-right bot. Levels with their own test bot (ch3 roofs) turn it off.
 var use_bot := true
+## Set by a level that moves Blobb itself for a moment (ch5's swing): no input, no physics here.
+var frozen := false
+## Set by a level that launches Blobb (ch5's heartbeat ledges): letting go of jump doesn't cut the
+## launch short. Cleared when he lands.
+var launched := false
 var sprite: BlobbSprite
 var _pivot: Node2D
 var _coyote := 0.0
@@ -50,6 +55,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	if frozen:
+		return
 	var dir := 0.0
 	if not Game.control_locked and _knock <= 0.0:
 		dir = Input.get_axis("left", "right")
@@ -58,7 +65,7 @@ func _physics_process(delta: float) -> void:
 	_knock -= delta
 
 	if _knock <= 0.0:
-		var target := dir * SPEED * speed_mul * Game.move_scale()
+		var target := dir * SPEED * speed_mul
 		var rate := ACCEL if dir != 0.0 else FRICTION
 		velocity.x = move_toward(velocity.x, target, rate * delta)
 
@@ -79,13 +86,14 @@ func _physics_process(delta: float) -> void:
 		_squash(Vector2(0.8, 1.25))
 		sprite.play(_jump_anim())
 		_folding = false
-	if Input.is_action_just_released("jump") and velocity.y < 0.0:
+	if Input.is_action_just_released("jump") and velocity.y < 0.0 and not launched:
 		velocity.y *= 0.55
 
 	move_and_slide()
 
 	var on_floor := is_on_floor()
 	if on_floor and not _was_on_floor:
+		launched = false
 		_squash(Vector2(1.25, 0.8))
 		Game.sfx("land", -14.0, randf_range(0.9, 1.1))
 		landed.emit()

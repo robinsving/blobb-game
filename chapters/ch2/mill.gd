@@ -40,6 +40,12 @@ var _linked := Vector2i(-1, -1)  # control currently shown with a line to its ta
 var _flow := {}
 var _tick := 0.0
 var _busy := true
+var _hint: HintMarker
+var _stuck_time := 0.0         # time in this room, across restarts
+var _restarts := 0
+var _nudged := false
+var _hint_room := -1
+const NUDGE_SECS := 90.0       # stuck this long (or 2 restarts): the legend flashes, hint key and all
 var _done := false
 var _reverse_told := false
 var _restart_told := false
@@ -59,7 +65,7 @@ func _ready() -> void:
 	fx.tint(Color(0.95, 1.02, 1.05), 0.2, 0.0)
 	add_child(fx)
 	_drip_loop()
-	_load_room(0)
+	_load_room(clampi(Game.warp - 1, 0, ROOMS.size() - 1) if Game.warp > 0 else 0)  # --warp=N: room N
 	_room_intro()
 
 
@@ -70,7 +76,7 @@ func _room_intro() -> void:
 		0: await story.play("room1", self)
 		1: await story.play("room2", self)
 		2: await story.play("room3", self)
-	Narrator.hint(Game.t("hint_mill"), 7.0)
+	Narrator.legend("hint_mill")
 	_busy = false
 	if Game.autoplay:
 		_autoplay()
@@ -143,6 +149,10 @@ func _process(delta: float) -> void:
 	if _busy or _done:
 		return
 	_room_time += delta
+	_stuck_time += delta
+	if not _nudged and (_stuck_time > NUDGE_SECS or _restarts >= 2):
+		_nudged = true
+		Narrator.legend_nudge()
 	# the duck moves one cell per tick along the streams (or floats up)
 	_tick += delta
 	if _tick >= TICK:
@@ -171,6 +181,26 @@ func _process(delta: float) -> void:
 			_press(c)
 	elif Input.is_action_just_pressed("restart"):
 		_restart()
+	elif Input.is_action_just_pressed("hint"):
+		_show_hint()
+
+
+## The next wheel or lever, worked out from the room as it is now (the same solver the tests use).
+## In room 3, before water can run backwards, there is no way yet: the hint brings that beat on.
+func _show_hint() -> void:
+	if room.will_finish():
+		_hint = HintMarker.at(self, _cell_pos(room.goal), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
+		return
+	var path := room.solve()
+	if path.is_empty():
+		if room_i == 2 and not _reverse_told:
+			_reverse_told = true
+			_tell_backwards()
+		else:
+			Narrator.hint(Game.t("hint_stuck"), 5.0)
+		return
+	var c: Vector2i = path[0]
+	_hint = HintMarker.at(self, _cell_pos(c), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
 
 
 func _physics_process(_delta: float) -> void:
@@ -203,6 +233,8 @@ func _press(c: Vector2i) -> void:
 	_refresh_streams()
 
 
+## The wheel or lever Blobb would use: the nearest in reach. The one already marked stays marked
+## until another is clearly nearer, so two neighbours (3 and 4) don't flicker as he bobs.
 func _control_in_reach() -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var best_d := REACH
@@ -212,10 +244,15 @@ func _control_in_reach() -> Vector2i:
 		if d < best_d:
 			best_d = d
 			best = c
+	if _linked != best and room.controls.has(_linked):
+		var keep := p.distance_to(_cell_pos(_linked))
+		if keep < REACH and keep < best_d + 28.0:
+			return _linked
 	return best
 
 
 func _restart() -> void:
+	_restarts += 1
 	var allowed := room.reverse_allowed
 	_load_room(room_i)
 	room.reverse_allowed = allowed
@@ -228,6 +265,7 @@ func _restart() -> void:
 func _solved() -> void:
 	_busy = true
 	Game.control_locked = true
+	Narrator.legend("")
 	Game.sfx("flow", -6.0)
 	# the duck shoots up out through the goal to the surface
 	var top := Vector2(_cell_pos(room.goal).x, SURFACE_Y - 60)
@@ -344,6 +382,13 @@ func _build_scenery() -> void:
 
 
 func _load_room(i: int) -> void:
+	if i != _hint_room:  # a new room (not a restart): the stuck clock starts over
+		_hint_room = i
+		_stuck_time = 0.0
+		_restarts = 0
+		_nudged = false
+	if is_instance_valid(_hint):
+		_hint.queue_free()
 	room_i = i
 	_room_gen += 1
 	_room_time = 0.0
@@ -605,7 +650,11 @@ func _pulse_controls() -> void:
 	_linked = linked
 	for c in _control_nodes:
 		var ring: Line2D = _control_nodes[c].get_meta("ring")
-		ring.width = 6.0 + (4.0 + 3.0 * sin(_t * 8.0) if c == linked else 0.0)
+		ring.width = 6.0 + (5.0 + 3.0 * sin(_t * 8.0) if c == linked else 0.0)
+		# the one Blobb would press stands out; the others step back while one is marked
+		var n: Node2D = _control_nodes[c]
+		n.modulate = Color(1.25, 1.2, 1.0) if c == linked else (Color(1, 1, 1, 0.5) if linked != Vector2i(-1, -1) else Color.WHITE)
+		n.scale = Vector2.ONE * (1.12 if c == linked else 1.0)
 	for t in _target_badges:
 		var on: bool = linked != Vector2i(-1, -1) and room.controls[linked] == t
 		_target_badges[t].scale = Vector2.ONE * (1.25 + 0.15 * sin(_t * 8.0) if on else 1.0)

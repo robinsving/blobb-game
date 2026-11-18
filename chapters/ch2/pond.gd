@@ -284,6 +284,7 @@ func _build_world() -> void:
 	player.position = _checkpoint
 	player.entered_water.connect(_on_entered_water)
 	add_child(player)
+	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
 
 	camera = Camera2D.new()
 	camera.position_smoothing_enabled = true
