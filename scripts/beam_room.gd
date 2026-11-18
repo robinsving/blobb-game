@@ -20,10 +20,14 @@ var goal := Vector2i.ZERO
 var lamps := {}        # letter -> {"pos": Vector2i, "dirs": Array, "state": int}
 var cranks := {}       # Vector2i -> lamp letter
 var order: Array = []  # lamp letters, sorted
+## The generous jump model (see tools/solve_beams.py): more than Blobb's real jump, so its
+## shortest solution is a floor no real shortcut can beat. The strict one proves it's solvable.
+var generous := false
 
 
-static func from_room(spec: Dictionary) -> BeamRoom:
+static func from_room(spec: Dictionary, generous_model := false) -> BeamRoom:
 	var r := BeamRoom.new()
+	r.generous = generous_model
 	r.rows = spec["rows"]
 	r.height = r.rows.size()
 	r.width = r.rows[0].length()
@@ -132,11 +136,15 @@ func moves(p: Vector2i, surf: Dictionary) -> Array:
 		var up := p.y - q.y
 		if up > UP_MAX:
 			continue
+		if dx == 0 and up < 0:
+			continue  # he can't fall through what he stands on
+		if generous:
+			if dx <= (3 if up > 0 else (5 if -up >= 7 else 4)):
+				out.append(q)
+			continue
 		var reach := UP_DX if up > 1 else FLAT_DX + maxi(0, -up) / 4
 		if dx > reach:
 			continue
-		if dx == 0 and up < 0:
-			continue  # he can't fall through what he stands on
 		if dx > 0 and _crosses(p, q, surf):
 			continue
 		if not _clear_path(p, q):

@@ -16,6 +16,14 @@ Light is one-way: Blobb can jump up through a beam but then lands on it, and nev
 through one (or through what he stands on), so a jump is blocked by any surface in its arc
 (see Room.crosses).
 Turning a lamp under Blobb drops him to the next surface below, or off the room (a fail).
+
+Two models. The STRICT one above is cautious, so a room it solves really can be solved. The
+GENEROUS one (generous=True) gives Blobb more than his real jump (STRONG_JUMP rises 1.75 cells;
+it ignores the arc and ceiling checks, and reaches 3 cells up a jump, 4 level or down, 5 after a
+drop of 3.5 cells or more), so its shortest solution is a floor: no real shortcut beats it. A room
+is honest when the strict model solves it and the generous shortest is the intended number of
+turns (that's the one tests/test_beams.gd checks). Cranks are used standing in their own cell,
+on the floor (chapters/ch3/roofs.gd), exactly as Room.at says.
 """
 import re, sys
 from collections import deque
@@ -26,7 +34,8 @@ UP_MAX, UP_DX, FLAT_DX = 3, 2, 3   # UP_MAX in half cells
 
 
 class Room:
-    def __init__(self, spec):
+    def __init__(self, spec, generous=False):
+        self.generous = generous
         self.rows = spec['rows']
         self.h, self.w = len(self.rows), len(self.rows[0])
         self.lamps, self.cranks = {}, {}
@@ -82,10 +91,13 @@ class Room:
             if q == p: continue
             x2, y2 = q; dx = abs(x2 - x1); up = y1 - y2
             if up > UP_MAX: continue
+            if dx == 0 and up < 0: continue   # he can't fall through what he stands on
+            if self.generous:
+                if dx <= (3 if up > 0 else (5 if -up >= 7 else 4)): yield q
+                continue
             # falling further gives more air time, so a long drop reaches a little further
             reach = UP_DX if up > 1 else FLAT_DX + max(0, -up) // 4
             if dx > reach: continue
-            if dx == 0 and up < 0: continue   # he can't fall through what he stands on
             if dx > 0 and self.crosses(p, q, surf): continue
             if not self.clear_path(p, q): continue
             yield q
@@ -162,7 +174,8 @@ def load_rooms(path='chapters/ch3/beam_rooms.gd'):
 
 if __name__ == '__main__':
     for i, spec in enumerate(load_rooms()):
-        r = Room(spec)
-        sol, n = r.solve()
-        names = ' '.join(r.rows[c[1]][c[0]] for c in sol) if sol is not None else None
-        print(f'room {i + 1}: {len(sol) if sol is not None else "UNSOLVABLE"} presses, {n} states: {names}')
+        for label, g in (('strict', False), ('generous', True)):
+            r = Room(spec, g)
+            sol, n = r.solve()
+            names = ' '.join(r.rows[c[1]][c[0]] for c in sol) if sol is not None else None
+            print(f'room {i + 1} {label:8}: {len(sol) if sol is not None else "UNSOLVABLE"} presses, {n} states: {names}')

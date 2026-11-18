@@ -10,7 +10,6 @@ const CELL := 128.0
 const ORIGIN := Vector2(0, 56)
 const ART := "res://assets/gen/ch3/"
 const NEXT_SCENE := "res://chapters/ch3/chase.tscn"
-const REACH := 100.0
 const BEAM_W := 30.0
 const LIGHT := Color(1.0, 0.86, 0.5)
 ## each crank and its lamp share a colour and a number (as in the ch2 mill)
@@ -125,16 +124,13 @@ func _player_cell() -> Vector2i:
 	return Vector2i(floori(v.x), floori(v.y))
 
 
+## The crank in the cell Blobb is standing in (the same rule the solver uses: on the floor, in
+## that column, body in that cell), or (-1, -1). No turning cranks mid-jump or from next door.
 func _crank_in_reach() -> Vector2i:
-	var body := player.global_position + Vector2(0, -54)
-	var best := Vector2i(-1, -1)
-	var bd := REACH
-	for c in room.cranks:
-		var d := body.distance_to(_cell_pos(c))
-		if d < bd:
-			bd = d
-			best = c
-	return best
+	if not player.is_on_floor():
+		return Vector2i(-1, -1)
+	var c := _player_cell()
+	return c if room.cranks.has(c) else Vector2i(-1, -1)
 
 
 func _turn(c: Vector2i) -> void:

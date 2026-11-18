@@ -174,14 +174,14 @@ Y: Stand on one. Turn the other.
 
 # TRIGGER: room 3 starts.
 === room3 ===
-O: The last roof. Chimneys in the way, and a long way down.
-  sv: Sista taket. Skorstenar i vägen, och långt ner.
-Y: Light goes through chimneys.
-  sv: Ljus går igenom skorstenar.
+O: The last roof. Three lamps, walls in the way, and a long way down.
+  sv: Sista taket. Tre lampor, väggar i vägen, och långt ner.
+Y: Light goes through walls.
+  sv: Ljus går igenom väggar.
 O: It doesn't, you know.
   sv: Det gör det inte, vet du.
-Y: ...Fine. Climb them, then.
-  sv: ...Okej. Klättra på dem, då.
+Y: ...Fine. Climb over them, then.
+  sv: ...Okej. Klättra över dem, då.
 
 
 # TRIGGER: the player restarts a roof (R) for the first time.

@@ -186,6 +186,26 @@ func _process(delta: float) -> void:
 		_reach_top()
 
 
+## Y is never outrun: while a scene is still being said, Blobb slows as he nears the next story
+## column and stops just short of it, until she's done. (Only matters for fast walkers; at the
+## listening speed most scenes finish on their own.)
+func _physics_process(_delta: float) -> void:
+	if not player or _climbing or _done:
+		return
+	var gate := -1
+	for col in TRIGGERS:
+		if not _fired.has(TRIGGERS[col]) and (gate < 0 or col < gate):
+			gate = col
+	if gate < 0 or not Narrator.busy:
+		player.speed_mul = 1.0
+		return
+	var stop := gate * TILE - 96.0  # clear of the trigger area (Blobb is ~116 px wide)
+	player.speed_mul = clampf((stop - player.position.x) / (4.0 * TILE), 0.25, 1.0)
+	if player.position.x > stop:
+		player.position.x = stop
+		player.velocity.x = minf(player.velocity.x, 0.0)
+
+
 ## The monitor beep on the climb: faint and uneven at the foot, slow and even at the top.
 func _beep(delta: float) -> void:
 	var p := 1.0 if _done else clampf((_foot_y - player.position.y) / ((GROUND_ROW - LEDGES[-1][2]) * TILE), 0.0, 1.0)
@@ -195,7 +215,7 @@ func _beep(delta: float) -> void:
 	var even := 1.1
 	var uneven := randf_range(1.2, 3.2)
 	_beep_clock = lerpf(uneven, even, p)
-	Game.sfx("beep", lerpf(-34.0, -13.0, p))
+	Game.sfx("beep", lerpf(-34.0, -13.0, p), 1.4)  # same monitor as the end of ch3 (chase.gd BEEP_PITCH)
 
 
 # ================================================================ world building

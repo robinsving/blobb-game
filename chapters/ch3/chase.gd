@@ -25,13 +25,17 @@ const END_BEAT := 124
 const BODY_R := 0.4
 const BLINK_SECS := 1.6
 const CATCH := 0.6                         # dropped less than this below a roof's edge: he scrambles up
+const BOUNCE_SECS := 0.3                   # a hit knocks him back half a beat, with a little hop
+const BOUNCE_BEATS := 0.5
 ## beat -> scene (chapters/ch3/story.txt). Only Y.
 const LINES := {2: "chase_go", 14: "chase_1", 28: "chase_2", 44: "chase_3", 58: "chase_4",
 	72: "chase_5", 90: "chase_6", 106: "chase_7", 113: "chase_8"}
-## From here to the end Blobb runs by himself: no control, straight down the middle, through
-## chimneys and birds as if they weren't there (he only hops the gaps). Y: "What is happening?",
-## about the real room now, not the story.
+## From here to the end Blobb runs by himself: no control, straight down the middle, hopping the
+## gaps, on roofs left clear so nothing stands between him and the hospital. Y: "What is
+## happening?", about the real room now, not the story.
 const AUTO_BEAT := 112
+## The monitor beep, pitched up from the shared beep.wav (988 Hz) so it reads as a hospital monitor.
+const BEEP_PITCH := 1.4
 
 var fx: StyleFX
 var camera: Camera2D
@@ -53,6 +57,7 @@ var _running := false
 var _ended := false
 var _fail_count := 0
 var _blink := 0.0            # seconds left of the after-hit blink (nothing can hit him then)
+var _bounce := 0.0           # seconds left of the knock-back after a hit
 var _last_line_beat := -99.0 # when Y last reacted to a hit
 var _checkpoint := 0.0
 var _fired := {}
@@ -135,6 +140,9 @@ func _build_course() -> void:
 	while d < END_BEAT - 4:
 		_dives.append({"beat": float(d), "lane": 99, "done": false})
 		d += rng.randi_range(5, 9) if d < 70 else rng.randi_range(3, 6)
+	# the last run (Blobb on his own) is clear: nothing on the roofs, no birds
+	_obstacles = _obstacles.filter(func(o): return o["z1"] < (AUTO_BEAT - 1) * BEAT_LEN)
+	_dives = _dives.filter(func(dv): return dv["beat"] < AUTO_BEAT - 1)
 	var last: Dictionary = _buildings[-1]
 	last["z1"] = END_BEAT * BEAT_LEN + 2.0
 	_hospital = {"z0": last["z1"] + 7.0, "z1": last["z1"] + 15.0, "top": 13.0}
@@ -176,7 +184,7 @@ func _on_beat(b: int) -> void:
 	if m < 0.98:
 		Game.sfx("kick", lerpf(-3.0, -36.0, m))
 	if m > 0.02:
-		Game.sfx("beep", lerpf(-36.0, -9.0, m))
+		Game.sfx("beep", lerpf(-36.0, -9.0, m), BEEP_PITCH)
 	if LINES.has(b) and not _fired.has(b):
 		_fired[b] = true
 		story.play(LINES[b], self)
@@ -200,6 +208,9 @@ func _process(delta: float) -> void:
 		var dt := delta / steps
 		var prev := _beat
 		var db := dt * _bpm(_beat) / 60.0
+		if _bounce > 0.0:
+			_bounce -= dt
+			db = -dt * BOUNCE_BEATS / BOUNCE_SECS
 		_beat += db
 		_tick(prev, _beat, db)
 		_move(dt, db)
@@ -217,7 +228,7 @@ var _end_last := -1
 
 func _tick(prev: float, now: float, _db: float) -> void:
 	var w := floori(now)
-	if w != _last_whole and now >= prev:
+	if w > _last_whole and now >= prev:
 		_last_whole = w
 		_on_beat(w)
 	if floori(now - 0.5) != floori(prev - 0.5) and now > prev:
@@ -232,7 +243,7 @@ func _tick_end(delta: float) -> void:
 	var w := floori(_end_clock)
 	if w != _end_last:
 		_end_last = w
-		Game.sfx("beep", -8.0)
+		Game.sfx("beep", -8.0, BEEP_PITCH)
 
 
 func _move(delta: float, db: float) -> void:
@@ -294,7 +305,12 @@ func _move(delta: float, db: float) -> void:
 	for o in _obstacles:
 		if _blink > 0.0 or auto:
 			break
+		if o.has("gone"):
+			continue
 		if z > o["z0"] - 0.2 and z < o["z1"] + 0.2 and absf(_x - o["lane"]) < 0.45 and _h < o["top"] - 0.05:
+			o["gone"] = _t  # it breaks apart (see _draw_obstacle)
+			Game.sfx("bonk", -6.0, 0.8 if o["kind"] == "chimney" else 1.2)
+			_knock_back()
 			_fail("chimney" if o["kind"] == "chimney" else "vent")
 			return
 	# the birds: the shadow appears two beats ahead, aimed at Blobb's lane; then the dive
@@ -311,6 +327,7 @@ func _move(delta: float, db: float) -> void:
 			d["done"] = true
 			var base: float = roof_h if roof != null else 0.0
 			if absf(_x - d["lane"]) < 0.6 and _h < base + 0.7 and _blink <= 0.0 and not auto:
+				_knock_back()
 				_fail("bird")
 				return
 	if _beat >= END_BEAT and not _ended:
@@ -347,6 +364,13 @@ func _fail(why: String) -> void:
 		_last_line_beat = _beat
 		story.play("chase_fail_%d" % (_fail_count % 3 + 1), self)
 		_fail_count += 1
+
+
+## A hit knocks Blobb back half a beat with a little hop (only on the roof; in the air he just
+## blinks). The clock runs backwards for a moment, so everything stays on the beat.
+func _knock_back() -> void:
+	if _air < 0.0 and not _falling:
+		_bounce = BOUNCE_SECS
 
 
 ## Back up onto the roofs: onto the roof he's over, or with a hop across the gap to the next one.
@@ -555,12 +579,75 @@ func _draw_obstacle(o: Dictionary) -> void:
 	var l: float = o["lane"]
 	var roof: Variant = _roof_at((o["z0"] + o["z1"]) * 0.5)
 	var base: float = roof["h"] if roof != null else 0.0
+	if o.has("gone"):
+		_draw_debris(o, base)
+		return
+	var z0: float = o["z0"]
+	var z1: float = o["z1"]
+	var top: float = o["top"]
 	if o["kind"] == "chimney":
-		_box(l - 0.38, l + 0.38, o["z0"], o["z1"], base, o["top"], Color(0.55, 0.3, 0.22), Color(0.42, 0.21, 0.16), Color(0.3, 0.15, 0.12))
-		_box(l - 0.46, l + 0.46, o["z0"] - 0.08, o["z1"] + 0.08, o["top"], o["top"] + 0.15, Color(0.35, 0.2, 0.16), Color(0.28, 0.16, 0.13), Color(0.2, 0.12, 0.1))
+		var x0 := l - 0.38
+		var x1 := l + 0.38
+		_box(x0, x1, z0, z1, base, top, Color(0.55, 0.3, 0.22), Color(0.42, 0.21, 0.16), Color(0.3, 0.15, 0.12))
+		# brick courses with staggered joints, on the two faces we see
+		var mortar_f := Color(0.3, 0.15, 0.12)
+		var mortar_s := Color(0.21, 0.1, 0.08)
+		var row := 0
+		var hh := base + 0.3
+		while hh < top - 0.05:
+			_world.draw_line(_proj(x0, z0, hh), _proj(x1, z0, hh), mortar_f, 2.0)
+			_world.draw_line(_proj(x1, z0, hh), _proj(x1, z1, hh), mortar_s, 2.0)
+			var off := 0.19 if row % 2 == 0 else 0.0
+			var u := off + 0.19
+			while u < 0.76 - 0.05:
+				_world.draw_line(_proj(x0 + u, z0, hh), _proj(x0 + u, z0, hh + 0.3), mortar_f, 2.0)
+				_world.draw_line(_proj(x1, z0 + u * 0.9 / 0.76, hh), _proj(x1, z0 + u * 0.9 / 0.76, hh + 0.3), mortar_s, 2.0)
+				u += 0.38
+			hh += 0.3
+			row += 1
+		# moonlit corner, and the cap with a sooty flue
+		_world.draw_line(_proj(x1, z0, base), _proj(x1, z0, top), Color(0.72, 0.45, 0.36), 2.0)
+		_box(l - 0.46, l + 0.46, z0 - 0.08, z1 + 0.08, top, top + 0.15, Color(0.35, 0.2, 0.16), Color(0.28, 0.16, 0.13), Color(0.2, 0.12, 0.1))
+		var t2 := top + 0.15
+		_quad(_proj(l - 0.24, z0 + 0.2, t2), _proj(l + 0.24, z0 + 0.2, t2), _proj(l + 0.24, z1 - 0.2, t2), _proj(l - 0.24, z1 - 0.2, t2), Color(0.08, 0.05, 0.06))
+		_world.draw_line(_proj(l - 0.46, z0 - 0.08, t2), _proj(l + 0.46, z0 - 0.08, t2), Color(0.62, 0.4, 0.32), 2.0)
+		_world.draw_line(_proj(l + 0.46, z0 - 0.08, t2), _proj(l + 0.46, z1 + 0.08, t2), Color(0.5, 0.32, 0.26), 2.0)
 	else:
-		_box(l - 0.42, l + 0.42, o["z0"], o["z1"], base, o["top"], Color(0.6, 0.64, 0.72), Color(0.38, 0.4, 0.48), Color(0.28, 0.3, 0.36))
-		_world.draw_line(_proj(l - 0.3, o["z0"] + 0.15, o["top"]), _proj(l + 0.3, o["z0"] + 0.15, o["top"]), Color(1.0, 0.85, 0.5, 0.8), 3.0)
+		var x0 := l - 0.42
+		var x1 := l + 0.42
+		_box(x0, x1, z0, z1, base, top, Color(0.6, 0.64, 0.72), Color(0.38, 0.4, 0.48), Color(0.28, 0.3, 0.36))
+		# louvre slats on the front, a lit top edge
+		for i in 3:
+			var hs := base + (top - base) * (0.25 + i * 0.22)
+			_world.draw_line(_proj(x0 + 0.1, z0, hs), _proj(x1 - 0.1, z0, hs), Color(0.2, 0.21, 0.27), 3.0)
+		_world.draw_line(_proj(x0, z0, top), _proj(x1, z0, top), Color(0.82, 0.86, 0.95), 2.0)
+		_world.draw_line(_proj(x1, z0, top), _proj(x1, z1, top), Color(0.7, 0.74, 0.84), 2.0)
+
+
+## A smashed chimney or vent: chunks thrown up and out, falling and fading over 0.7 s.
+func _draw_debris(o: Dictionary, base: float) -> void:
+	var k: float = (_t - o["gone"]) / 0.7
+	if k >= 1.0:
+		return
+	var chimney: bool = o["kind"] == "chimney"
+	var col := Color(0.55, 0.3, 0.22) if chimney else Color(0.6, 0.64, 0.72)
+	col.a = 1.0 - k * k
+	var zc: float = (o["z0"] + o["z1"]) * 0.5
+	var top: float = o["top"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(zc * 100.0) + int(o["lane"]) * 7
+	for i in (10 if chimney else 6):
+		var h0 := lerpf(base, top, rng.randf())
+		var v := Vector3(rng.randf_range(-1.6, 1.6), rng.randf_range(1.0, 2.6), rng.randf_range(0.4, 2.2))
+		var tt := k * 0.7
+		var p := _proj(o["lane"] + v.x * tt, zc + v.z * tt, h0 + v.y * tt - 6.0 * tt * tt)
+		var sz := rng.randf_range(10.0, 20.0) * (1.0 - k * 0.5)
+		var a := rng.randf() * TAU + k * 6.0
+		var c := col.darkened(rng.randf() * 0.35)
+		var pts := PackedVector2Array()
+		for j in 4:
+			pts.append(p + Vector2(cos(a + j * PI * 0.5), sin(a + j * PI * 0.5) * 0.7) * sz)
+		_world.draw_colored_polygon(pts, c)
 
 
 func _draw_dive_shadow(d: Dictionary) -> void:
@@ -617,7 +704,8 @@ func _draw_blobb() -> void:
 			pts.append(c + (AX * cos(a) + AZ * sin(a)) * 0.36 * spread)
 		_world.draw_colored_polygon(pts, Color(0, 0, 0.05, 0.4 * spread))
 	var run := 0.0 if _air >= 0.0 or _falling else absf(sin(_beat * PI * 2.0))
-	var foot := _proj(_x, z, _h)
+	var hop := sin(PI * _bounce / BOUNCE_SECS) * 0.45 if _bounce > 0.0 else 0.0
+	var foot := _proj(_x, z, _h + hop)
 	var r := BODY_R * S
 	var sq := Vector2(1.0 / sqrt(_squash), _squash)
 	var center := foot + Vector2(0, -r * sq.y - run * 8.0)

@@ -61,6 +61,9 @@ Y: In my half, it's morning.
 @pause 2.5
 Y: In my half, it's MORNING.
   sv: I min halva är det MORGON.
+@pause 2.0
+Y: If it's morning, you must wake up.
+  sv: Om det är morgon måste du vakna.
 @pause 3.0
 Y: ...It's not working.
   sv: ...Det funkar inte.

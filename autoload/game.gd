@@ -265,13 +265,14 @@ func toggle_pause() -> void:
 	bg.color = Color(0, 0, 0, 0.6)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_pause_layer.add_child(bg)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_layer.add_child(center)
 	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_CENTER)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 18)
-	box.position = Vector2(960 - 300, 380)
 	box.custom_minimum_size = Vector2(600, 0)
-	_pause_layer.add_child(box)
+	center.add_child(box)
 	var title := Label.new()
 	title.text = t("paused")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
