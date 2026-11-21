@@ -260,6 +260,7 @@ func _build_world() -> void:
 				_fired[beat] = true
 				_beat(beat))
 	player = PlayerSide.new()
+	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 	player.position = Vector2(4 * TILE + 32, GROUND_ROW * TILE)
 	player.z_index = 2
 	add_child(player)
@@ -492,3 +493,12 @@ func _ground_y(col: int) -> float:
 		if col >= l[0] and col <= l[1]:
 			return l[2] * TILE
 	return GROUND_ROW * TILE
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state"]
+
+
+func debug_state() -> Dictionary:
+	return DebugState.side(player, TILE, _fired, {"done": _done})

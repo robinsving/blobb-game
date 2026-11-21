@@ -24,6 +24,7 @@ var _young: Label
 var _old_icon: NarratorIcon
 var _young_icon: NarratorIcon
 var _arrow: Label
+var _advance_event := false
 var _taught_advance := false  # the first line that waits says which key moves the story on
 var _hint: Label
 ## The controls legend that stays on screen in puzzle rooms (a Game.UI key, re-translated when
@@ -35,6 +36,7 @@ var _hint_tween: Tween
 var _band_tween: Tween
 var _skip_typing := false
 var _typing := false
+var _current := ""  # the line being shown, "O: …" / "Y: …" (for debug_state)
 
 
 func _ready() -> void:
@@ -182,6 +184,13 @@ func say(lines: Array, blocking := true) -> void:
 	finished.emit()
 
 
+## What is on screen now, for checks from outside (DebugState / gda): the line being shown, the
+## hint and legend texts, and whether a blocking line is waiting for the advance key.
+func debug_state() -> Dictionary:
+	return {"line": _current if busy else "", "waiting": _arrow.visible, "hint": _hint.text if _hint.modulate.a > 0.05 else "",
+		"legend": _legend.text if _legend_key != "" else ""}
+
+
 ## Immediately clears everything (used on scene change).
 func clear() -> void:
 	_generation += 1
@@ -203,19 +212,6 @@ func legend(key: String) -> void:
 	_refresh_legend()
 	_legend_tween = create_tween()
 	_legend_tween.tween_property(_legend, "modulate:a", 0.8 if key != "" else 0.0, 0.5)
-
-
-## Draws the eye to the legend for a moment (a player who seems stuck: the hint key is there).
-func legend_nudge() -> void:
-	if _legend_key == "":
-		return
-	if _legend_tween:
-		_legend_tween.kill()
-	_legend_tween = create_tween()
-	for i in 3:
-		_legend_tween.tween_property(_legend, "modulate:a", 1.0, 0.35)
-		_legend_tween.tween_property(_legend, "modulate:a", 0.45, 0.35)
-	_legend_tween.tween_property(_legend, "modulate:a", 0.8, 0.4)
 
 
 func _refresh_legend() -> void:
@@ -254,6 +250,7 @@ func _type_line(line: Dictionary) -> void:
 		dim.tween_property(other, "modulate:a", 0.38, 0.25)
 		dim.tween_property(other_icon, "modulate:a", 0.38, 0.25)
 	var text := Game.pick(line)
+	_current = ("O: " if is_old else "Y: ") + text
 	lbl.text = text
 	lbl.visible_characters = 0
 	lbl.modulate.a = 1.0
@@ -289,14 +286,19 @@ func _type_line(line: Dictionary) -> void:
 func _wait_advance() -> void:
 	var gen := _generation
 	await get_tree().create_timer(0.12).timeout
+	_advance_event = false
 	while gen == _generation:
 		await get_tree().process_frame
-		if Input.is_action_just_pressed("advance") and not get_tree().paused:
+		var pressed := Input.is_action_just_pressed("advance") or _advance_event
+		_advance_event = false
+		if pressed and not get_tree().paused:
 			Game.sfx("blip_old", -20.0, 1.4)
 			return
 
 
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("advance", false):
+		_advance_event = true  # also caught as an event, so a press injected mid-frame (gda) counts
 	if _typing and event.is_action_pressed("advance") and Game.control_locked:
 		_skip_typing = true
 

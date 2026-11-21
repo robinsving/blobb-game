@@ -279,6 +279,7 @@ func _build_world() -> void:
 		_checkpoint_area(col)
 
 	player = PlayerSwim.new()
+	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 	player.surface_y = SURFACE_Y
 	_checkpoint = _checkpoint_pos(CHECKPOINTS[0])
 	player.position = _checkpoint
@@ -562,3 +563,12 @@ func _column_area(col: int) -> Area2D:
 	a.add_child(cs)
 	add_child(a)
 	return a
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state"]
+
+
+func debug_state() -> Dictionary:
+	return DebugState.side(player, TILE, _fired, {"checkpoint": _checkpoint})

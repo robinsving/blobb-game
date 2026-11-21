@@ -31,11 +31,6 @@ func _test_solutions() -> void:
 		for ch in SOLUTIONS[i]:
 			last = g.try_move(DIRS[ch])
 		_check(last.get("exit", false), "room %d solution reaches exit" % i)
-		# the hint solver finds a way from the start, no longer than the known solution
-		var h := SokobanGrid.from_rows(Rooms.ROOMS[i])
-		var hint := h.solve(true)
-		_check(hint.size() > 0 and hint.size() <= SOLUTIONS[i].length(), "room %d hint solver finds a way (%d moves)" % [i, hint.size()])
-		_check(h.player == SokobanGrid.from_rows(Rooms.ROOMS[i]).player, "room %d hint solver leaves the room as it was" % i)
 
 
 func _test_water_blocks_until_float() -> void:

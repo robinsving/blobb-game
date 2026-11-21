@@ -31,6 +31,7 @@ var use_bot := true
 var can_swim := false
 var surface_y := 200.0
 var flow := Vector2.ZERO
+var buoyancy := BUOYANCY  # the mill sets 0: he hovers where he stops, so a control stays in reach
 var sprite: BlobbSprite
 var _pivot: Node2D
 var _knock := 0.0
@@ -130,7 +131,7 @@ func _move_sink(input: Vector2, delta: float) -> void:
 func _move_swim(input: Vector2, delta: float) -> void:
 	var want := input.limit_length(1.0) * SWIM
 	if input == Vector2.ZERO:
-		velocity = velocity.move_toward(Vector2(0, BUOYANCY), SWIM_DRAG * delta)
+		velocity = velocity.move_toward(Vector2(0, buoyancy), SWIM_DRAG * delta)
 	else:
 		velocity = velocity.move_toward(want, SWIM_ACCEL * delta)
 

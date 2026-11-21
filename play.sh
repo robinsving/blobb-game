@@ -10,7 +10,24 @@ case "$1" in
   forest) s=ch1/forest ;; clearing) s=ch1/clearing ;; pond) s=ch2/pond ;; mill) s=ch2/mill ;;
   city) s=ch3/city ;; roofs) s=ch3/roofs ;; chase) s=ch3/chase ;; dream) s=ch4/dream ;;
   climb) s=ch5/climb ;; climbtest) s=ch5/climb_test ;;
-  *) sed -n '3,8p' "$0"; exit 1 ;;
+  *) cat <<'HELP'
+Starta Blobb direkt i en scen:   ./play.sh SCEN [VAR] [--fast]
+
+  forest     skogen          VAR = kolumn (17 hoppet, 62 bananen, 98 kvällen)
+  clearing   gläntan         VAR = rum 1-2
+  pond       dammen          VAR = kolumn (43 fiskarna, 64 virveln)
+  mill       kvarnen         VAR = rum 1-3
+  city       stan            VAR = kolumn (39 kanalen, 84 stupröret)
+  roofs      taken           VAR = rum 1-3
+  chase      jakten          VAR = taktslag (60 mitten, 104 slutet)
+  dream      drömmen         VAR = kolumn (60 ankan, 106 slutet, 114 berget)
+  climb      klättringen     VAR = del 0-4 (4 = toppen)
+  climbtest  testbanan för studs och sving
+
+  t.ex.  ./play.sh roofs 2     ./play.sh city 39 --fast     ./play.sh climb 4
+  --fast = texten går fram av sig själv.  F1 på startskärmen ger samma val i en meny.
+HELP
+     exit 1 ;;
 esac
 shift
 w=""

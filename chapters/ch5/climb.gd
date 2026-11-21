@@ -149,6 +149,7 @@ func _build_world() -> void:
 	_rope.visible = false
 	add_child(_rope)
 	player = PlayerSide.new()
+	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 	player.position = _safe
 	player.z_index = 2
 	player.jump_velocity = PlayerSide.STRONG_JUMP
@@ -776,3 +777,14 @@ func _bot(delta: float) -> void:
 	if p.y < player.position.y - 5.0:
 		player.teleport(p)
 		print("BOT ledge ", _bot_i, " at ", p)
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state"]
+
+
+func debug_state() -> Dictionary:
+	var d := DebugState.base(player)
+	d.merge(DebugState.json({"fired": _fired.keys(), "stretch": _stretch, "hold": _hold, "standing_heart": _standing_heart, "done": _done, "dawn": _dawn}), true)
+	return d

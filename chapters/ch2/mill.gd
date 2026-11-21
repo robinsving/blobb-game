@@ -40,18 +40,13 @@ var _linked := Vector2i(-1, -1)  # control currently shown with a line to its ta
 var _flow := {}
 var _tick := 0.0
 var _busy := true
-var _hint: HintMarker
-var _stuck_time := 0.0         # time in this room, across restarts
-var _restarts := 0
-var _nudged := false
-var _hint_room := -1
-const NUDGE_SECS := 90.0       # stuck this long (or 2 restarts): the legend flashes, hint key and all
 var _done := false
 var _reverse_told := false
 var _restart_told := false
 var _room_time := 0.0
 var _presses := 0
 var _duck_still := 0.0
+var _stuck_checked := ""  # the room state last checked for a dead end (FlowRoom._key)
 var _t := 0.0
 var _room_gen := 0  # bumped on every room load, so a bot loop from an earlier room stops
 var story := StoryScript.load_file("res://chapters/ch2/story.txt")
@@ -149,10 +144,6 @@ func _process(delta: float) -> void:
 	if _busy or _done:
 		return
 	_room_time += delta
-	_stuck_time += delta
-	if not _nudged and (_stuck_time > NUDGE_SECS or _restarts >= 2):
-		_nudged = true
-		Narrator.legend_nudge()
 	# the duck moves one cell per tick along the streams (or floats up)
 	_tick += delta
 	if _tick >= TICK:
@@ -166,6 +157,8 @@ func _process(delta: float) -> void:
 				_duck.flip_h = _flow[from].x < 0
 		else:
 			_duck_still += TICK
+			if _duck_still >= TICK * 3.0 and _check_stuck():
+				return
 		if room.solved():
 			_solved()
 			return
@@ -181,26 +174,6 @@ func _process(delta: float) -> void:
 			_press(c)
 	elif Input.is_action_just_pressed("restart"):
 		_restart()
-	elif Input.is_action_just_pressed("hint"):
-		_show_hint()
-
-
-## The next wheel or lever, worked out from the room as it is now (the same solver the tests use).
-## In room 3, before water can run backwards, there is no way yet: the hint brings that beat on.
-func _show_hint() -> void:
-	if room.will_finish():
-		_hint = HintMarker.at(self, _cell_pos(room.goal), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
-		return
-	var path := room.solve()
-	if path.is_empty():
-		if room_i == 2 and not _reverse_told:
-			_reverse_told = true
-			_tell_backwards()
-		else:
-			Narrator.hint(Game.t("hint_stuck"), 5.0)
-		return
-	var c: Vector2i = path[0]
-	_hint = HintMarker.at(self, _cell_pos(c), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
 
 
 func _physics_process(_delta: float) -> void:
@@ -251,8 +224,32 @@ func _control_in_reach() -> Vector2i:
 	return best
 
 
+## Pressing while the duck is still moving can leave it where no presses can get it to the goal.
+## Once it has settled, check that (once per state); if it's a dead end, start the room over.
+func _check_stuck() -> bool:
+	var key := room._key()
+	if key == _stuck_checked or room.solved():
+		return false
+	_stuck_checked = key
+	var allowed := room.reverse_allowed
+	room.reverse_allowed = allowed or room_i == 2  # room 3: the backwards rule is coming anyway
+	var dead := room.solve().is_empty()
+	room.reverse_allowed = allowed
+	if not dead:
+		return false
+	_stuck_restart()
+	return true
+
+
+func _stuck_restart() -> void:
+	_busy = true
+	Narrator.hint(Game.t("hint_duck_stuck"), 4.0)
+	await get_tree().create_timer(1.6).timeout
+	_busy = false
+	_restart()
+
+
 func _restart() -> void:
-	_restarts += 1
 	var allowed := room.reverse_allowed
 	_load_room(room_i)
 	room.reverse_allowed = allowed
@@ -382,18 +379,12 @@ func _build_scenery() -> void:
 
 
 func _load_room(i: int) -> void:
-	if i != _hint_room:  # a new room (not a restart): the stuck clock starts over
-		_hint_room = i
-		_stuck_time = 0.0
-		_restarts = 0
-		_nudged = false
-	if is_instance_valid(_hint):
-		_hint.queue_free()
 	room_i = i
 	_room_gen += 1
 	_room_time = 0.0
 	_presses = 0
 	_tick = 0.0
+	_stuck_checked = ""
 	if _room_node:
 		_room_node.queue_free()
 		_stream_node.queue_free()
@@ -408,7 +399,7 @@ func _load_room(i: int) -> void:
 	_stream_node = Node2D.new()
 	_stream_node.z_index = 1
 	add_child(_stream_node)
-	_stream_node.draw.connect(_draw_streams)
+	_stream_node.draw.connect(_draw_streams.bind(_stream_node))  # bound: an old node being freed on a restart draws on itself
 
 	var pair := {}  # target letter -> colour
 	_pair_num.clear()
@@ -443,9 +434,11 @@ func _load_room(i: int) -> void:
 
 	if not player:
 		player = PlayerSwim.new()
+		player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 		player.surface_y = -100000.0
 		player.can_swim = true
 		player.mode = PlayerSwim.Mode.SWIM
+		player.buoyancy = 0.0
 		player.use_bot = false
 		player.sprite_scale = 0.34
 		add_child(player)
@@ -697,8 +690,7 @@ func _scroll_streams(_delta: float) -> void:
 ## Each running stream is one ribbon of water from the spout to where it hits rock, with arrows
 ## sliding along it the way the water (and so the duck) moves. Where two streams cross, the
 ## arrows show whichever stream wins that cell.
-func _draw_streams() -> void:
-	var n := _stream_node
+func _draw_streams(n: Node2D) -> void:
 	for path in _paths:
 		var pts: PackedVector2Array = path["pts"]
 		n.draw_polyline(pts, Color(0.3, 0.62, 0.95, 0.38), 70.0)
@@ -816,3 +808,23 @@ func _autoplay() -> void:
 		_press(c)
 		_duck_still = 0.0
 		await get_tree().create_timer(TICK * 2).timeout
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state", "debug_plan"]
+
+
+func debug_state() -> Dictionary:
+	var d := DebugState.base(player)
+	d.merge(DebugState.json({"room": room_i, "duck": room.duck, "goal": room.goal, "solved": room.solved(), "spouts": room.spouts, "boards": room.boards, "reverse_allowed": room.reverse_allowed, "in_reach": _control_in_reach(), "busy_room": _busy, "done": _done}), true)
+	return d
+
+
+## The solver's presses from the room as it is now, and where Blobb has to be (his position) to
+## use each control. For tools/playtest.py. Read-only (solve() restores the room).
+func debug_plan() -> Dictionary:
+	var targets := {}
+	for c in room.controls:
+		targets[c] = _cell_pos(c) + Vector2(0, 54)
+	return DebugState.json({"presses": room.solve(), "targets": targets})

@@ -30,7 +30,6 @@ const KEYS := {
 	"use": {"kb": "E", "pad": "Ⓑ"},
 	"undo": {"kb": "Z", "pad": "Ⓧ"},
 	"restart": {"kb": "R", "pad": "Ⓨ"},
-	"hint": {"kb": "H", "pad": "LB"},
 	"arrows": {"kb": {"en": "Arrows", "sv": "Piltangenterna"}, "pad": {"en": "Stick", "sv": "Spaken"}},
 }
 ## True while blocking narration plays or a cutscene runs; player scripts must ignore input then.
@@ -53,7 +52,7 @@ const UI := {
 	"hint_move": {"en": "← → to move", "sv": "← → för att gå"},
 	"hint_jump": {"en": "{jump} to jump", "sv": "{jump} för att hoppa"},
 	"hint_advance": {"en": "{advance} for the next line", "sv": "{advance} för nästa rad"},
-	"hint_push": {"en": "{arrows} to move · {undo} undo · {restart} start again · {hint} hint", "sv": "{arrows} för att gå · {undo} ångra · {restart} börja om · {hint} ledtråd"},
+	"hint_push": {"en": "{arrows} to move · {undo} undo · {restart} start again", "sv": "{arrows} för att gå · {undo} ångra · {restart} börja om"},
 	"chapter_1": {"en": "Chapter 1", "sv": "Kapitel 1"},
 	"chapter_1_name": {"en": "The Other Side of the Forest", "sv": "Andra sidan skogen"},
 	"chapter_end": {"en": "End of chapter one. More tomorrow.", "sv": "Slut på kapitel ett. Mer i morgon."},
@@ -65,14 +64,15 @@ const UI := {
 	"hint_walk_in": {"en": "→ to walk in", "sv": "→ för att gå i"},
 	"hint_hop": {"en": "← → to walk · {jump} to hop", "sv": "← → för att gå · {jump} för att hoppa"},
 	"hint_swim": {"en": "{arrows} to swim", "sv": "{arrows} för att simma"},
-	"hint_mill": {"en": "{arrows} to swim · {jump} at a wheel or lever · {restart} start again · {hint} hint", "sv": "{arrows} för att simma · {jump} vid ett hjul eller en spak · {restart} börja om · {hint} ledtråd"},
+	"hint_mill": {"en": "{arrows} to swim · {jump} at a wheel or lever · {restart} start again", "sv": "{arrows} för att simma · {jump} vid ett hjul eller en spak · {restart} börja om"},
+	"hint_duck_stuck": {"en": "The duck is stuck. From the top!", "sv": "Ankan har fastnat. Från början!"},
 	"hint_backwards": {"en": "A wheel now goes: off → on → backwards", "sv": "Ett hjul går nu: av → på → baklänges"},
 	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3_name": {"en": "Lights", "sv": "Ljus"},
 	"chapter_end_3": {"en": "End of chapter three.", "sv": "Slut på kapitel tre."},
 	"hint_dash": {"en": "{jump} to jump the canal", "sv": "{jump} för att hoppa över kanalen"},
-	"hint_roofs": {"en": "{use} at a crank turns its lamp · {restart} start again · {hint} hint", "sv": "{use} vid en vev vrider dess lampa · {restart} börja om · {hint} ledtråd"},
+	"hint_roofs": {"en": "{use} at a crank turns its lamp · {restart} start again", "sv": "{use} vid en vev vrider dess lampa · {restart} börja om"},
 	"hint_chase": {"en": "← → change lanes · {jump} jump on the beat", "sv": "← → byt fil · {jump} hoppa i takt"},
 	"chapter_4_btn": {"en": "Chapter 4", "sv": "Kapitel 4"},
 	"chapter_5_btn": {"en": "Chapter 5", "sv": "Kapitel 5"},
@@ -80,8 +80,6 @@ const UI := {
 	"chapter_5_name": {"en": "The Climb", "sv": "Klättringen"},
 	"the_end": {"en": "The end.", "sv": "Slut."},
 	"hint_swing": {"en": "Hold {use} near a glowing hold to stretch and swing. Let go to fly.", "sv": "Håll {use} nära ett lysande grepp för att sträcka dig och svinga. Släpp för att flyga."},
-	"hint_stuck": {"en": "No way on from here. {restart} starts the room again.", "sv": "Härifrån kommer man inte vidare. {restart} börjar om rummet."},
-	"hint_wait": {"en": "Stand still a moment, then ask for a hint again.", "sv": "Stå still en stund och be om en ledtråd igen."},
 	"chapter_4": {"en": "Chapter 4", "sv": "Kapitel 4"},
 	"chapter_4_name": {"en": "The Other Half", "sv": "Den andra halvan"},
 	"chapter_end_4": {"en": "End of chapter four.", "sv": "Slut på kapitel fyra."},
@@ -378,7 +376,6 @@ func _setup_input() -> void:
 	_action("use", [KEY_E, KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_B])
 	_action("undo", [KEY_Z, KEY_BACKSPACE], [JOY_BUTTON_X])
 	_action("restart", [KEY_R], [JOY_BUTTON_Y])
-	_action("hint", [KEY_H], [JOY_BUTTON_LEFT_SHOULDER])
 	_action("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START])
 
 

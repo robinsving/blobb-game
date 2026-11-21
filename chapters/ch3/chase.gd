@@ -23,10 +23,8 @@ const JUMP_PEAK := 1.15
 const LANE_TIME := 0.12
 const END_BEAT := 124
 const BODY_R := 0.4
-const BLINK_SECS := 1.6
 const CATCH := 0.6                         # dropped less than this below a roof's edge: he scrambles up
-const BOUNCE_SECS := 0.3                   # a hit knocks him back half a beat, with a little hop
-const BOUNCE_BEATS := 0.5
+const RETELL_SECS := 1.1                   # the pause before he's back at the start of the roof
 ## beat -> scene (chapters/ch3/story.txt). Only Y.
 const LINES := {2: "chase_go", 14: "chase_1", 28: "chase_2", 44: "chase_3", 58: "chase_4",
 	72: "chase_5", 90: "chase_6", 106: "chase_7", 113: "chase_8"}
@@ -55,9 +53,7 @@ var _falling := false
 var _running := false
 var _ended := false
 var _fail_count := 0
-var _blink := 0.0            # seconds left of the after-hit blink (nothing can hit him then)
-var _bounce := 0.0           # seconds left of the knock-back after a hit
-var _last_line_beat := -99.0 # when Y last reacted to a hit
+var _retelling := false      # between a hit and the restart: the clock stops
 var _checkpoint := 0.0
 var _fired := {}
 var _squash := 1.0
@@ -202,20 +198,16 @@ func _process(delta: float) -> void:
 	# small steps, so a slow frame can't skip Blobb past a chimney or a roof edge
 	var steps := ceili(delta / (1.0 / 120.0))
 	for i in steps:
-		if not _running or _ended:
+		if not _running or _retelling or _ended:
 			break
 		var dt := delta / steps
 		var prev := _beat
 		var db := dt * _bpm(_beat) / 60.0
-		if _bounce > 0.0:
-			_bounce -= dt
-			db = -dt * BOUNCE_BEATS / BOUNCE_SECS
 		_beat += db
 		_tick(prev, _beat, db)
 		_move(dt, db)
 	if _ended:
 		_tick_end(delta)
-	_blink = maxf(_blink - delta, 0.0)
 	_squash = lerpf(_squash, 1.0, 0.15)
 	_update_camera()
 	_world.queue_redraw()
@@ -302,14 +294,13 @@ func _move(delta: float, db: float) -> void:
 			_h = roof_h
 	# chimneys and vents
 	for o in _obstacles:
-		if _blink > 0.0 or auto:
+		if auto:
 			break
 		if o.has("gone"):
 			continue
 		if z > o["z0"] - 0.2 and z < o["z1"] + 0.2 and absf(_x - o["lane"]) < 0.45 and _h < o["top"] - 0.05:
-			o["gone"] = _t  # it breaks apart (see _draw_obstacle)
+			o["gone"] = _t  # it breaks apart (see _draw_obstacle) and stays gone after the restart
 			Game.sfx("bonk", -6.0, 0.8 if o["kind"] == "chimney" else 1.2)
-			_knock_back()
 			_fail("chimney" if o["kind"] == "chimney" else "vent")
 			return
 	# the birds: the shadow appears two beats ahead, aimed at Blobb's lane; then the dive
@@ -325,8 +316,8 @@ func _move(delta: float, db: float) -> void:
 		if _beat >= d["beat"] and d["lane"] != 99:
 			d["done"] = true
 			var base: float = roof_h if roof != null else 0.0
-			if absf(_x - d["lane"]) < 0.6 and _h < base + 0.7 and _blink <= 0.0 and not auto:
-				_knock_back()
+			if absf(_x - d["lane"]) < 0.6 and _h < base + 0.7 and not auto:
+				d["gone"] = true  # this bird doesn't dive again after the restart
 				_fail("bird")
 				return
 	if _beat >= END_BEAT and not _ended:
@@ -347,49 +338,38 @@ func _land(roof_h: float) -> void:
 	Game.sfx("land", -14.0)
 
 
-## A hit never stops the run: Blobb blinks for a moment (nothing can hit him), and Y objects.
-## A fall pops him back up onto the roofs with a hop, so he carries on.
+## A hit is a retell: Y objects, the picture warbles, and Blobb starts again at the start of the
+## roof he was on (the one before, if he'd only just landed). What he hit stays gone, so the same
+## chimney, vent or bird can't stop him twice. A missed gap has nothing to take away: he simply
+## tries that jump again.
 func _fail(why: String) -> void:
 	if Game.autoplay:  # test runs log why the bot was hit
 		print("chase hit: ", why, " beat ", snappedf(_beat, 0.01), " lane ", _lane, " x ", snappedf(_x, 0.01), " h ", snappedf(_h, 0.01))
-	if why == "fall" or why == "bonk":
-		_rescue()
-	if _blink > 0.0:
-		return
-	_blink = BLINK_SECS
+	_retelling = true
 	_squash = 0.7
-	Game.sfx("rewind", -14.0, 1.4)
-	if _beat - _last_line_beat > 8.0:
-		_last_line_beat = _beat
-		story.play("chase_fail_%d" % (_fail_count % 3 + 1), self)
-		_fail_count += 1
-
-
-## A hit knocks Blobb back half a beat with a little hop (only on the roof; in the air he just
-## blinks). The clock runs backwards for a moment, so everything stays on the beat.
-func _knock_back() -> void:
-	if _air < 0.0 and not _falling:
-		_bounce = BOUNCE_SECS
-
-
-## Back up onto the roofs: onto the roof he's over, or with a hop across the gap to the next one.
-func _rescue() -> void:
-	var z := _beat * BEAT_LEN
+	Game.sfx("rewind", -6.0)
+	fx.rewind_pulse(0.9)
+	story.play("chase_fail_%d" % (_fail_count % 3 + 1), self)
+	_fail_count += 1
+	await get_tree().create_timer(0.5 if Game.fast else RETELL_SECS).timeout
+	if _ended:
+		return
+	_checkpoint = _checkpoint_for(_beat)
+	_beat = _checkpoint
+	_last_whole = floori(_beat)
+	_h = (_roof_at(_beat * BEAT_LEN) as Dictionary)["h"]
+	_air = -1.0
 	_falling = false
 	_vh = 0.0
-	var here: Variant = _roof_at(z)
-	if here != null and (_air < 0.0 or _h < here["h"]):
-		_air = -1.0
-		_h = here["h"]
-		_land(_h)
-		return
-	var ahead: Variant = null
-	for bl in _buildings:
-		if bl["z0"] > z:
-			ahead = bl
-			break
-	_h = ahead["h"] if ahead != null else 0.0
-	_take_off()  # a hop starting at the next roof's height clears the gap
+	_lane = 0
+	_x = 0.0
+	for d in _dives:  # the birds after the checkpoint dive again (aimed afresh), except the one that hit
+		if not d.has("gone"):
+			d["done"] = d["beat"] < _beat
+			d["lane"] = 99
+	camera.position = _proj(0, _beat * BEAT_LEN + 3.0, 0)
+	camera.reset_smoothing()
+	_retelling = false
 
 
 func _end() -> void:
@@ -703,21 +683,19 @@ func _draw_blobb() -> void:
 			pts.append(c + (AX * cos(a) + AZ * sin(a)) * 0.36 * spread)
 		_world.draw_colored_polygon(pts, Color(0, 0, 0.05, 0.4 * spread))
 	var run := 0.0 if _air >= 0.0 or _falling else absf(sin(_beat * PI * 2.0))
-	var hop := sin(PI * _bounce / BOUNCE_SECS) * 0.45 if _bounce > 0.0 else 0.0
-	var foot := _proj(_x, z, _h + hop)
+	var foot := _proj(_x, z, _h)
 	var r := BODY_R * S
 	var sq := Vector2(1.0 / sqrt(_squash), _squash)
 	var center := foot + Vector2(0, -r * sq.y - run * 8.0)
-	var a := 0.25 if _blink > 0.0 and fmod(_blink, 0.18) < 0.09 else 1.0
 	# feet, stepping on the beat
 	var step := sin(_beat * PI * 2.0) * 9.0 if run > 0.0 else 0.0
 	_world.draw_set_transform(foot + Vector2(-16 + step * 0.4, -6 - maxf(step, 0.0)), 0.0, Vector2(1, 0.55))
-	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95, a))
+	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95))
 	_world.draw_set_transform(foot + Vector2(18 - step * 0.4, -10 - maxf(-step, 0.0)), 0.0, Vector2(1, 0.55))
-	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95, a))
+	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95))
 	# body
 	_world.draw_set_transform(center, sin(_t * 9.0) * 0.04, sq)
-	_world.draw_texture_rect(_ball, Rect2(-r * 1.15, -r * 1.15, r * 2.3, r * 2.3), false, Color(1, 1, 1, a))
+	_world.draw_texture_rect(_ball, Rect2(-r * 1.15, -r * 1.15, r * 2.3, r * 2.3), false)
 	# no face: he runs away from the camera (into the screen), so we see the back of him.
 	# A face here made him look like he was running backwards.
 	_world.draw_set_transform(Vector2.ZERO)
@@ -792,3 +770,14 @@ func _make_ball() -> Texture2D:
 				col = col.darkened(0.12)  # fuzz
 			img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state"]
+
+
+func debug_state() -> Dictionary:
+	var d := DebugState.base(null)
+	d.merge(DebugState.json({"beat": _beat, "x": _x, "h": _h, "retelling": _retelling, "fails": _fail_count, "gone": _obstacles.filter(func(o): return o.has("gone")).size() + _dives.filter(func(d): return d.has("gone")).size(), "checkpoint": _checkpoint, "ended": _ended}), true)
+	return d

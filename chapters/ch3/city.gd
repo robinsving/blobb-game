@@ -377,6 +377,7 @@ func _build_world() -> void:
 				_checkpoint = pos)
 
 	player = PlayerSide.new()
+	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 	_checkpoint = Vector2(CHECKPOINTS[0] * TILE + 32, _ground_y(CHECKPOINTS[0]))
 	player.position = _checkpoint
 	player.visible = false
@@ -624,3 +625,12 @@ func _ground_y(col: int) -> float:
 		if col >= g[0] and col <= g[1]:
 			return g[2] * TILE
 	return ROWS * TILE
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state"]
+
+
+func debug_state() -> Dictionary:
+	return DebugState.side(player, TILE, _fired, {"checkpoint": _checkpoint, "dashing": _dashing})

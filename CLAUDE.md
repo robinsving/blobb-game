@@ -41,6 +41,34 @@ python3 tools/contact_sheet.py build/sheet.png build/shots/*.png
 
 An `ERROR: Condition "!is_inside_tree()"` line when using `--scene=` is harmless: the title scene is replaced mid-frame.
 
+**Live checks with gda** ([godot-agent](https://github.com/aigengame/godot-agent)) are the preferred way to verify a change in the running game. You drive it with input, then read its state back as JSON instead of guessing from screenshots. Use `tools/gda.sh`:
+
+```sh
+tools/gda.sh start res://chapters/ch3/roofs.tscn   # game on a private Xvfb (:97), windowed so screenshots work
+tools/gda.sh input tap --key Space --hold-frames 2 --json      # next line (narration takes key events too)
+tools/gda.sh input sequence --events '[{"type":"action","physics_frame":0,"action":"right"},{"type":"action","physics_frame":10,"action":"right","release":true}]' --json
+tools/gda.sh input tap --action use --hold-frames 2 --json
+tools/gda.sh state                                 # the level's debug_state(): room, lamps, cell, busy, ...
+tools/gda.sh shot build/x.png                      # screenshot (the window is 1600x900)
+tools/gda.sh game get /root/Roofs/Player --property position --json
+tools/gda.sh diag errors --json                    # the game's errors and warnings
+tools/gda.sh stop                                  # ALWAYS: stops the game and removes the harness again
+```
+
+- **Puzzle playthroughs:** `python3 tools/playtest.py clearing|mill|roofs`, with a session started on that scene. It plays every room of the puzzle in the real game and prints each narration line it sees. Lines starting `!!` are problems: a move that didn't happen, a stuck room, engine errors.
+  - Clearing: arrow actions, following the known solutions.
+  - Mill: Blobb is placed at each control with `game set`. Short strokes are unreliable under Xvfb because of buoyancy drift. The script presses in the order the solver gives (`debug_plan()`) and waits for the duck to stop between presses.
+  - Roofs: real walking and jumping along the strict model's path (`debug_plan(x, y)`). After a fall, the room starts over.
+
+  A full run takes about 3–10 minutes per puzzle.
+- Every level declares `const GDA_CALLABLE := ["debug_state"]` and returns a read-only snapshot built with `DebugState` (`scripts/debug_state.gd`). Add the fields a check needs there. The player node is always named `Player`.
+- `start` installs `addons/gda_harness/` (gitignored) and a `GdaHarness` autoload line in `project.godot`. `stop` removes both, so never commit while a session is running.
+- Setup, once per machine:
+  - `uv tool install --python 3.13 "gda[mcp]"`
+  - `~/.local/bin/godot-gda`, which is the godot-flatpak line plus `--filesystem=xdg-run/gda`. Without it the game can't reach gda's socket and the harness never connects.
+- Each call takes about 0.25 s (a whole session start about 10 s), so this suits checking states and playing puzzles step by step, not real-time action. Use `--fast`/`--autoplay` runs for those. gda's `--scene` can't pass user args (`--warp`, `--fast`). Start at a scene's beginning, or set state with `game set`.
+- Headless static checks need no session: `tools/gda.sh script validate res://path.gd --json` (check `valid`), and `tools/gda.sh scene preflight`.
+
 Python asset tools in `tools/` need numpy/scipy/pillow (use a venv; the system Python has only Pillow):
 - `key_frames.py` (missing from the repo; the strips it made are committed): keys the black background out of `assets/animations/*/` frames and builds `assets/sprites/blobb_{idle,running,jumping}.png` (321×305 frames). Jump frames after 7 are excluded because they have a baked-in paper background.
 - `key_superjump.py`: keys the beige-paper jump frames 24–32 into `assets/sprites/blobb_superjump.png` (the stretched, flying Blobb), colour-matched to the other strips.
@@ -71,9 +99,9 @@ Python asset tools in `tools/` need numpy/scipy/pillow (use a venv; the system P
 - **Chapter 3.** Outdoors at night, three scenes:
   - `chapters/ch3/city.gd`: a poster title page, then a side-view street (PlayerSide). Lamps come on, Blobb turns gold and back to green, a banana sweeper, the dash form over a canal, a drainpipe up.
   - `chapters/ch3/roofs.gd`: the light-bridge puzzle. `BeamRoom` (`scripts/beam_room.gd`) holds the pure rules plus a BFS solver: cranks turn rooftop lamps, and every beam becomes something to stand on (one-way collision; diagonal beams are 45° ramps, vertical beams are ladders of rungs). Rooms are in `chapters/ch3/beam_rooms.gd`.
-  - `chapters/ch3/chase.gd`: an isometric rooftop chase drawn entirely in code (faux-3D Blobb, roofs, chimneys, birds, the hospital). One beat clock drives everything: Blobb's distance is the beat, so gaps arrive on the beat. The drum (kick and hat) crossfades into the monitor beep, then speeds up. Only Y speaks there (`LINES`, by beat). A hit never restarts the run: Blobb blinks (briefly unhittable), and a missed gap pops him back up with a hop.
+  - `chapters/ch3/chase.gd`: an isometric rooftop chase drawn entirely in code (faux-3D Blobb, roofs, chimneys, birds, the hospital). One beat clock drives everything: Blobb's distance is the beat, so gaps arrive on the beat. The drum (kick and hat) crossfades into the monitor beep, then speeds up. Only Y speaks there (`LINES`, by beat). A hit is a retell: Y objects and Blobb starts again at the start of the roof he was on, but the chimney, vent or bird he hit stays gone, so nothing stops him twice. A missed gap just means trying that jump again.
 - **Chapter 4.** `chapters/ch4/dream.gd`: one short side-view scene. Blobb only walks (no pits, hazards or retells) past drifting props from earlier chapters, while StyleFX drifts between looks and never settles. Only Y speaks (`TRIGGERS`, by column). After "Wake up." `fx_mountain` lifts the mist off a few ledges; the climb brings the monitor beep back, uneven at the foot and even at the top, then the chapter card.
 - **Chapter 5.** `chapters/ch5/climb.gd`: the last chapter, a one-screen-wide vertical climb up the ch4 mountain (one-way ledges), night to sunrise. Heartbeat ledges launch Blobb on each monitor beat (uneven at the foot, even from the "steady" beat up). After O's rule (`@stretch`) he can stretch to glowing holds and swing (hold E). Story beats by height (`TRIGGERS`); a long fall is a retell. At the summit `@sunrise`, then the real room (`room.png` with `assets/drawing.jpeg` composited on the wall) and the end card. `climb_test.tscn` is the plain mechanics sandbox.
-- **Prompts and puzzle help.** UI strings name keys with tokens (`{jump}`, `{use}`, `{advance}`, `{undo}`, `{restart}`, `{hint}`, `{arrows}`). `Game.t()` fills them in for the device last used: keyboard keys, or controller buttons (Ⓐ Ⓑ Ⓧ Ⓨ LB). `Game.input_device_changed` fires when that switches. Puzzle rooms keep a controls legend on screen with `Narrator.legend(key)`. It redraws itself on a device or language change, and `Narrator.legend_nudge()` flashes it after 90 s or 2 restarts in a room. The `hint` action (H / LB) asks the room's own solver for the next step from the current state and marks it with a `HintMarker` (`scripts/hint_marker.gd`): `SokobanGrid.solve()` in the clearing (box plus push arrow plus path), `FlowRoom.solve()` in the mill (in room 3 it brings on the "backwards" beat early), and `BeamRoom.solve(from)` on the roofs.
+- **Prompts.** UI strings name keys with tokens (`{jump}`, `{use}`, `{advance}`, `{undo}`, `{restart}`, `{arrows}`). `Game.t()` fills them in for the device last used: keyboard keys, or controller buttons (Ⓐ Ⓑ Ⓧ Ⓨ). `Game.input_device_changed` fires when that switches. Puzzle rooms keep a controls legend on screen with `Narrator.legend(key)`, which redraws itself on a device or language change. (An H "hint" key that marked the solver's next step was tried and removed: it didn't work well enough.)
 - **The story is never outrun.** Blobb always moves at full speed. In the side-view levels (forest, pond, town, dream), `StoryGate` (`scripts/story_gate.gd`) stops him just short of the next `TRIGGERS` column while a scene is still being told.
 - **Generated art.** Requested from the ComfyUI Claude session (a peer session named `comfyui-*`; find it with ListAgents) (ComfyUI image generation) and saved to `assets/gen/<chapter>/`. Code always checks `ResourceLoader.exists()` and falls back to existing or procedurally drawn art, so the game runs without them. After new files arrive, run the import command.

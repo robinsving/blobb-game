@@ -39,11 +39,6 @@ var _fail_count := 0
 var _linked := Vector2i(-1, -1)
 var _t := 0.0
 var _room_gen := 0
-var _hint: HintMarker
-var _room_time := 0.0
-var _restarts := 0
-var _nudged := false
-const NUDGE_SECS := 90.0       # stuck this long (or 2 restarts): the legend flashes, hint key and all
 var story := StoryScript.load_file("res://chapters/ch3/story.txt")
 
 
@@ -106,10 +101,6 @@ func _process(delta: float) -> void:
 	_pulse()
 	if _busy or _done or _retelling or Game.control_locked:
 		return
-	_room_time += delta
-	if not _nudged and (_room_time > NUDGE_SECS or _restarts >= 2):
-		_nudged = true
-		Narrator.legend_nudge()
 	if room.solved_by(_player_cell()) and player.is_on_floor():
 		_solved()
 		return
@@ -121,28 +112,6 @@ func _process(delta: float) -> void:
 			_turn(c)
 	elif Input.is_action_just_pressed("restart"):
 		_restart()
-	elif Input.is_action_just_pressed("hint"):
-		_show_hint()
-
-
-## The next crank to turn, worked out from where Blobb stands now (the same solver the tests use).
-func _show_hint() -> void:
-	if not player.is_on_floor():
-		Narrator.hint(Game.t("hint_wait"), 3.0)
-		return
-	var here := _model_pos()
-	var surf := room.surfaces(room.states())
-	for p in room.region(here, surf):
-		if room.at(room.goal, p):
-			# the way is already open: point at the goal
-			_hint = HintMarker.at(self, _cell_pos(room.goal), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
-			return
-	var path := room.solve(here) if here.x >= 0 else []
-	if path.is_empty():
-		Narrator.hint(Game.t("hint_stuck"), 5.0)
-		return
-	var c: Vector2i = path[0]
-	_hint = HintMarker.at(self, _cell_pos(c), CELL * 0.5, Vector2.ZERO, PackedVector2Array(), _hint)
 
 
 func _physics_process(_delta: float) -> void:
@@ -174,7 +143,6 @@ func _turn(c: Vector2i) -> void:
 
 
 func _restart() -> void:
-	_restarts += 1
 	_load_room(room_i)
 	Game.sfx("whoosh", -10.0)
 	if not _restart_told:
@@ -223,12 +191,6 @@ func _solved() -> void:
 # ================================================================ room building
 
 func _load_room(i: int) -> void:
-	if i != room_i or _room_gen == 0:  # a new room (not a restart): the stuck clock starts over
-		_room_time = 0.0
-		_restarts = 0
-		_nudged = false
-	if is_instance_valid(_hint):
-		_hint.queue_free()
 	room_i = i
 	_room_gen += 1
 	for n in [_room_node, _beam_node, _overlay, _beam_bodies]:
@@ -246,13 +208,13 @@ func _load_room(i: int) -> void:
 	var add := CanvasItemMaterial.new()
 	add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	_beam_node.material = add
-	_beam_node.draw.connect(_draw_beams)
+	_beam_node.draw.connect(_draw_beams.bind(_beam_node))  # bound: an old node being freed on a restart draws on itself
 	add_child(_beam_node)
 	_beam_bodies = Node2D.new()
 	add_child(_beam_bodies)
 	_overlay = Node2D.new()
 	_overlay.z_index = 5
-	_overlay.draw.connect(_draw_link)
+	_overlay.draw.connect(_draw_link.bind(_overlay))
 	add_child(_overlay)
 
 	_pair_col.clear()
@@ -281,6 +243,7 @@ func _load_room(i: int) -> void:
 
 	if not player:
 		player = PlayerSide.new()
+		player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 		player.jump_velocity = PlayerSide.STRONG_JUMP
 		player.use_bot = false  # roofs have their own bot (_autoplay)
 		player.floor_max_angle = deg_to_rad(50.0)  # the diagonal beams are 45-degree ramps
@@ -523,20 +486,20 @@ func _one_way(center: Vector2, length: float, angle: float) -> void:
 	_beam_bodies.add_child(body)
 
 
-func _draw_beams() -> void:
+func _draw_beams(n: Node2D) -> void:
 	for l in room.lamps:
 		var cells := room.beam(l)
 		var d := Vector2(room.dir_of(l))
 		var a := _cell_pos(room.lamps[l]["pos"]) + d.normalized() * 40.0
 		var b := a + d * 30.0 if cells.is_empty() else _cell_pos(cells[-1]) + d * CELL * 0.5
 		var alpha := 1.0 if _solid_light else 0.5
-		_beam_node.draw_line(a, b, Color(LIGHT, 0.12 * alpha), BEAM_W * 3.2)
-		_beam_node.draw_line(a, b, Color(LIGHT, 0.25 * alpha), BEAM_W * 1.6)
+		n.draw_line(a, b, Color(LIGHT, 0.12 * alpha), BEAM_W * 3.2)
+		n.draw_line(a, b, Color(LIGHT, 0.25 * alpha), BEAM_W * 1.6)
 		if _solid_light:
 			# solid light: a bright walkable edge along the top
-			_beam_node.draw_line(a, b, Color(1.0, 0.95, 0.8, 0.85), 8.0)
+			n.draw_line(a, b, Color(1.0, 0.95, 0.8, 0.85), 8.0)
 			for c in (cells if d.x == 0 else []):
-				_beam_node.draw_line(_cell_pos(c) - Vector2(46, 0), _cell_pos(c) + Vector2(46, 0), Color(1.0, 0.95, 0.8, 0.8), 7.0)
+				n.draw_line(_cell_pos(c) - Vector2(46, 0), _cell_pos(c) + Vector2(46, 0), Color(1.0, 0.95, 0.8, 0.8), 7.0)
 
 
 func _pulse() -> void:
@@ -554,7 +517,7 @@ func _pulse() -> void:
 	_overlay.queue_redraw()
 
 
-func _draw_link() -> void:
+func _draw_link(n: Node2D) -> void:
 	if _linked == Vector2i(-1, -1) or not room.cranks.has(_linked):
 		return
 	var l: String = room.cranks[_linked]
@@ -566,7 +529,7 @@ func _draw_link() -> void:
 	var at := fmod(_t * 60.0, 36.0)
 	while at < total - CELL * 0.3:
 		if at > CELL * 0.3:
-			_overlay.draw_line(from + dir * at, from + dir * minf(at + 20.0, total - CELL * 0.3), col, 7.0)
+			n.draw_line(from + dir * at, from + dir * minf(at + 20.0, total - CELL * 0.3), col, 7.0)
 		at += 36.0
 
 
@@ -673,3 +636,40 @@ func _model_pos() -> Vector2i:
 			bd = absi(s.y - y2)
 			best = s
 	return best
+
+# ================================================================ checking from outside
+
+## For gda (`gda game call /root/<Level> debug_state`): see scripts/debug_state.gd. Read-only.
+const GDA_CALLABLE := ["debug_state", "debug_plan"]
+
+
+func debug_state() -> Dictionary:
+	var d := DebugState.base(player)
+	d.merge(DebugState.json({"room": room_i, "lamps": room.states(), "cell": _player_cell(), "crank_in_reach": _crank_in_reach(), "solved": room.solved_by(_player_cell()), "busy_room": _busy, "done": _done, "fails": _fail_count, "retelling": _retelling}), true)
+	return d
+
+
+## For tools/playtest.py. Read-only. `solution`: the solver's cranks from the room's start. `path`:
+## the shortest way (the strict jump model's moves) from where Blobb stands now to stand in cell
+## (tx, ty) (the goal if omitted), as surfaces with the pixel point to stand on; [] if none.
+func debug_plan(tx := -1.0, ty := -1.0) -> Dictionary:
+	var target := room.goal if tx < 0 else Vector2i(int(tx), int(ty))
+	var surf := room.surfaces(room.states())
+	var from := _model_pos()
+	var prev := {from: from}
+	var queue := [from]
+	var path := []
+	while not queue.is_empty():
+		var a: Vector2i = queue.pop_front()
+		if room.at(target, a):
+			while true:
+				path.push_front({"surf": a, "stand": _stand_pos(a)})
+				if a == from:
+					break
+				a = prev[a]
+			break
+		for b in room.moves(a, surf):
+			if not prev.has(b):
+				prev[b] = a
+				queue.append(b)
+	return DebugState.json({"solution": room.solve(), "from": from, "path": path, "goal": room.goal})
