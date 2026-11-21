@@ -264,7 +264,12 @@ func _build_world() -> void:
 	player.position = Vector2(4 * TILE + 32, GROUND_ROW * TILE)
 	player.z_index = 2
 	add_child(player)
-	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # Y is never outrun
+	var gate := StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # Y is never outrun
+	# a dream walk: slower, and slower still as he nears the next beat, so Y's lines keep up
+	# with him and he hardly ever has to stop and wait
+	gate.walk = 0.6
+	gate.slow_over = 1000.0
+	player.speed_mul = gate.walk
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
 	player.jump_velocity = PlayerSide.STRONG_JUMP
 	camera = Camera2D.new()

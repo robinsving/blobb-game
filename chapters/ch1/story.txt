@@ -64,11 +64,11 @@ Y: Deal. I'm good at halves.
 O: Once, in the days when the moss was still young, there was a Blobb.
   sv: En gång, på den tiden när mossan fortfarande var ung, fanns det en Blobb.
   @blobb_appears
-O: He was round. And fuzzy. And the most magnificent purple.
-  sv: Han var rund. Och luddig. Och alldeles praktfullt lila.
-  @blobb_color purple
-Y: Purple?! Blobb is GREEN. Everybody knows that.
-  sv: Lila?! Blobb är GRÖN. Det vet ju alla.
+O: He was round. And fuzzy. And the most magnificent yellow.
+  sv: Han var rund. Och luddig. Och alldeles praktfullt gul.
+  @blobb_color yellow
+Y: Yellow?! Blobb is GREEN. Everybody knows that.
+  sv: Gul?! Blobb är GRÖN. Det vet ju alla.
   @blobb_color green
 O: Green. There, you see? That was your half already.
   sv: Grön. Där ser du. Det där var redan din halva.
@@ -313,7 +313,7 @@ O: Tomorrow, Blobb learns to swim.
 #  Effects used in this chapter (what each @effect does)
 # ---------------------------------------------------------------------
 #  @blobb_appears      Blobb pops into existence on the blank page
-#  @blobb_color X      recolours Blobb: purple | green
+#  @blobb_color X      recolours Blobb: yellow | green
 #  @blobb_form X       Blobb turns into a figure from the original drawing:
 #                      grumpy | blue | dash | ball | drawn, or back to normal
 #  @forest_dark        a dark, misty, realistic forest fades in

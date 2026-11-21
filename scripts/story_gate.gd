@@ -12,6 +12,12 @@ var player: CharacterBody2D
 var triggers: Dictionary
 var fired: Dictionary
 var tile := 64.0
+## Optional (the dream): Blobb's walking speed (PlayerSide.speed_mul) and, while a scene is told,
+## a gradual slow-down over the last `slow_over` pixels before the stop, down to `slow_min` of that,
+## so he strolls into the next beat instead of stopping dead.
+var walk := 1.0
+var slow_over := 0.0
+var slow_min := 0.2
 
 
 static func attach(level: Node, who: CharacterBody2D, trig: Dictionary, done: Dictionary, tile_size: float) -> StoryGate:
@@ -26,7 +32,11 @@ static func attach(level: Node, who: CharacterBody2D, trig: Dictionary, done: Di
 
 
 func _physics_process(_delta: float) -> void:
-	if not is_instance_valid(player) or not Narrator.busy:
+	if not is_instance_valid(player):
+		return
+	if not Narrator.busy:
+		if slow_over > 0.0:
+			player.speed_mul = walk
 		return
 	var gate := -1
 	for col in triggers:
@@ -35,6 +45,8 @@ func _physics_process(_delta: float) -> void:
 	if gate < 0 or player.position.x > gate * tile:
 		return  # nothing ahead (or already past it, after a warp)
 	var stop := gate * tile - MARGIN
+	if slow_over > 0.0:
+		player.speed_mul = walk * clampf((stop - player.position.x) / slow_over, slow_min, 1.0)
 	if player.position.x > stop:
 		player.position.x = stop
 		player.velocity.x = minf(player.velocity.x, 0.0)

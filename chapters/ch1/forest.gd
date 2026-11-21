@@ -101,13 +101,17 @@ func _fail() -> void:
 	Game.control_locked = true
 	Game.sfx("rewind", -4.0)
 	fx.rewind_pulse(1.2)
-	var scene := "fail_%d" % (_fail_count % 4 + 1)
-	_fail_count += 1
 	player.sprite.set_form("normal")
 	player.visible = false
 	player.teleport(_checkpoint)
 	var scribble := Retell.scribble(self, _checkpoint + Vector2(0, -70))
-	await story.play(scene, self)
+	if Narrator.busy:
+		# a scene is being told: Y's objection would wait behind it (Blobb gone, controls locked)
+		await get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
+		Game.control_locked = Narrator.busy_blocking
+	else:
+		await story.play("fail_%d" % (_fail_count % 4 + 1), self)
+		_fail_count += 1
 	Retell.clear(scribble)
 	player.visible = true
 	player.sprite.flash(0.6)
@@ -133,10 +137,13 @@ func fx_blobb_appears() -> void:
 
 func fx_blobb_color(color: String) -> void:
 	match color:
-		"purple":
-			player.sprite.set_tint(Color(0.62, 0.32, 0.95), 1.0)
+		"yellow":
+			# the same gold as the lamplight in ch3 (city.gd fx_blobb_yellow)
+			player.sprite.set_tint(BlobbSprite.GOLD, 0.75)
+			player.sprite.set_glow(0.35, BlobbSprite.GOLD, 0.8)
 		"green":
 			player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT)
+			player.sprite.set_glow(0.0, BlobbSprite.GOLD, 0.8)
 		_:
 			push_error("fx_blobb_color: unknown colour " + color)
 

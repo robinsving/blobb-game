@@ -27,6 +27,8 @@ const PULL := 700.0
 const SWING_G := 2500.0
 const PUMP := 900.0
 const BODY := Vector2(0, -54)
+const PAN := 900.0             # at the summit the camera looks up this far, into the morning sky
+const SKY_PAN := 620.0         # the sky moves less than the mountain (it's far away)
 const FALL := 700.0            # this far below the last safe ledge is a fall (a retell)
 
 ## Plain ledges [x0, x1, top], bottom to top. The first is the ground; the last is the summit.
@@ -92,6 +94,8 @@ var _fail_count := 0
 var _done := false
 var _dawn := 0.0               # 0 = the sky by height, 1 = sunrise
 var _sun := 0.0
+var _up := 0.0                 # 0..1: the look up into the sky at the summit (moon and star)
+var _sky_top: Node2D
 var _pigeons: Array[Sprite2D] = []
 var _pigeons_on := false
 var _room: CanvasLayer
@@ -131,6 +135,10 @@ func _build_world() -> void:
 			s.modulate.a = 0.0
 			sky_layer.add_child(s)
 			_sky_sprites[n] = s
+	# above the sky pictures: the sky further up, with the moon and the morning star (O and Y)
+	_sky_top = Node2D.new()
+	_sky_top.draw.connect(_draw_sky_top)
+	sky_layer.add_child(_sky_top)
 	_world = Node2D.new()
 	_world.draw.connect(_draw_world)
 	add_child(_world)
@@ -257,20 +265,24 @@ func _fail() -> void:
 		return
 	_retelling = true
 	_release_hold()
-	Game.control_locked = true
 	Game.sfx("rewind", -4.0)
 	fx.rewind_pulse(1.2)
-	var scene := "fail_%d" % (_fail_count % 4 + 1)
-	_fail_count += 1
 	player.visible = false
+	player.frozen = true
 	player.teleport(_safe)
 	var scribble := Retell.scribble(self, _safe + Vector2(0, -70))
-	await story.play(scene, self)
+	# Y's objection is queued behind whatever is being told, so it can come much later: Blobb
+	# comes back after a fixed moment, not when the line ends (he used to stay invisible).
+	if not Narrator.busy:  # never queued behind a scene being told: it would come far too late
+		story.play("fail_%d" % (_fail_count % 4 + 1), self)
+		_fail_count += 1
+	await get_tree().create_timer(0.6 if Game.fast else 1.8).timeout
 	Retell.clear(scribble)
+	player.teleport(_safe)
+	player.frozen = false
 	player.visible = true
 	player.sprite.flash(0.6)
 	Game.sfx("pop", -6.0)
-	Game.control_locked = false
 	_retelling = false
 
 
@@ -281,12 +293,28 @@ func _summit() -> void:
 	Game.control_locked = true
 	player.velocity = Vector2.ZERO
 	await story.play("summit", self)
-	await get_tree().create_timer(1.0 if Game.fast else 3.0).timeout
+	await get_tree().create_timer(1.0 if Game.fast else 2.0).timeout
+	await _look_up()
+	await get_tree().create_timer(1.0 if Game.fast else 4.0).timeout
 	_show_room()
 	await get_tree().create_timer(1.0 if Game.fast else 4.5).timeout
 	await story.play("room", self)
 	await _end_card()
 	Game.go("res://scenes/title.tscn", Color(0.98, 0.95, 0.88), 2.0)
+
+
+## After the sunrise, a slow look up past the summit into the sky: a pale moon and one bright
+## star still shining in the morning, the two narrators' signs (the icons by their lines).
+func _look_up() -> void:
+	var center := camera.get_screen_center_position()
+	camera.limit_top = int(TOP - PAN - 1000.0)
+	camera.offset.y = center.y - player.global_position.y  # carry on from where the view is
+	camera.reset_smoothing()
+	var dur := 2.0 if Game.fast else 9.0
+	var tw := create_tween().set_parallel()
+	tw.tween_property(camera, "offset:y", camera.offset.y - PAN, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(self, "_up", 1.0, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tw.finished
 
 
 # ================================================================ story effects
@@ -638,7 +666,12 @@ func _update_sky() -> void:
 	var dawn: Sprite2D = _sky_sprites.get("summit", _sky_sprites.get("dawn"))
 	if dawn:
 		dawn.modulate.a = _dawn
+	var shift := _up * SKY_PAN
+	for k in _sky_sprites:
+		_sky_sprites[k].position.y = shift
+	_sky.position.y = shift
 	_sky.queue_redraw()
+	_sky_top.queue_redraw()
 
 
 func _draw_sky() -> void:
@@ -673,6 +706,88 @@ func _draw_sky() -> void:
 	_sky.draw_colored_polygon(pts, range_col)
 
 
+## The sky above the pictures, seen when the camera looks up at the summit (_up > 0): a band from
+## the top of the morning sky up to a deeper blue, a pale crescent moon (O's sign) and one bright
+## star (Y's), side by side. Only the light breathes a little; nothing moves.
+func _draw_sky_top() -> void:
+	if _up <= 0.0:
+		return
+	var shift := _up * SKY_PAN
+	var low := _sky_top_color()
+	var high := Color(0.16, 0.26, 0.52)
+	var mid := high.lerp(low, 0.55)
+	_vgrad(0.0, shift * 0.5, high, mid)
+	_vgrad(shift * 0.5, shift, mid, low)
+	# the top of the picture fades into this sky, so there's no edge where the clouds stop
+	var clear := Color(low, 0.0)
+	_vgrad(shift - 1.0, shift + 260.0, low, clear)
+	# the moon (warm, like O's) and the star (cool, like Y's), coming down into view
+	var moon := Vector2(760, shift - 330)
+	var star := Vector2(1180, shift - 400)
+	var breathe := 0.85 + 0.15 * sin(_t * 1.3)
+	_halo(moon, 230.0, Color(1.0, 0.92, 0.78, 0.35))
+	_halo(star, 200.0, Color(0.78, 0.92, 1.0, 0.45 * breathe))
+	_shape(NarratorIcon.moon_points(64.0), moon, Color(1.0, 0.95, 0.84, 0.95))
+	_shape(NarratorIcon.star_points(34.0), star, Color(0.9, 0.97, 1.0))
+	_sky_top.draw_circle(star, 12.0, Color(1, 1, 1, 0.9 * breathe))
+
+
+## A smooth vertical gradient across the screen (vertex colours, so no bands).
+func _vgrad(y0: float, y1: float, c0: Color, c1: Color) -> void:
+	_sky_top.draw_polygon(PackedVector2Array([Vector2(0, y0), Vector2(1920, y0), Vector2(1920, y1), Vector2(0, y1)]),
+		PackedColorArray([c0, c0, c1, c1]))
+
+
+var _halo_tex: GradientTexture2D
+
+
+## A soft round glow (a radial gradient), no rings.
+func _halo(at: Vector2, r: float, col: Color) -> void:
+	if not _halo_tex:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.35, Color(1, 1, 1, 0.35))
+		_halo_tex = GradientTexture2D.new()
+		_halo_tex.gradient = g
+		_halo_tex.fill = GradientTexture2D.FILL_RADIAL
+		_halo_tex.fill_from = Vector2(0.5, 0.5)
+		_halo_tex.fill_to = Vector2(1.0, 0.5)
+		_halo_tex.width = 256
+		_halo_tex.height = 256
+	_sky_top.draw_texture_rect(_halo_tex, Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
+
+
+func _shape(pts: PackedVector2Array, at: Vector2, col: Color) -> void:
+	for i in pts.size():
+		pts[i] += at
+	_sky_top.draw_colored_polygon(pts, col)
+
+
+## The colour at the top edge of the morning sky picture, so the sky above it joins without a seam.
+var _top_col := Color(-1, 0, 0)
+
+
+func _sky_top_color() -> Color:
+	if _top_col.r >= 0.0:
+		return _top_col
+	_top_col = Color(0.45, 0.6, 0.85)  # the drawn dawn sky's top
+	var spr: Sprite2D = _sky_sprites.get("summit", _sky_sprites.get("dawn"))
+	if spr:
+		var img := spr.texture.get_image()
+		if img:
+			if img.is_compressed():
+				img.decompress()
+			var sum := Color(0, 0, 0)
+			var n := 0
+			for x in range(0, img.get_width(), 16):
+				for y in 3:
+					sum += img.get_pixel(x, y)
+					n += 1
+			_top_col = Color(sum.r / n, sum.g / n, sum.b / n)
+	return _top_col
+
+
 func _draw_world() -> void:
 	# the mountain's walls at both sides: the painted rock strip, tinted to the hour
 	var mood := Color(0.42, 0.42, 0.62).lerp(Color(0.72, 0.68, 0.8), _sky_mix()).lerp(Color(1.0, 0.86, 0.75), _dawn)
@@ -681,7 +796,7 @@ func _draw_world() -> void:
 		var src := Rect2(1640, 0, 280, tex.get_height())
 		var w := 220.0
 		var h := tex.get_height() * w / src.size.x
-		var y := TOP - 400.0
+		var y := TOP - 400.0 - PAN
 		while y < GROUND + 600.0:
 			_world.draw_texture_rect_region(tex, Rect2(W - w, y, w, h), src, mood)
 			_world.draw_set_transform(Vector2(w, 0), 0.0, Vector2(-1, 1))  # mirrored for the left wall
@@ -690,8 +805,8 @@ func _draw_world() -> void:
 			y += h
 	else:
 		var rock := Color(0.16, 0.15, 0.24).lerp(Color(0.32, 0.3, 0.42), _sky_mix())
-		_world.draw_rect(Rect2(-40, TOP - 400, 260, GROUND - TOP + 800), rock.darkened(0.15))
-		_world.draw_rect(Rect2(W - 220, TOP - 400, 260, GROUND - TOP + 800), rock.darkened(0.15))
+		_world.draw_rect(Rect2(-40, TOP - 400 - PAN, 260, GROUND - TOP + 800 + PAN), rock.darkened(0.15))
+		_world.draw_rect(Rect2(W - 220, TOP - 400 - PAN, 260, GROUND - TOP + 800 + PAN), rock.darkened(0.15))
 	for i in LEDGES.size():
 		_draw_ledge(LEDGES[i], i == 0, -1)
 	for i in HEARTS.size():

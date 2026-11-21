@@ -6,6 +6,7 @@ extends AnimatedSprite2D
 const FRAME_W := 321
 ## Blobb's "official" colour since the narrators settled it in ch1 ("He's green!").
 const GREEN := Color(0.62, 0.85, 0.32)
+const GOLD := Color(1.0, 0.8, 0.25)  # the wrong colour: O's in ch1, the lamplight's in ch3
 const GREEN_AMOUNT := 0.5
 ## Cold-water Blobb (ch2). The drawn blue figure is pale, so the tint does most of the work.
 const BLUE := Color(0.42, 0.66, 1.0)

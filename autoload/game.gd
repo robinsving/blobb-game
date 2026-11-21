@@ -28,6 +28,7 @@ const KEYS := {
 	"jump": {"kb": {"en": "Space", "sv": "Mellanslag"}, "pad": "Ⓐ"},
 	"advance": {"kb": {"en": "Space", "sv": "Mellanslag"}, "pad": "Ⓐ"},
 	"use": {"kb": "E", "pad": "Ⓑ"},
+	"skip": {"kb": "Tab", "pad": "RB"},
 	"undo": {"kb": "Z", "pad": "Ⓧ"},
 	"restart": {"kb": "R", "pad": "Ⓨ"},
 	"arrows": {"kb": {"en": "Arrows", "sv": "Piltangenterna"}, "pad": {"en": "Stick", "sv": "Spaken"}},
@@ -65,6 +66,7 @@ const UI := {
 	"hint_hop": {"en": "← → to walk · {jump} to hop", "sv": "← → för att gå · {jump} för att hoppa"},
 	"hint_swim": {"en": "{arrows} to swim", "sv": "{arrows} för att simma"},
 	"hint_mill": {"en": "{arrows} to swim · {jump} at a wheel or lever · {restart} start again", "sv": "{arrows} för att simma · {jump} vid ett hjul eller en spak · {restart} börja om"},
+	"hint_skip": {"en": "{skip} skips a line", "sv": "{skip} hoppar över en replik"},
 	"hint_duck_stuck": {"en": "The duck is stuck. From the top!", "sv": "Ankan har fastnat. Från början!"},
 	"hint_backwards": {"en": "A wheel now goes: off → on → backwards", "sv": "Ett hjul går nu: av → på → baklänges"},
 	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
@@ -376,6 +378,7 @@ func _setup_input() -> void:
 	_action("use", [KEY_E, KEY_ENTER, KEY_KP_ENTER], [JOY_BUTTON_B])
 	_action("undo", [KEY_Z, KEY_BACKSPACE], [JOY_BUTTON_X])
 	_action("restart", [KEY_R], [JOY_BUTTON_Y])
+	_action("skip", [KEY_TAB], [JOY_BUTTON_RIGHT_SHOULDER])
 	_action("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START])
 
 

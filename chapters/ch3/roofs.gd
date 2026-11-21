@@ -155,13 +155,17 @@ func _fail() -> void:
 	Game.control_locked = true
 	Game.sfx("rewind", -4.0)
 	fx.rewind_pulse(1.2)
-	var scene := "fail_%d" % (_fail_count % 4 + 1)
-	_fail_count += 1
 	player.visible = false
 	_load_room(room_i)  # the whole roof starts over, lamps too (or it could be solved the wrong way)
 	var start := _stand_pos(room.start_pos(room.states()))
 	var scribble := Retell.scribble(self, start + Vector2(0, -70))
-	await story.play(scene, self)
+	if Narrator.busy:
+		# a scene is being told: Y's objection would wait behind it (Blobb gone, controls locked)
+		await get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
+		Game.control_locked = Narrator.busy_blocking
+	else:
+		await story.play("fail_%d" % (_fail_count % 4 + 1), self)
+		_fail_count += 1
 	Retell.clear(scribble)
 	player.visible = true
 	player.sprite.flash(0.6)

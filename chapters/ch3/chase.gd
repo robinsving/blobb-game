@@ -349,8 +349,9 @@ func _fail(why: String) -> void:
 	_squash = 0.7
 	Game.sfx("rewind", -6.0)
 	fx.rewind_pulse(0.9)
-	story.play("chase_fail_%d" % (_fail_count % 3 + 1), self)
-	_fail_count += 1
+	if not Narrator.busy:  # not queued: a line about this hit after the next hit makes no sense
+		story.play("chase_fail_%d" % (_fail_count % 3 + 1), self)
+		_fail_count += 1
 	await get_tree().create_timer(0.5 if Game.fast else RETELL_SECS).timeout
 	if _ended:
 		return

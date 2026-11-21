@@ -43,6 +43,15 @@ func _draw() -> void:
 
 ## Five-pointed star with rounded tips and valleys: r(t) blends between inner and outer radius.
 func _star() -> PackedVector2Array:
+	return star_points(radius)
+
+
+func _moon() -> PackedVector2Array:
+	return moon_points(radius)
+
+
+## The shapes on their own (centred on 0,0), also used for the moon and star in ch5's last sky.
+static func star_points(radius: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var n := 80
 	for i in n:
@@ -53,7 +62,7 @@ func _star() -> PackedVector2Array:
 
 
 ## Crescent: the outer circle's arc outside an offset inner circle, then the inner arc back.
-func _moon() -> PackedVector2Array:
+static func moon_points(radius: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var c1 := Vector2.ZERO
 	var r1 := radius

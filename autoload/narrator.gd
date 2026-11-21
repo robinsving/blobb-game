@@ -6,15 +6,19 @@ extends CanvasLayer
 ##   await Narrator.say(lines, false)      # ambient: player keeps control, lines auto-advance
 ##   Narrator.hint("text")                 # small control hint at the top of the screen
 ##
-## Calls are queued, so overlapping say() calls play one after the other.
+## Calls are queued, so overlapping say() calls play one after the other. While another scene
+## is waiting in the queue, the one playing hurries (HURRY), so the story doesn't fall far behind.
+## The "skip" key dismisses the line on screen (a blocking one too) for players who read fast.
 
 signal finished
 
 const OLD_COLOR := Color(1.0, 0.92, 0.78)
 const YOUNG_COLOR := Color(0.78, 0.92, 1.0)
 const CPS := 42.0  # typed characters per second
+const HURRY := 0.45  # pauses and reading time while another scene is queued up behind this one
 
 var busy := false
+var busy_blocking := false  # the scene being told locks the controls
 var _generation := 0  # bumped by clear(); stale say() calls bail out
 var _queue_ticket := 0
 var _serving := 0
@@ -36,6 +40,8 @@ var _hint_tween: Tween
 var _band_tween: Tween
 var _skip_typing := false
 var _typing := false
+var _skip_line := false  # the skip key was pressed: end this line's typing and waiting now
+var _taught_skip := false
 var _current := ""  # the line being shown, "O: …" / "Y: …" (for debug_state)
 
 
@@ -146,6 +152,7 @@ func say(lines: Array, blocking := true) -> void:
 		finished.emit()
 		return
 	busy = true
+	busy_blocking = blocking
 	if blocking:
 		Game.control_locked = true
 	_fade_band(1.0)
@@ -154,6 +161,7 @@ func say(lines: Array, blocking := true) -> void:
 			break
 		if line.has("pre"):
 			await _wait(line["pre"])
+			_skip_line = false  # a skip during a pause ends the pause, not the line after it
 		await _type_line(line)
 		if gen != _generation:
 			break
@@ -174,12 +182,17 @@ func say(lines: Array, blocking := true) -> void:
 				hint_off()
 			_arrow.visible = false
 		else:
+			if not _taught_skip and not Game.fast:
+				_taught_skip = true
+				hint(Game.t("hint_skip"), 5.0)
 			await _wait(_read_time(line))
+		_skip_line = false
 	if gen == _generation:
 		_fade_band(0.0)
 		if blocking:
 			Game.control_locked = false
 	busy = false
+	busy_blocking = false
 	_serving += 1
 	finished.emit()
 
@@ -257,7 +270,7 @@ func _type_line(line: Dictionary) -> void:
 	_skip_typing = false
 	_typing = true
 	var n := text.length()
-	var cps := CPS * (4.0 if Game.fast else 1.0)
+	var cps := CPS * (4.0 if Game.fast else 1.0) / (HURRY if _queued() else 1.0)
 	var blip := "blip_old" if is_old else "blip_young"
 	var i := 0
 	var acc := 0.0
@@ -289,7 +302,7 @@ func _wait_advance() -> void:
 	_advance_event = false
 	while gen == _generation:
 		await get_tree().process_frame
-		var pressed := Input.is_action_just_pressed("advance") or _advance_event
+		var pressed := Input.is_action_just_pressed("advance") or _advance_event or _skip_line
 		_advance_event = false
 		if pressed and not get_tree().paused:
 			Game.sfx("blip_old", -20.0, 1.4)
@@ -301,6 +314,9 @@ func _input(event: InputEvent) -> void:
 		_advance_event = true  # also caught as an event, so a press injected mid-frame (gda) counts
 	if _typing and event.is_action_pressed("advance") and Game.control_locked:
 		_skip_typing = true
+	if busy and event.is_action_pressed("skip", false) and not get_tree().paused:
+		_skip_line = true
+		_skip_typing = true
 
 
 func _read_time(line: Dictionary) -> float:
@@ -309,10 +325,20 @@ func _read_time(line: Dictionary) -> float:
 	return 1.4 + Game.pick(line).length() * 0.045
 
 
+## Waits (pauses, reading time), cut short by the skip key, and shorter while scenes are queued.
 func _wait(secs: float) -> void:
 	if Game.fast:
 		secs = minf(secs, 0.3)
-	await get_tree().create_timer(secs).timeout
+	var t := 0.0
+	while t < secs and not _skip_line:
+		await get_tree().process_frame
+		if not get_tree().paused:
+			t += get_process_delta_time() / (HURRY if _queued() else 1.0)
+
+
+## Another say() is waiting behind the one playing.
+func _queued() -> bool:
+	return _queue_ticket - _serving > 1
 
 
 func _fade_band(to: float) -> void:
