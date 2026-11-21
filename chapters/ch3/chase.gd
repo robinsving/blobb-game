@@ -18,6 +18,7 @@ const AZ := Vector2(0.866, -0.5) * S       # +z (forward): up-right
 const AH := Vector2(0, -0.92) * S          # +h: up
 const BEAT_LEN := 2.0
 const ROOF_HALF := 1.65                    # roofs span x in [-1.65, 1.65]
+const TEX_UNIT := 2.0                      # world units per repeat of the painted roof textures
 const JUMP_BEATS := 0.9                    # a jump lasts this long, so it always covers ~one beat
 const JUMP_PEAK := 1.15
 const LANE_TIME := 0.12
@@ -60,6 +61,9 @@ var _squash := 1.0
 var _t := 0.0
 var _ball: Texture2D
 var _pigeon_tex: Texture2D
+var _sky_tex: Texture2D      # painted art, if generated (else the code-drawn look)
+var _top_tex: Texture2D
+var _side_tex: Texture2D
 var _cam_extra := Vector2.ZERO
 var _white := 0.0
 var story := StoryScript.load_file("res://chapters/ch3/story.txt")
@@ -71,6 +75,11 @@ func _ready() -> void:
 	_ball = _make_ball()
 	if ResourceLoader.exists(ART + "pigeon_fly.png"):
 		_pigeon_tex = load(ART + "pigeon_fly.png")
+	if ResourceLoader.exists(ART + "chase_sky.png"):
+		_sky_tex = load(ART + "chase_sky.png")
+	if ResourceLoader.exists(ART + "chase_roof_top.png") and ResourceLoader.exists(ART + "chase_roof_side.png"):
+		_top_tex = load(ART + "chase_roof_top.png")
+		_side_tex = load(ART + "chase_roof_side.png")
 	var back := CanvasLayer.new()
 	back.layer = -10
 	add_child(back)
@@ -78,6 +87,7 @@ func _ready() -> void:
 	sky.draw.connect(_draw_sky.bind(sky))
 	back.add_child(sky)
 	_world = Node2D.new()
+	_world.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # roof textures are mapped in world units
 	_world.draw.connect(_draw_world)
 	add_child(_world)
 	camera = Camera2D.new()
@@ -470,6 +480,9 @@ func _update_camera() -> void:
 
 
 func _draw_sky(n: Node2D) -> void:
+	if _sky_tex:
+		n.draw_texture_rect(_sky_tex, Rect2(0, 0, 1920, 1080), false)
+		return
 	var top := Color(0.02, 0.03, 0.09)
 	var low := Color(0.1, 0.12, 0.26)
 	for i in 30:
@@ -531,16 +544,36 @@ func _box(x0: float, x1: float, z0: float, z1: float, h0: float, h1: float, top:
 	_quad(_proj(x1, z0, h0), _proj(x1, z1, h0), _proj(x1, z1, h1), _proj(x1, z0, h1), side)
 
 
+## A textured quad; uv are in world units, TEX_UNIT units per texture repeat.
+func _tquad(pts: Array, uv: Array, tex: Texture2D, col: Color) -> void:
+	var uvs := PackedVector2Array()
+	for u: Vector2 in uv:
+		uvs.append(u / TEX_UNIT)
+	_world.draw_polygon(PackedVector2Array(pts), PackedColorArray([col]), uvs, tex)
+
+
 func _draw_building(bl: Dictionary) -> void:
 	var h: float = bl["h"]
 	var z0: float = bl["z0"]
 	var z1: float = bl["z1"]
-	_box(-ROOF_HALF, ROOF_HALF, z0, z1, h - 9.0, h, Color(0.27, 0.3, 0.42), Color(0.19, 0.17, 0.25), Color(0.13, 0.12, 0.19))
-	# slate courses across the roof, and a lit edge so the gap reads
-	var zz := z0 + 1.0
-	while zz < z1:
-		_world.draw_line(_proj(-ROOF_HALF, zz, h), _proj(ROOF_HALF, zz, h), Color(0.22, 0.25, 0.36), 2.0)
-		zz += 1.0
+	if _top_tex:
+		var x0 := -ROOF_HALF
+		var x1 := ROOF_HALF
+		var hb := h - 9.0
+		_tquad([_proj(x0, z0, h), _proj(x1, z0, h), _proj(x1, z1, h), _proj(x0, z1, h)],
+			[Vector2(x0, z0), Vector2(x1, z0), Vector2(x1, z1), Vector2(x0, z1)], _top_tex, Color(1, 1, 1))
+		_tquad([_proj(x0, z0, hb), _proj(x1, z0, hb), _proj(x1, z0, h), _proj(x0, z0, h)],
+			[Vector2(x0, -hb), Vector2(x1, -hb), Vector2(x1, -h), Vector2(x0, -h)], _side_tex, Color(0.85, 0.85, 0.9))
+		_tquad([_proj(x1, z0, hb), _proj(x1, z1, hb), _proj(x1, z1, h), _proj(x1, z0, h)],
+			[Vector2(z0, -hb), Vector2(z1, -hb), Vector2(z1, -h), Vector2(z0, -h)], _side_tex, Color(0.6, 0.6, 0.68))
+	else:
+		_box(-ROOF_HALF, ROOF_HALF, z0, z1, h - 9.0, h, Color(0.27, 0.3, 0.42), Color(0.19, 0.17, 0.25), Color(0.13, 0.12, 0.19))
+		# slate courses across the roof
+		var zz := z0 + 1.0
+		while zz < z1:
+			_world.draw_line(_proj(-ROOF_HALF, zz, h), _proj(ROOF_HALF, zz, h), Color(0.22, 0.25, 0.36), 2.0)
+			zz += 1.0
+	# a lit edge so the gap reads
 	_world.draw_line(_proj(-ROOF_HALF, z0, h), _proj(ROOF_HALF, z0, h), Color(0.62, 0.68, 0.85), 4.0)
 	_world.draw_line(_proj(-ROOF_HALF, z1, h), _proj(ROOF_HALF, z1, h), Color(0.4, 0.45, 0.6), 3.0)
 	# lit windows on the side wall

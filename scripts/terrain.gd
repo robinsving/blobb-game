@@ -7,16 +7,28 @@ const TILE := 64
 
 const PALETTES := {
 	"crayon": {"dirt": Color(0.55, 0.36, 0.2), "dirt_dark": Color(0.4, 0.24, 0.12), "grass": Color(0.42, 0.72, 0.22),
-		"grass_dark": Color(0.25, 0.5, 0.12), "hatch": Color(0.3, 0.17, 0.08, 0.55), "flower": true},
+		"grass_dark": Color(0.25, 0.5, 0.12), "hatch": Color(0.3, 0.17, 0.08, 0.55), "flower": true, "tint": Color(1, 1, 1)},
 	"dark": {"dirt": Color(0.12, 0.1, 0.09), "dirt_dark": Color(0.06, 0.05, 0.05), "grass": Color(0.15, 0.24, 0.13),
-		"grass_dark": Color(0.08, 0.13, 0.07), "hatch": Color(0.0, 0.0, 0.0, 0.3), "flower": false},
+		"grass_dark": Color(0.08, 0.13, 0.07), "hatch": Color(0.0, 0.0, 0.0, 0.3), "flower": false, "tint": Color(0.28, 0.28, 0.32)},
 	"evening": {"dirt": Color(0.5, 0.28, 0.2), "dirt_dark": Color(0.33, 0.16, 0.12), "grass": Color(0.55, 0.62, 0.2),
-		"grass_dark": Color(0.36, 0.42, 0.12), "hatch": Color(0.25, 0.1, 0.06, 0.55), "flower": true},
+		"grass_dark": Color(0.36, 0.42, 0.12), "hatch": Color(0.25, 0.1, 0.06, 0.55), "flower": true, "tint": Color(1.0, 0.78, 0.66)},
 }
 
 var rects: Array[Rect2i] = []        # in tiles
 var palette: Dictionary = PALETTES["crayon"]
 var _seed := 1234
+## Crayon art for the dirt and the grass edge, if generated (tinted by the palette's "tint");
+## without it the ground is drawn in code.
+var _dirt_tex: Texture2D
+var _grass_tex: Texture2D
+const ART := "res://assets/gen/ch1/"
+
+
+func _init() -> void:
+	if ResourceLoader.exists(ART + "crayon_dirt_tile.png") and ResourceLoader.exists(ART + "crayon_grass_strip.png"):
+		_dirt_tex = load(ART + "crayon_dirt_tile.png")
+		_grass_tex = load(ART + "crayon_grass_strip.png")
+		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # both are sampled in world pixels
 
 
 ## Adds a solid block of tiles. x0..x1 inclusive, rows top..bottom inclusive.
@@ -55,6 +67,17 @@ func _draw_block(r: Rect2i) -> void:
 		pts.append(Vector2(px.position.x + px.size.x * i / steps, px.position.y + rng.randf_range(-3, 5)))
 	pts.append(Vector2(px.end.x + rng.randf_range(-3, 3), px.end.y))
 	pts.append(Vector2(px.position.x + rng.randf_range(-3, 3), px.end.y))
+	if _dirt_tex:
+		var tint: Color = palette["tint"]
+		var uvs := PackedVector2Array()
+		for p in pts:
+			uvs.append(p / Vector2(_dirt_tex.get_size()))
+		draw_polygon(pts, PackedColorArray([tint]), uvs, _dirt_tex)
+		draw_rect(Rect2(px.position + Vector2(0, 90), Vector2(px.size.x, maxf(0, px.size.y - 90))), Color(0.1, 0.05, 0.0, 0.25))
+		var g := Rect2(px.position.x - 4, px.position.y - 28, px.size.x + 8, _grass_tex.get_height())
+		draw_texture_rect_region(_grass_tex, g, Rect2(g.position.x, 0, g.size.x, g.size.y), tint)
+		_draw_flowers(r, px, rng)
+		return
 	draw_colored_polygon(pts, palette["dirt"])
 	# darker lower band
 	draw_rect(Rect2(px.position + Vector2(0, 70), Vector2(px.size.x, maxf(0, px.size.y - 70))), palette["dirt_dark"])
@@ -76,7 +99,11 @@ func _draw_block(r: Rect2i) -> void:
 		draw_colored_polygon(PackedVector2Array([Vector2(x, gy + 2), Vector2(x + w * 0.5 + rng.randf_range(-3, 3), gy - h), Vector2(x + w, gy + 2)]), col)
 		x += w * rng.randf_range(0.5, 0.9)
 	draw_line(Vector2(px.position.x - 4, gy + 18), Vector2(px.end.x + 4, gy + 18), palette["grass_dark"], 3.0)
-	# flowers and pebbles
+	_draw_flowers(r, px, rng)
+
+
+func _draw_flowers(r: Rect2i, px: Rect2, rng: RandomNumberGenerator) -> void:
+	var gy := px.position.y
 	if palette["flower"] and r.size.x >= 3:
 		@warning_ignore("integer_division")
 		var flowers := r.size.x / 3

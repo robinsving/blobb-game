@@ -36,6 +36,7 @@ var _sky_dusk: TextureRect
 var _sky_night: TextureRect
 var _stars: Node2D
 var _houses: CanvasItem
+var _pave: Texture2D  # painted kerb and cobbles, if generated
 var _lamps: Array[Node2D] = []
 var _pools: Array[Sprite2D] = []
 var _pigeons: Array[Sprite2D] = []
@@ -352,7 +353,10 @@ func _build_world() -> void:
 		_houses = h
 	_houses.modulate = Color(1.0, 0.82, 0.72)
 
+	if ResourceLoader.exists(ART + "pavement_strip.png"):
+		_pave = load(ART + "pavement_strip.png")
 	var street := Node2D.new()
+	street.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # the pavement strip is sampled in world pixels
 	street.draw.connect(_draw_street.bind(street))
 	add_child(street)
 	for g in GROUND:
@@ -463,9 +467,7 @@ func _draw_street(n: Node2D) -> void:
 	for i in 8:
 		var y := (STREET_ROW + 1.8) * TILE + i * 22.0
 		n.draw_line(Vector2(cx0 + rng.randf_range(10, 60), y), Vector2(cx1 - rng.randf_range(10, 60), y), Color(1.0, 0.8, 0.45, 0.25), 3.0)
-	var pave: Texture2D = load(ART + "pavement_strip.png") if ResourceLoader.exists(ART + "pavement_strip.png") else null
-	if pave:
-		n.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	var pave := _pave
 	for g in GROUND + STEPS:
 		var r := Rect2(g[0] * TILE, g[2] * TILE, (g[1] - g[0] + 1) * TILE, ((ROWS - 1) - g[2] + 1) * TILE if g in GROUND else TILE)
 		n.draw_rect(r, Color(0.2, 0.2, 0.26))

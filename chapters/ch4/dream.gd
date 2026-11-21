@@ -27,6 +27,7 @@ const LAMP_COLS := [78, 94]                     # the same lamp and stump twice:
 const LOOKS := ["plain", "paper", "mono", "crayon"]
 const PASTELS := [Color(0.8, 0.75, 1.0), Color(1.0, 0.85, 0.75), Color(0.75, 0.95, 0.88), Color(0.95, 0.8, 0.92)]
 
+var _ground_tex: Texture2D  # painted misty path, if generated
 var player: PlayerSide
 var fx: StyleFX
 var camera: Camera2D
@@ -240,7 +241,10 @@ func _build_world() -> void:
 		peak.scale = Vector2(k, k)
 		peak.position = Vector2(LEDGES[0][0] * TILE - 80.0, GROUND_ROW * TILE - 1500.0 + 30.0)
 		_mountain.add_child(peak)
+	if ResourceLoader.exists(ART + "dream_ground_strip.png"):
+		_ground_tex = load(ART + "dream_ground_strip.png")
 	_world = Node2D.new()
+	_world.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # the ground strip is sampled in world pixels
 	_world.draw.connect(_draw_ground)
 	add_child(_world)
 	_solid(0, WIDTH - 1, GROUND_ROW, ROWS - 1)
@@ -427,6 +431,10 @@ func _draw_ground() -> void:
 	var top := Color(0.86, 0.9, 0.84)
 	var body := Color(0.74, 0.76, 0.86)
 	_world.draw_rect(Rect2(0, GROUND_ROW * TILE, WIDTH * TILE, (ROWS - GROUND_ROW) * TILE), body)
+	if _ground_tex:
+		var r := Rect2(-TILE * 4.0, GROUND_ROW * TILE - 10.0, (WIDTH + 8) * TILE, minf(_ground_tex.get_height(), (ROWS - GROUND_ROW) * TILE + 10.0))
+		_world.draw_texture_rect_region(_ground_tex, r, Rect2(r.position.x, 0, r.size.x, r.size.y))
+		return
 	_world.draw_rect(Rect2(0, GROUND_ROW * TILE, WIDTH * TILE, 14), top)
 
 
