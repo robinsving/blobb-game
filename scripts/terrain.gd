@@ -34,8 +34,8 @@ func add_block(x0: int, x1: int, top: int, bottom: int) -> void:
 	queue_redraw()
 
 
-func set_palette(name: String) -> void:
-	palette = PALETTES[name]
+func set_palette(palette_name: String) -> void:
+	palette = PALETTES[palette_name]
 	queue_redraw()
 
 
@@ -78,6 +78,7 @@ func _draw_block(r: Rect2i) -> void:
 	draw_line(Vector2(px.position.x - 4, gy + 18), Vector2(px.end.x + 4, gy + 18), palette["grass_dark"], 3.0)
 	# flowers and pebbles
 	if palette["flower"] and r.size.x >= 3:
+		@warning_ignore("integer_division")
 		var flowers := r.size.x / 3
 		for i in flowers:
 			var fx := rng.randf_range(px.position.x + 10, px.end.x - 10)

@@ -129,11 +129,11 @@ func streams() -> Dictionary:
 		var state: int = spouts[l]["state"]
 		if state == OFF:
 			continue
-		for step in trace(l):
-			if flow.has(step[0]):
+		for cell in trace(l):
+			if flow.has(cell[0]):
 				continue
 			# backwards: the water runs the other way along the same path, toward the spout
-			flow[step[0]] = step[2] if state == ON else -step[1]
+			flow[cell[0]] = cell[2] if state == ON else -cell[1]
 	return flow
 
 

@@ -103,6 +103,7 @@ func surfaces(s: Array) -> Dictionary:
 
 func _clear_path(a: Vector2i, b: Vector2i) -> bool:
 	var top := mini(a.y, b.y)
+	@warning_ignore("integer_division")
 	var row := (top - 1) / 2 if top % 2 == 1 else top / 2 - 1
 	for x in range(mini(a.x, b.x) + 1, maxi(a.x, b.x)):
 		if solid(x, row):
@@ -142,6 +143,7 @@ func moves(p: Vector2i, surf: Dictionary) -> Array:
 			if dx <= (3 if up > 0 else (5 if -up >= 7 else 4)):
 				out.append(q)
 			continue
+		@warning_ignore("integer_division")
 		var reach := UP_DX if up > 1 else FLAT_DX + maxi(0, -up) / 4
 		if dx > reach:
 			continue
@@ -178,7 +180,9 @@ func fall(p: Vector2i, surf: Dictionary) -> Variant:
 	for s in surf:
 		if s.x == p.x and s.y > p.y and (best < 0 or s.y < best):
 			best = s.y
-	return Vector2i(p.x, best) if best >= 0 else null
+	if best < 0:
+		return null
+	return Vector2i(p.x, best)
 
 
 func start_pos(s: Array) -> Vector2i:

@@ -85,9 +85,9 @@ func _intro() -> void:
 
 
 ## Called when Blobb walks into a TRIGGERS column. The scene name = the trigger name.
-func _beat(name: String) -> void:
-	await story.play(name, self)
-	match name:
+func _beat(scene: String) -> void:
+	await story.play(scene, self)
+	match scene:
 		"jump":
 			Narrator.hint(Game.t("hint_jump"), 6.0)
 		"end":
@@ -149,9 +149,9 @@ func fx_blobb_color(color: String) -> void:
 
 
 ## Swap Blobb to one of the forms from the original drawing (BlobbSprite.FORMS) or "normal".
-func fx_blobb_form(name: String) -> void:
-	player.sprite.set_form(name)
-	Game.sfx("pop", -8.0, 0.8 if name == "grumpy" else 1.1)
+func fx_blobb_form(form: String) -> void:
+	player.sprite.set_form(form)
+	Game.sfx("pop", -8.0, 0.8 if form == "grumpy" else 1.1)
 
 
 func fx_forest_dark() -> void:

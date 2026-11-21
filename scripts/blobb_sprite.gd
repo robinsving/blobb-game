@@ -79,14 +79,14 @@ static func build_frames() -> SpriteFrames:
 
 
 ## Show one of the drawn FORMS ("normal" = back to the animated Blobb), with a little pop.
-func set_form(name: String) -> void:
-	if name == form:
+func set_form(new_form: String) -> void:
+	if new_form == form:
 		return
-	if name != "normal" and not (FORMS.has(name) and ResourceLoader.exists(FORMS[name])):
-		push_warning("BlobbSprite.set_form: no form " + name)
+	if new_form != "normal" and not (FORMS.has(new_form) and ResourceLoader.exists(FORMS[new_form])):
+		push_warning("BlobbSprite.set_form: no form " + new_form)
 		return
-	form = name
-	if name == "normal":
+	form = new_form
+	if new_form == "normal":
 		if _drawn:
 			_drawn.visible = false
 		self_modulate.a = 1.0
@@ -94,7 +94,7 @@ func set_form(name: String) -> void:
 		if not _drawn:
 			_drawn = Sprite2D.new()
 			add_child(_drawn)
-		_drawn.texture = load(FORMS[name])
+		_drawn.texture = load(FORMS[new_form])
 		# forms go through the same recolour shader as the animated Blobb (set_tint), so they match him
 		_drawn.use_parent_material = true
 		_drawn.visible = true

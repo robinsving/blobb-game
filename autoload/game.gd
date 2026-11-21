@@ -66,7 +66,7 @@ const UI := {
 	"hint_hop": {"en": "← → to walk · {jump} to hop", "sv": "← → för att gå · {jump} för att hoppa"},
 	"hint_swim": {"en": "{arrows} to swim", "sv": "{arrows} för att simma"},
 	"hint_mill": {"en": "{arrows} to swim · {jump} at a wheel or lever · {restart} start again", "sv": "{arrows} för att simma · {jump} vid ett hjul eller en spak · {restart} börja om"},
-	"hint_skip": {"en": "{skip} skips a line", "sv": "{skip} hoppar över en replik"},
+	"hint_skip": {"en": "{skip} hurries the text along", "sv": "{skip} skyndar på texten"},
 	"hint_duck_stuck": {"en": "The duck is stuck. From the top!", "sv": "Ankan har fastnat. Från början!"},
 	"hint_backwards": {"en": "A wheel now goes: off → on → backwards", "sv": "Ett hjul går nu: av → på → baklänges"},
 	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
@@ -106,6 +106,7 @@ var _transitioning := false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().auto_accept_quit = false  # closing the window goes through quit()
 	_setup_input()
 	_load()
 	_parse_args()
@@ -149,7 +150,7 @@ func _parse_args() -> void:
 			DirAccess.make_dir_recursive_absolute(_shot_dir)
 		elif a.begins_with("--quit-after-secs="):
 			var secs := float(a.get_slice("=", 1))
-			get_tree().create_timer(secs, true, false, true).timeout.connect(func(): get_tree().quit())
+			get_tree().create_timer(secs, true, false, true).timeout.connect(quit)
 
 
 func _goto_on_start(path: String) -> void:
@@ -226,8 +227,8 @@ func cycle_locale() -> void:
 
 # ---------------------------------------------------------------- sound
 
-func sfx(name: String, volume_db := 0.0, pitch := 1.0) -> void:
-	var s: AudioStream = _sfx.get(name)
+func sfx(sound: String, volume_db := 0.0, pitch := 1.0) -> void:
+	var s: AudioStream = _sfx.get(sound)
 	if s == null:
 		return
 	var p := AudioStreamPlayer.new()
@@ -237,6 +238,25 @@ func sfx(name: String, volume_db := 0.0, pitch := 1.0) -> void:
 	add_child(p)
 	p.play()
 	p.finished.connect(p.queue_free)
+
+
+## Quits cleanly: frees the level (and the coroutines waiting in it) and lets go of the music
+## a couple of frames before the engine shuts down, so nothing is reported leaked at exit.
+func quit() -> void:
+	Narrator.clear()
+	for p: Node in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
+		(p as AudioStreamPlayer).stop()
+	var scene := get_tree().current_scene
+	if scene:
+		scene.queue_free()
+	# the audio thread drops stopped playbacks on its next mix; give it a moment
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	get_tree().quit()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit()
 
 
 func music(path: String, volume_db := -14.0, fade := 1.5) -> void:
@@ -382,19 +402,19 @@ func _setup_input() -> void:
 	_action("pause", [KEY_ESCAPE, KEY_P], [JOY_BUTTON_START])
 
 
-func _action(name: String, keys: Array, buttons: Array, axis := -1, axis_dir := 0.0) -> void:
-	if not InputMap.has_action(name):
-		InputMap.add_action(name, 0.4)
+func _action(action: String, keys: Array, buttons: Array, axis := -1, axis_dir := 0.0) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action, 0.4)
 	for k in keys:
 		var e := InputEventKey.new()
 		e.physical_keycode = k
-		InputMap.action_add_event(name, e)
+		InputMap.action_add_event(action, e)
 	for b in buttons:
 		var e := InputEventJoypadButton.new()
 		e.button_index = b
-		InputMap.action_add_event(name, e)
+		InputMap.action_add_event(action, e)
 	if axis >= 0:
 		var e := InputEventJoypadMotion.new()
-		e.axis = axis
+		e.axis = axis as JoyAxis
 		e.axis_value = axis_dir
-		InputMap.action_add_event(name, e)
+		InputMap.action_add_event(action, e)

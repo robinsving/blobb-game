@@ -7,8 +7,10 @@ extends CanvasLayer
 ##   Narrator.hint("text")                 # small control hint at the top of the screen
 ##
 ## Calls are queued, so overlapping say() calls play one after the other. While another scene
-## is waiting in the queue, the one playing hurries (HURRY), so the story doesn't fall far behind.
-## The "skip" key dismisses the line on screen (a blocking one too) for players who read fast.
+## is waiting in the queue, or Blobb stands at a StoryGate waiting for it, the one playing hurries
+## (HURRY), so the story doesn't fall far behind.
+## The "skip" key hurries a line along for players who read fast: the first press shows the whole
+## line at once, the next one moves on (a blocking line too).
 
 signal finished
 
@@ -22,6 +24,8 @@ var busy_blocking := false  # the scene being told locks the controls
 var _generation := 0  # bumped by clear(); stale say() calls bail out
 var _queue_ticket := 0
 var _serving := 0
+## Set by StoryGate while Blobb stands at a gate waiting for the scene: hurry it, as if one were queued.
+var gate_waiting := false
 var _band: TextureRect
 var _old: Label
 var _young: Label
@@ -200,13 +204,14 @@ func say(lines: Array, blocking := true) -> void:
 ## What is on screen now, for checks from outside (DebugState / gda): the line being shown, the
 ## hint and legend texts, and whether a blocking line is waiting for the advance key.
 func debug_state() -> Dictionary:
-	return {"line": _current if busy else "", "waiting": _arrow.visible, "hint": _hint.text if _hint.modulate.a > 0.05 else "",
+	return {"line": _current if busy else "", "typing": _typing, "waiting": _arrow.visible, "hint": _hint.text if _hint.modulate.a > 0.05 else "",
 		"legend": _legend.text if _legend_key != "" else ""}
 
 
 ## Immediately clears everything (used on scene change).
 func clear() -> void:
 	_generation += 1
+	gate_waiting = false
 	_old.text = ""
 	_young.text = ""
 	_band.modulate.a = 0.0
@@ -315,8 +320,10 @@ func _input(event: InputEvent) -> void:
 	if _typing and event.is_action_pressed("advance") and Game.control_locked:
 		_skip_typing = true
 	if busy and event.is_action_pressed("skip", false) and not get_tree().paused:
-		_skip_line = true
-		_skip_typing = true
+		if _typing:
+			_skip_typing = true  # first press: the whole line at once, so it can still be read
+		else:
+			_skip_line = true  # then: on to the next line
 
 
 func _read_time(line: Dictionary) -> float:
@@ -336,9 +343,9 @@ func _wait(secs: float) -> void:
 			t += get_process_delta_time() / (HURRY if _queued() else 1.0)
 
 
-## Another say() is waiting behind the one playing.
+## Someone is waiting for the scene playing: another say() queued behind it, or Blobb at a StoryGate.
 func _queued() -> bool:
-	return _queue_ticket - _serving > 1
+	return _queue_ticket - _serving > 1 or gate_waiting
 
 
 func _fade_band(to: float) -> void:

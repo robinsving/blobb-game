@@ -51,29 +51,31 @@ func _moon() -> PackedVector2Array:
 
 
 ## The shapes on their own (centred on 0,0), also used for the moon and star in ch5's last sky.
-static func star_points(radius: float) -> PackedVector2Array:
+static func star_points(r: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var n := 80
 	for i in n:
 		var t := TAU * i / n - PI / 2.0
 		var k := (cos(5.0 * (t + PI / 2.0)) + 1.0) * 0.5   # 1 at tips, 0 in valleys
-		out.append(Vector2(cos(t), sin(t)) * radius * (0.6 + 0.4 * k))
+		out.append(Vector2(cos(t), sin(t)) * r * (0.6 + 0.4 * k))
 	return out
 
 
 ## Crescent: the outer circle's arc outside an offset inner circle, then the inner arc back.
-static func moon_points(radius: float) -> PackedVector2Array:
+static func moon_points(r: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var c1 := Vector2.ZERO
-	var r1 := radius
-	var c2 := Vector2(radius * 0.45, -radius * 0.3)
-	var r2 := radius * 0.85
+	var r1 := r
+	var c2 := Vector2(r * 0.45, -r * 0.3)
+	var r2 := r * 0.85
 	var away := (c1 - c2).angle()
 	var n := 96
+	@warning_ignore("integer_division")
 	for k in range(-n / 2, n / 2 + 1):
 		var p := c1 + Vector2.from_angle(away + TAU * k / n) * r1
 		if p.distance_to(c2) > r2:
 			out.append(p)
+	@warning_ignore("integer_division")
 	for k in range(n / 2, -n / 2 - 1, -1):
 		var p := c2 + Vector2.from_angle(away + TAU * k / n) * r2
 		if p.distance_to(c1) < r1:

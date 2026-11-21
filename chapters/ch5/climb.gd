@@ -72,7 +72,6 @@ var camera: Camera2D
 var story := StoryScript.load_file("res://chapters/ch5/story.txt")
 var _world: Node2D
 var _sky: Node2D
-var _sky_tex := {}             # "night" / "bluehour" / "dawn" / "summit" -> Texture2D
 var _sky_sprites := {}
 var _rope: Line2D
 var _tex := {}
@@ -245,19 +244,19 @@ func _check_triggers() -> void:
 		return
 	var y := player.position.y
 	for ty in TRIGGERS:
-		var name: String = TRIGGERS[ty]
-		if y <= ty and not _fired.has(name):
-			_fired[name] = true
-			_beat(name)
+		var scene: String = TRIGGERS[ty]
+		if y <= ty and not _fired.has(scene):
+			_fired[scene] = true
+			_beat(scene)
 	if not _done and player.is_on_floor() and y <= LEDGES[-1][2] + 5.0 and player.position.x < SUMMIT_X:
 		_summit()
 
 
-func _beat(name: String) -> void:
-	match name:
+func _beat(scene: String) -> void:
+	match scene:
 		"pigeons":
 			_pigeons_in()
-	await story.play(name, self)
+	await story.play(scene, self)
 
 
 func _fail() -> void:
@@ -836,10 +835,10 @@ func _draw_ledge(r: Array, ground: bool, heart: int) -> void:
 	if _tex.has(key):
 		var tex: Texture2D = _tex[key]
 		var sy := 0.8
-		var rect := Rect2(x0 - 14.0, top - up - 20.0 * sy, x1 - x0 + 28.0, tex.get_height() * sy)
+		var dest := Rect2(x0 - 14.0, top - up - 20.0 * sy, x1 - x0 + 28.0, tex.get_height() * sy)
 		if heart >= 0:
-			_world.draw_texture_rect(tex, rect.grow(8.0 * k), false, Color(1, 0.7, 0.75, 0.4 * k))
-		_world.draw_texture_rect(tex, rect, false)
+			_world.draw_texture_rect(tex, dest.grow(8.0 * k), false, Color(1, 0.7, 0.75, 0.4 * k))
+		_world.draw_texture_rect(tex, dest, false)
 		return
 	var body := Color(0.36, 0.33, 0.45) if heart < 0 else Color(0.74, 0.34, 0.44).lerp(Color(1.0, 0.6, 0.66), k)
 	var rect := Rect2(x0, top - up, x1 - x0, 44)

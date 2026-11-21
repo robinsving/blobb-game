@@ -33,6 +33,7 @@ func _draw() -> void:
 	# canopy around the room
 	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.12, 0.24, 0.1))
 	for i in 26 * 15:
+		@warning_ignore("integer_division")
 		var p := Vector2((i % 26) * 78 - 40, (i / 26) * 78 - 40) + Vector2(rng.randf_range(-30, 30), rng.randf_range(-30, 30))
 		var r := rng.randf_range(50, 90)
 		var g := rng.randf_range(0.22, 0.42)

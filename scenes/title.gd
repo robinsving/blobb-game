@@ -70,13 +70,15 @@ func _ready() -> void:
 	_lang = _button(box, "language", func():
 		Game.cycle_locale()
 		_refresh())
-	_quit = _button(box, "quit", func(): get_tree().quit())
+	_quit = _button(box, "quit", func(): Game.quit())
 	for b in _buttons():
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_color_override("font_color", Color(0.3, 0.24, 0.18))
 		b.add_theme_color_override("font_focus_color", Color(0.75, 0.3, 0.1))
 		b.add_theme_color_override("font_hover_color", Color(0.75, 0.3, 0.1))
-	_begin.grab_focus.call_deferred()
+	(func():
+		if _begin.is_inside_tree():  # --scene= replaces the title within its first frame
+			_begin.grab_focus()).call_deferred()
 
 	var fx := StyleFX.new()
 	fx.set_look("crayon", 0.0)

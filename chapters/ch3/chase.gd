@@ -377,10 +377,10 @@ func _end() -> void:
 	_ended = true
 	await get_tree().create_timer(1.0).timeout
 	# look up at the sign
-	var sign := _proj(0.0, _hospital["z0"], _hospital["top"] - 1.3)
+	var sign_at := _proj(0.0, _hospital["z0"], _hospital["top"] - 1.3)
 	var from := _proj(_x * 0.3, _beat * BEAT_LEN + 3.2, maxf(_h, -1.0) * 0.5) + Vector2(0, 40)
 	var tw := create_tween()
-	tw.tween_property(self, "_cam_extra", sign + Vector2(-180, 260) - from, 4.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(self, "_cam_extra", sign_at + Vector2(-180, 260) - from, 4.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await get_tree().create_timer(2.2).timeout
 	await story.play("help", self)
 
@@ -780,5 +780,5 @@ const GDA_CALLABLE := ["debug_state"]
 
 func debug_state() -> Dictionary:
 	var d := DebugState.base(null)
-	d.merge(DebugState.json({"beat": _beat, "x": _x, "h": _h, "retelling": _retelling, "fails": _fail_count, "gone": _obstacles.filter(func(o): return o.has("gone")).size() + _dives.filter(func(d): return d.has("gone")).size(), "checkpoint": _checkpoint, "ended": _ended}), true)
+	d.merge(DebugState.json({"beat": _beat, "x": _x, "h": _h, "retelling": _retelling, "fails": _fail_count, "gone": _obstacles.filter(func(o): return o.has("gone")).size() + _dives.filter(func(dv): return dv.has("gone")).size(), "checkpoint": _checkpoint, "ended": _ended}), true)
 	return d

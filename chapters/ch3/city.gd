@@ -148,9 +148,9 @@ func _poster_fallback() -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-func _beat(name: String) -> void:
-	await story.play(name, self)
-	match name:
+func _beat(scene: String) -> void:
+	await story.play(scene, self)
+	match scene:
 		"dash":
 			Narrator.hint(Game.t("hint_dash"), 5.0)
 
@@ -463,9 +463,17 @@ func _draw_street(n: Node2D) -> void:
 	for i in 8:
 		var y := (STREET_ROW + 1.8) * TILE + i * 22.0
 		n.draw_line(Vector2(cx0 + rng.randf_range(10, 60), y), Vector2(cx1 - rng.randf_range(10, 60), y), Color(1.0, 0.8, 0.45, 0.25), 3.0)
+	var pave: Texture2D = load(ART + "pavement_strip.png") if ResourceLoader.exists(ART + "pavement_strip.png") else null
+	if pave:
+		n.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	for g in GROUND + STEPS:
 		var r := Rect2(g[0] * TILE, g[2] * TILE, (g[1] - g[0] + 1) * TILE, ((ROWS - 1) - g[2] + 1) * TILE if g in GROUND else TILE)
 		n.draw_rect(r, Color(0.2, 0.2, 0.26))
+		if pave:
+			# the painted kerb and cobbles; steps (one tile tall) show only its top half
+			var h := minf(r.size.y, float(pave.get_height()))
+			n.draw_texture_rect_region(pave, Rect2(r.position, Vector2(r.size.x, h)), Rect2(r.position.x, 0, r.size.x, h))
+			continue
 		n.draw_rect(Rect2(r.position, Vector2(r.size.x, 16)), Color(0.52, 0.52, 0.58))
 		n.draw_rect(Rect2(r.position + Vector2(0, 16), Vector2(r.size.x, 6)), Color(0.12, 0.12, 0.16))
 		if g in GROUND:
@@ -512,10 +520,10 @@ func _make_lamp(col: int) -> void:
 			post.draw_rect(Rect2(-18, -24, 36, 24), Color(0.1, 0.1, 0.13))
 			post.draw_rect(Rect2(-24, -470, 48, 70), Color(0.1, 0.1, 0.13)))
 		n.add_child(post)
-		var g := Node2D.new()
-		g.draw.connect(func(): g.draw_rect(Rect2(-17, -462, 34, 54), Color(1.0, 0.85, 0.5)))
-		n.add_child(g)
-		glass = g
+		var lit := Node2D.new()
+		lit.draw.connect(func(): lit.draw_rect(Rect2(-17, -462, 34, 54), Color(1.0, 0.85, 0.5)))
+		n.add_child(lit)
+		glass = lit
 	glass.modulate = Color(0.35, 0.35, 0.42)
 	n.set_meta("glass", glass)
 	_lamps.append(n)
@@ -576,13 +584,13 @@ func _make_sweeper() -> void:
 
 func _make_pigeons() -> void:
 	# asleep on a shop sign over the pavement
-	var sign := Node2D.new()
+	var shop_sign := Node2D.new()
 	var y := (STREET_ROW - 5) * TILE
-	sign.draw.connect(func():
-		sign.draw_rect(Rect2(PIGEON_COL * TILE - 140, y, 360, 26), Color(0.2, 0.14, 0.12))
-		sign.draw_rect(Rect2(PIGEON_COL * TILE - 140, y + 26, 360, 90), Color(0.3, 0.2, 0.18))
-		sign.draw_rect(Rect2(PIGEON_COL * TILE - 120, y + 40, 320, 60), Color(0.42, 0.3, 0.22)))
-	add_child(sign)
+	shop_sign.draw.connect(func():
+		shop_sign.draw_rect(Rect2(PIGEON_COL * TILE - 140, y, 360, 26), Color(0.2, 0.14, 0.12))
+		shop_sign.draw_rect(Rect2(PIGEON_COL * TILE - 140, y + 26, 360, 90), Color(0.3, 0.2, 0.18))
+		shop_sign.draw_rect(Rect2(PIGEON_COL * TILE - 120, y + 40, 320, 60), Color(0.42, 0.3, 0.22)))
+	add_child(shop_sign)
 	for i in 4:
 		var s := Sprite2D.new()
 		if ResourceLoader.exists(ART + "pigeon_sit.png"):

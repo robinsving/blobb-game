@@ -18,6 +18,9 @@ var tile := 64.0
 var walk := 1.0
 var slow_over := 0.0
 var slow_min := 0.2
+## While Blobb is pushing against the stop, the scene being told hurries (Narrator.gate_waiting).
+## Off in the dream, whose silences are the point; there he slows down instead.
+var hurry := true
 
 
 static func attach(level: Node, who: CharacterBody2D, trig: Dictionary, done: Dictionary, tile_size: float) -> StoryGate:
@@ -31,7 +34,12 @@ static func attach(level: Node, who: CharacterBody2D, trig: Dictionary, done: Di
 	return g
 
 
+func _exit_tree() -> void:
+	Narrator.gate_waiting = false
+
+
 func _physics_process(_delta: float) -> void:
+	Narrator.gate_waiting = false
 	if not is_instance_valid(player):
 		return
 	if not Narrator.busy:
@@ -48,5 +56,6 @@ func _physics_process(_delta: float) -> void:
 	if slow_over > 0.0:
 		player.speed_mul = walk * clampf((stop - player.position.x) / slow_over, slow_min, 1.0)
 	if player.position.x > stop:
+		Narrator.gate_waiting = hurry
 		player.position.x = stop
 		player.velocity.x = minf(player.velocity.x, 0.0)

@@ -21,8 +21,7 @@ var _tween: Tween
 func _init() -> void:
 	layer = 40
 	_rect = ColorRect.new()
-	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_rect.size = Vector2(1920, 1080)
+	_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mat = ShaderMaterial.new()
 	_mat.shader = preload("res://shaders/style_fx.gdshader")
@@ -31,9 +30,9 @@ func _init() -> void:
 	set_look("plain", 0.0)
 
 
-func set_look(name: String, dur := 1.2) -> void:
-	look = name
-	var preset: Dictionary = LOOKS[name]
+func set_look(look_name: String, dur := 1.2) -> void:
+	look = look_name
+	var preset: Dictionary = LOOKS[look_name]
 	if _tween:
 		_tween.kill()
 	if dur <= 0.0:

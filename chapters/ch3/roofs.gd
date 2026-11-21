@@ -281,8 +281,12 @@ func _solid_cell(p: Vector2i) -> void:
 ## Roof blocks: slate on top, dark brick below, a few lit attic windows.
 func _draw_roofs() -> void:
 	var n := Node2D.new()
+	n.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # the wall and cap tiles are sampled in world pixels
 	_room_node.add_child(n)
 	var r := room
+	var wall: Texture2D = load(ART + "roof_wall_tile.png") if ResourceLoader.exists(ART + "roof_wall_tile.png") else null
+	var cap: Texture2D = load(ART + "roof_cap.png") if ResourceLoader.exists(ART + "roof_cap.png") else null
+	var window: Texture2D = load(ART + "attic_window.png") if ResourceLoader.exists(ART + "attic_window.png") else null
 	n.draw.connect(func():
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 40 + room_i
@@ -292,6 +296,14 @@ func _draw_roofs() -> void:
 					continue
 				var rect := Rect2(ORIGIN + Vector2(x, y) * CELL, Vector2(CELL, CELL))
 				var top: bool = y == 0 or r.rows[y - 1][x] != "#"
+				if wall:
+					n.draw_texture_rect_region(wall, rect, rect)
+					if top and cap:
+						var c := Rect2(rect.position + Vector2(-4, -12), Vector2(CELL + 8, 48))
+						n.draw_texture_rect_region(cap, c, Rect2(c.position.x, 0, c.size.x, cap.get_height()))
+					elif not top and window and rng.randf() < 0.18:
+						n.draw_texture_rect(window, Rect2(rect.position + Vector2(40, 34), Vector2(48, 60)), false)
+					continue
 				n.draw_rect(rect, Color(0.17, 0.15, 0.2))
 				# brick courses
 				for k in 6:

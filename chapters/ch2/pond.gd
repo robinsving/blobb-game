@@ -95,9 +95,9 @@ func _on_entered_water() -> void:
 	Narrator.hint(Game.t("hint_hop"), 6.0)
 
 
-func _beat(name: String) -> void:
-	await story.play(name, self)
-	match name:
+func _beat(scene: String) -> void:
+	await story.play(scene, self)
+	match scene:
 		"bubbles":
 			Narrator.hint(Game.t("hint_swim"), 6.0)
 		"deep_end":

@@ -102,11 +102,11 @@ func _intro() -> void:
 	story.play("intro", self)
 
 
-func _beat(name: String) -> void:
-	if name == "ending":
+func _beat(scene: String) -> void:
+	if scene == "ending":
 		_drifting = false
 		fx.set_look("plain", 4.0)
-	await story.play(name, self)
+	await story.play(scene, self)
 
 
 # ================================================================ story effects
@@ -268,7 +268,9 @@ func _build_world() -> void:
 	# a dream walk: slower, and slower still as he nears the next beat, so Y's lines keep up
 	# with him and he hardly ever has to stop and wait
 	gate.walk = 0.6
-	gate.slow_over = 1000.0
+	gate.slow_over = 1400.0
+	gate.slow_min = 0.05  # shuffles instead of stopping while Y talks
+	gate.hurry = false  # Y's silences are the point here
 	player.speed_mul = gate.walk
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
 	player.jump_velocity = PlayerSide.STRONG_JUMP
