@@ -399,36 +399,9 @@ func fx_white_out() -> void:
 	_white = 1.0
 	await fx.white(1.0, 4.0)
 	await get_tree().create_timer(2.5 if not Game.fast else 0.3).timeout
-	await _chapter_card()
+	await ChapterCard.closing(self, "chapter_end_3", Color(0.35, 0.37, 0.42), Color.WHITE)
 	Game.unlock_chapter(4)
 	Game.go("res://scenes/title.tscn", Color.WHITE, 1.5)
-
-
-func _chapter_card() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 101
-	add_child(layer)
-	var bg := ColorRect.new()
-	bg.color = Color.WHITE
-	bg.size = Vector2(1920, 1080)
-	layer.add_child(bg)
-	var box := VBoxContainer.new()
-	box.position = Vector2(0, 400)
-	box.size = Vector2(1920, 300)
-	box.add_theme_constant_override("separation", 20)
-	layer.add_child(box)
-	for spec in [[Game.t("chapter_3"), 44, Fonts.serif()], [Game.t("chapter_3_name"), 84, Fonts.hand()], [Game.t("chapter_end_3"), 36, Fonts.serif()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(0.35, 0.37, 0.42))
-		l.modulate.a = 0.0
-		box.add_child(l)
-		create_tween().tween_property(l, "modulate:a", 1.0, 1.4)
-		await get_tree().create_timer(1.6 if not Game.fast else 0.2).timeout
-	await get_tree().create_timer(3.5 if not Game.fast else 0.5).timeout
 
 
 ## Test bot: jump at roof edges and steps up, sidestep chimneys and birds, hop vents.

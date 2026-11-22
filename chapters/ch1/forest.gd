@@ -19,7 +19,7 @@ const PLATFORMS := [[53, 54, 9]]
 ## [x0, x1, row] one-way branch platforms, hidden until the narrator "grows" them
 const BRANCHES := [[84, 87, 9], [85, 87, 7]]
 const CHECKPOINTS := [4, 30, 45, 61, 99, 116, 128]
-const TRIGGERS := {19: "jump", 31: "careful", 64: "banana", 79: "branches", 100: "evening", 133: "end"}
+const TRIGGERS := {19: "jump", 31: "careful", 64: "banana", 86: "branches", 100: "evening", 133: "end"}
 const BANANA_X := 72
 const TREE_X := 88
 
@@ -79,7 +79,8 @@ func _intro() -> void:
 	camera.zoom = Vector2(1.9, 1.9)
 	camera.offset = Vector2(0, -90)
 	camera.position_smoothing_enabled = false
-	await get_tree().create_timer(1.0).timeout
+	await ChapterCard.title(self, 1, Color(0.3, 0.24, 0.18), Color(0.95, 0.92, 0.85))  # on paper, like the opening
+	await get_tree().create_timer(0.6).timeout
 	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_move"), 6.0)
 

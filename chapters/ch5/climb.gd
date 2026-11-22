@@ -210,30 +210,7 @@ func _debug_warp(i: int) -> void:
 ## The chapter's name over the night, then O comes back.
 func _intro() -> void:
 	Game.control_locked = true
-	var layer := CanvasLayer.new()
-	layer.layer = 101
-	add_child(layer)
-	var box := VBoxContainer.new()
-	box.position = Vector2(0, 430)
-	box.size = Vector2(1920, 240)
-	box.add_theme_constant_override("separation", 18)
-	layer.add_child(box)
-	for spec in [[Game.t("chapter_5"), 44, Fonts.serif()], [Game.t("chapter_5_name"), 96, Fonts.hand()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(0.85, 0.85, 0.95))
-		l.modulate.a = 0.0
-		box.add_child(l)
-	var tw := create_tween()
-	for l in box.get_children():
-		tw.tween_property(l, "modulate:a", 1.0, 1.4)
-	tw.tween_interval(0.5 if Game.fast else 3.0)
-	tw.tween_property(box, "modulate:a", 0.0, 1.5)
-	await tw.finished
-	layer.queue_free()
+	await ChapterCard.title(self, 5, Color(0.85, 0.85, 0.95))
 	await story.play("intro", self)
 	Game.control_locked = false
 	Narrator.hint(Game.t("hint_move"), 6.0)
@@ -298,7 +275,7 @@ func _summit() -> void:
 	_show_room()
 	await get_tree().create_timer(1.0 if Game.fast else 4.5).timeout
 	await story.play("room", self)
-	await _end_card()
+	await ChapterCard.closing(self, "the_end", Color(0.45, 0.38, 0.32), Color(0.98, 0.95, 0.88), 2.5, 5.0)
 	Game.go("res://scenes/title.tscn", Color(0.98, 0.95, 0.88), 2.0)
 
 
@@ -434,35 +411,6 @@ func _draw_room(c: Control) -> void:
 	# the paper with the drawing, taped up in the beam of light (the drawing itself is a TextureRect)
 	c.draw_rect(PAPER.grow(10.0), Color(0.96, 0.93, 0.86))
 	c.draw_rect(Rect2(PAPER.position + Vector2(PAPER.size.x * 0.5 - 30, -18), Vector2(60, 18)), Color(0.9, 0.86, 0.74, 0.8))
-
-
-func _end_card() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 101
-	add_child(layer)
-	var bg := ColorRect.new()
-	bg.color = Color(0.98, 0.95, 0.88)
-	bg.size = Vector2(1920, 1080)
-	bg.modulate.a = 0.0
-	layer.add_child(bg)
-	await create_tween().tween_property(bg, "modulate:a", 1.0, 2.5).finished
-	var box := VBoxContainer.new()
-	box.position = Vector2(0, 400)
-	box.size = Vector2(1920, 300)
-	box.add_theme_constant_override("separation", 20)
-	layer.add_child(box)
-	for spec in [[Game.t("chapter_5"), 44, Fonts.serif()], [Game.t("chapter_5_name"), 84, Fonts.hand()], [Game.t("the_end"), 40, Fonts.serif()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(0.45, 0.38, 0.32))
-		l.modulate.a = 0.0
-		box.add_child(l)
-		create_tween().tween_property(l, "modulate:a", 1.0, 1.4)
-		await get_tree().create_timer(0.2 if Game.fast else 1.8).timeout
-	await get_tree().create_timer(0.5 if Game.fast else 5.0).timeout
 
 
 # ================================================================ per frame

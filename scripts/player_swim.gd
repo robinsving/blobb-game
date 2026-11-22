@@ -31,6 +31,7 @@ var use_bot := true
 var can_swim := false
 var surface_y := 200.0
 var flow := Vector2.ZERO
+var bot_y := 820.0  # depth the --autoplay bot cruises at (levels may steer it)
 var buoyancy := BUOYANCY  # the mill sets 0: he hovers where he stops, so a control stays in reach
 var sprite: BlobbSprite
 var _pivot: Node2D
@@ -214,7 +215,7 @@ func _bot_input() -> Vector2:
 		wall = wall or not space.intersect_ray(q).is_empty()
 	if mode == Mode.SWIM:
 		# cruise at mid-depth (under the strong current, over the filter); climb over walls
-		v.y = clampf((820.0 - global_position.y) / 100.0, -1.0, 1.0)  # mid-tunnel depth in the pool
+		v.y = clampf((bot_y - global_position.y) / 100.0, -1.0, 1.0)  # mid-depth unless the level steers
 		if wall:
 			v.y = -1.0
 	return v

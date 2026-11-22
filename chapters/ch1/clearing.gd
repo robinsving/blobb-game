@@ -93,7 +93,7 @@ func _ending() -> void:
 	await get_tree().create_timer(1.2).timeout
 	Game.sfx("beep", -20.0)
 	await get_tree().create_timer(2.2).timeout
-	await _chapter_card()
+	await ChapterCard.closing(self, "chapter_end", Color(0.95, 0.9, 0.8))
 	Game.unlock_chapter(2)
 	Game.go("res://scenes/title.tscn", Color.BLACK, 1.5)
 
@@ -107,30 +107,6 @@ func fx_crates_float() -> void:
 
 func fx_fade_to_black() -> void:
 	Game.fade_out(Color.BLACK, 3.0)
-
-
-func _chapter_card() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 101
-	add_child(layer)
-	var box := VBoxContainer.new()
-	box.position = Vector2(0, 400)
-	box.size = Vector2(1920, 300)
-	box.add_theme_constant_override("separation", 20)
-	layer.add_child(box)
-	for spec in [[Game.t("chapter_1"), 44, Fonts.serif()], [Game.t("chapter_1_name"), 84, Fonts.hand()], [Game.t("chapter_end"), 36, Fonts.serif()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(0.95, 0.9, 0.8))
-		l.modulate.a = 0.0
-		box.add_child(l)
-		var tw := create_tween()
-		tw.tween_property(l, "modulate:a", 1.0, 1.4)
-		await get_tree().create_timer(1.6 if not Game.fast else 0.2).timeout
-	await get_tree().create_timer(3.5 if not Game.fast else 0.5).timeout
 
 
 func fx_pancake() -> void:

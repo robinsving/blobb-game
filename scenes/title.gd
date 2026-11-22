@@ -16,6 +16,7 @@ var _ch4: Button
 var _ch5: Button
 var _blobb: BlobbSprite
 var _t := 0.0
+var _blobb_y := 600.0
 
 
 func _ready() -> void:
@@ -25,11 +26,22 @@ func _ready() -> void:
 	bg.color = Color(0.95, 0.92, 0.85)
 	bg.size = Vector2(1920, 1080)
 	add_child(bg)
+	const TITLE_BG := "res://assets/gen/title/title_bg.png"  # crayon paper with doodles, if generated
+	if ResourceLoader.exists(TITLE_BG):
+		var paper := TextureRect.new()
+		paper.texture = load(TITLE_BG)
+		paper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		paper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		paper.size = Vector2(1920, 1080)
+		add_child(paper)
 
 	var holder := Node2D.new()
 	add_child(holder)
 	_blobb = BlobbSprite.new()
 	_blobb.position = Vector2(1300, 600)
+	if ResourceLoader.exists("res://assets/gen/title/title_bg.png"):
+		_blobb_y = 545.0  # feet on the drawn ground line (y 700)
+	_blobb.position.y = _blobb_y
 	_blobb.scale = Vector2.ONE * 1.25
 	holder.add_child(_blobb)
 
@@ -113,5 +125,5 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	_blobb.position.y = 600 + sin(_t * 1.6) * 12.0
+	_blobb.position.y = _blobb_y - 6.0 + sin(_t * 1.6) * 6.0  # a small bob that never sinks below his line
 	_blobb.rotation = sin(_t * 0.8) * 0.04

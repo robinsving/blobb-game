@@ -72,30 +72,7 @@ func _debug_warp(col: int) -> void:
 func _intro() -> void:
 	Game.control_locked = true
 	fx.white(1.0, 0.0)
-	var layer := CanvasLayer.new()
-	layer.layer = 101
-	add_child(layer)
-	var box := VBoxContainer.new()
-	box.position = Vector2(0, 430)
-	box.size = Vector2(1920, 240)
-	box.add_theme_constant_override("separation", 18)
-	layer.add_child(box)
-	for spec in [[Game.t("chapter_4"), 44, Fonts.serif()], [Game.t("chapter_4_name"), 96, Fonts.hand()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(0.45, 0.45, 0.55))
-		l.modulate.a = 0.0
-		box.add_child(l)
-	var tw := create_tween()
-	for l in box.get_children():
-		tw.tween_property(l, "modulate:a", 1.0, 1.4)
-	tw.tween_interval(0.5 if Game.fast else 3.5)
-	tw.tween_property(box, "modulate:a", 0.0, 1.5)
-	await tw.finished
-	layer.queue_free()
+	await ChapterCard.title(self, 4, Color(0.45, 0.45, 0.55))
 	fx.white(0.0, 1.0 if Game.fast else 5.0)
 	await get_tree().create_timer(0.5 if Game.fast else 3.0).timeout
 	Game.control_locked = false
@@ -134,37 +111,8 @@ func _reach_top() -> void:
 	Game.unlock_chapter(5)
 	# a few seconds of the slow, even beep: that's the answer. Nobody speaks.
 	await get_tree().create_timer(1.5 if Game.fast else 7.0).timeout
-	await _chapter_card()
+	await ChapterCard.closing(self, "chapter_end_4", Color(0.4, 0.4, 0.5), Color(0.93, 0.92, 0.97), 2.0, 4.0)
 	Game.go("res://scenes/title.tscn", Color(0.93, 0.92, 0.97), 1.5)
-
-
-func _chapter_card() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 101
-	add_child(layer)
-	var bg := ColorRect.new()
-	bg.color = Color(0.93, 0.92, 0.97)
-	bg.size = Vector2(1920, 1080)
-	bg.modulate.a = 0.0
-	layer.add_child(bg)
-	await create_tween().tween_property(bg, "modulate:a", 1.0, 2.0).finished
-	var box := VBoxContainer.new()
-	box.position = Vector2(0, 400)
-	box.size = Vector2(1920, 300)
-	box.add_theme_constant_override("separation", 20)
-	layer.add_child(box)
-	for spec in [[Game.t("chapter_4"), 44, Fonts.serif()], [Game.t("chapter_4_name"), 84, Fonts.hand()], [Game.t("chapter_end_4"), 36, Fonts.serif()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5))
-		l.modulate.a = 0.0
-		box.add_child(l)
-		create_tween().tween_property(l, "modulate:a", 1.0, 1.4)
-		await get_tree().create_timer(1.6 if not Game.fast else 0.2).timeout
-	await get_tree().create_timer(4.0 if not Game.fast else 0.5).timeout
 
 
 # ================================================================ per frame
@@ -302,21 +250,33 @@ func _make_props() -> void:
 	var gy := GROUND_ROW * TILE
 	# moss: a soft glowing patch, with a few motes over it
 	var moss := Node2D.new()
-	moss.draw.connect(func():
-		for i in 9:
-			var a := i * 0.7
-			moss.draw_circle(Vector2(cos(a) * 46.0 * (0.5 + 0.5 * sin(i * 1.7)), sin(a) * 10.0), 26.0, Color(0.45, 0.75, 0.4, 0.55))
-		for i in 7:
-			moss.draw_circle(Vector2(-60 + i * 20, -40 - (i % 3) * 22), 3.0, Color(0.8, 1.0, 0.7, 0.7)))
+	if ResourceLoader.exists(ART + "dream_moss.png"):
+		var ms := Sprite2D.new()
+		ms.texture = load(ART + "dream_moss.png")
+		ms.scale = Vector2.ONE * (260.0 / ms.texture.get_width())
+		moss.add_child(ms)
+	else:
+		moss.draw.connect(func():
+			for i in 9:
+				var a := i * 0.7
+				moss.draw_circle(Vector2(cos(a) * 46.0 * (0.5 + 0.5 * sin(i * 1.7)), sin(a) * 10.0), 26.0, Color(0.45, 0.75, 0.4, 0.55))
+			for i in 7:
+				moss.draw_circle(Vector2(-60 + i * 20, -40 - (i % 3) * 22), 3.0, Color(0.8, 1.0, 0.7, 0.7)))
 	_prop(moss, Vector2(MOSS_COL * TILE, gy - 40))
 	# a crate from the clearing, floating, slightly tilted
 	var crate := Node2D.new()
 	crate.rotation = 0.15
-	crate.draw.connect(func():
-		crate.draw_rect(Rect2(-48, -48, 96, 96), Color(0.72, 0.56, 0.38))
-		crate.draw_rect(Rect2(-48, -48, 96, 96), Color(0.45, 0.33, 0.22), false, 6.0)
-		crate.draw_line(Vector2(-44, -44), Vector2(44, 44), Color(0.45, 0.33, 0.22), 6.0)
-		crate.draw_line(Vector2(-44, 0), Vector2(44, 0), Color(0.55, 0.42, 0.28), 4.0))
+	if ResourceLoader.exists(ART + "dream_crate.png"):
+		var cs := Sprite2D.new()
+		cs.texture = load(ART + "dream_crate.png")
+		cs.scale = Vector2.ONE * (180.0 / cs.texture.get_width())
+		crate.add_child(cs)
+	else:
+		crate.draw.connect(func():
+			crate.draw_rect(Rect2(-48, -48, 96, 96), Color(0.72, 0.56, 0.38))
+			crate.draw_rect(Rect2(-48, -48, 96, 96), Color(0.45, 0.33, 0.22), false, 6.0)
+			crate.draw_line(Vector2(-44, -44), Vector2(44, 44), Color(0.45, 0.33, 0.22), 6.0)
+			crate.draw_line(Vector2(-44, 0), Vector2(44, 0), Color(0.55, 0.42, 0.28), 4.0))
 	crate.modulate = Color(1, 1, 1, 0.85)
 	_prop(crate, Vector2(CRATE_COL * TILE, gy - 220))
 	# the rubber duck, in mid-air, still cross

@@ -4,12 +4,12 @@ extends Node2D
 ## Dialogue: chapters/ch2/story.txt (scene names = TRIGGERS values, splash, fail_1..4).
 ## Flow: bank (murky pond) -> "make it clear" -> jump in, sink, plod along the bottom ->
 ## "fuzz holds bubbles" (swim) -> big rock -> blue Blobb -> warden banana -> fish -> current ->
-## whirlpool (retells) -> far end -> mill channel (chapters/ch2/mill.tscn).
+## whirlpool (retells) -> a passage of smaller whirlpools to weave through -> far end -> mill channel (chapters/ch2/mill.tscn).
 ## Art comes from assets/gen/ch2/ when present; everything has a drawn fallback.
 
 const TILE := 64
 const ROWS := 17
-const WIDTH := 92
+const WIDTH := 114
 const SURFACE_Y := 3 * TILE
 const NEXT_SCENE := "res://chapters/ch2/mill.tscn"
 const ART := "res://assets/gen/ch2/"
@@ -17,15 +17,15 @@ const ART := "res://assets/gen/ch2/"
 ## [x0, x1, top_row, bottom_row] solid banks, riverbed and rocks
 const BLOCKS := [
 	[0, 7, 3, 16],      # the bank Blobb starts on
-	[8, 83, 15, 16],    # riverbed
+	[8, 105, 15, 16],   # riverbed
 	[17, 18, 13, 14],   # a stone to hop over while sinking
 	[22, 22, 14, 14],   # a smaller one
 	[31, 32, 6, 14],    # the big rock: only a swimmer gets over it
 	[68, 76, 3, 9],     # a fallen log jam over the whirlpool
-	[84, 91, 3, 16],    # far bank, under the mill
+	[106, 113, 3, 16],  # far bank, under the mill
 ]
-const CHECKPOINTS := [3, 12, 26, 36, 50, 60, 67]
-const TRIGGERS := {27: "bubbles", 35: "cold", 40: "lifeguard", 45: "fish", 57: "current", 66: "whirlpool", 80: "deep_end"}
+const CHECKPOINTS := [3, 12, 26, 36, 50, 60, 67, 78, 90]
+const TRIGGERS := {27: "bubbles", 35: "cold", 40: "lifeguard", 45: "fish", 57: "current", 66: "whirlpool", 77: "whirls", 103: "deep_end"}
 ## [x0_col, x1_col, row, speed, texture]
 const FISH := [[42, 52, 7, 140.0, "fish_a"], [44, 55, 11, 180.0, "fish_b"], [47, 54, 5, 110.0, "fish_c"]]
 ## current: Rect in tiles [x0, y0, x1, y1] and push (px/s). Strong up high, weak near the bottom.
@@ -33,8 +33,12 @@ const CURRENTS := [[56, 3, 66, 10, Vector2(-330, 0)], [56, 11, 66, 14, Vector2(-
 ## springs whose bubbles lift a swimmer: [col, top_row, bottom_row]
 const LIFTS := [[50, 4, 14]]
 const SPRINGS := [27, 50]
-const REEDS := [10, 14, 24, 29, 38, 53, 63, 78, 82]
+const REEDS := [10, 14, 24, 29, 38, 53, 63, 102, 104]
 const WHIRL_COL := 72
+## whirlpools: [col, centre y in px, size (1 = the big one under the log jam)]. After the big one,
+## a short passage of smaller ones, high and low in turn: under one, over the next.
+const WHIRLS := [[WHIRL_COL, 15 * TILE - 70, 1.0], [81, 6 * TILE, 0.8], [87, 12 * TILE, 0.8],
+	[93, 6 * TILE, 0.8], [99, 12 * TILE, 0.8]]
 const BUBBLE_COL := 27
 const STUMP_COL := 41
 
@@ -44,7 +48,7 @@ var camera: Camera2D
 var _bg_murky: Sprite2D
 var _bg_clear: Sprite2D
 var _banana: Sprite2D
-var _whirl_pos := Vector2.ZERO
+var _whirls: Array[Vector3] = []  # x, y, size
 var _checkpoint := Vector2.ZERO
 var _fired := {}
 var _retelling := false
@@ -82,6 +86,9 @@ func _debug_warp(col: int) -> void:
 # (TRIGGERS columns, the first splash, the whirlpool) and implements the @effects as fx_* methods.
 
 func _intro() -> void:
+	Game.control_locked = true
+	await ChapterCard.title(self, 2, Color(0.95, 0.9, 0.8), Color.BLACK)
+	Game.control_locked = false
 	await get_tree().create_timer(0.8).timeout
 	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_walk_in"), 6.0)
@@ -186,15 +193,29 @@ func _physics_process(_delta: float) -> void:
 		for l in LIFTS:
 			if absf(p.x - (l[0] * TILE + 32)) < 70.0 and p.y > l[1] * TILE and p.y < (l[2] + 1) * TILE:
 				push += Vector2(0, -300)
-	var to_whirl := _whirl_pos - p
-	var d := to_whirl.length()
-	if d < 240.0:
-		# pulls in and spins round
-		push += to_whirl.normalized() * 230.0 * (1.0 - d / 240.0) + to_whirl.normalized().orthogonal() * 120.0 * (1.0 - d / 240.0)
-		if d < 75.0 and not _retelling:
-			_fail()
+	for w in _whirls:
+		var to_whirl := Vector2(w.x, w.y) - p
+		var d := to_whirl.length()
+		var reach := 240.0 * w.z
+		if d < reach:
+			# pulls in and spins round
+			var k := 1.0 - d / reach
+			push += to_whirl.normalized() * 230.0 * k + to_whirl.normalized().orthogonal() * 120.0 * k
+			if d < 75.0 * w.z and not _retelling:
+				_fail()
 	player.flow = push
+	if Game.autoplay:
+		_steer_bot(p)
 	_animate_streaks()
+
+
+## Test bot: in the whirlpool passage, swim under a high whirlpool and over a low one.
+func _steer_bot(p: Vector2) -> void:
+	player.bot_y = 820.0
+	for w in _whirls:
+		if w.z < 1.0 and w.x > p.x - 120.0:
+			player.bot_y = 850.0 if w.y < 500.0 else 330.0
+			return
 
 
 func _animate_streaks() -> void:
@@ -272,7 +293,8 @@ func _build_world() -> void:
 		_spring(v)
 	for c in CURRENTS:
 		_current_streaks(c)
-	_build_whirlpool()
+	for i in WHIRLS.size():
+		_build_whirlpool(WHIRLS[i], i)
 	_build_stump()
 	for f in FISH:
 		_fish(f)
@@ -460,29 +482,30 @@ func _current_streaks(c: Array) -> void:
 		_streaks.append(s)
 
 
-func _build_whirlpool() -> void:
-	_whirl_pos = Vector2(WHIRL_COL * TILE + 32, 15 * TILE - 70)
+func _build_whirlpool(w: Array, i: int) -> void:
+	var pos := Vector2(w[0] * TILE + 32, w[1])
+	_whirls.append(Vector3(pos.x, pos.y, w[2]))
 	var s: Node2D
 	if ResourceLoader.exists(ART + "whirlpool.png"):
 		var sp := Sprite2D.new()
 		sp.texture = load(ART + "whirlpool.png")
-		sp.scale = Vector2.ONE * (170.0 / sp.texture.get_width())
+		sp.scale = Vector2.ONE * (170.0 * w[2] / sp.texture.get_width())
 		s = sp
 	else:
 		var l := Line2D.new()
 		l.width = 4.0
 		l.default_color = Color(0.85, 0.95, 1.0, 0.7)
 		var pts := PackedVector2Array()
-		for i in 60:
-			var a := i * 0.45
-			pts.append(Vector2(cos(a), sin(a)) * (8.0 + i * 1.3))
+		for k in 60:
+			var a := k * 0.45
+			pts.append(Vector2(cos(a), sin(a)) * (8.0 + k * 1.3) * w[2])
 		l.points = pts
 		s = l
-	s.position = _whirl_pos
+	s.position = pos
 	s.z_index = 1
 	add_child(s)
 	var tw := s.create_tween().set_loops()
-	tw.tween_property(s, "rotation", -TAU, 1.6).from(0.0)
+	tw.tween_property(s, "rotation", -TAU if i % 2 == 0 else TAU, 1.6 * w[2]).from(0.0)  # each its own way
 
 
 ## The warden's mossy stump sticking out of the water, with the banana on top.

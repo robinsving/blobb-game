@@ -15,6 +15,7 @@ const ENTRIES := [
 		["Dammen", "res://chapters/ch2/pond.tscn", -1],
 		["Dammen: fiskarna", "res://chapters/ch2/pond.tscn", 43],
 		["Dammen: virveln", "res://chapters/ch2/pond.tscn", 64],
+		["Dammen: virvlarna", "res://chapters/ch2/pond.tscn", 76],
 		["Kvarnen: rum 1", "res://chapters/ch2/mill.tscn", 1],
 		["Kvarnen: rum 2", "res://chapters/ch2/mill.tscn", 2],
 		["Kvarnen: rum 3", "res://chapters/ch2/mill.tscn", 3],

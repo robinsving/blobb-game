@@ -10,6 +10,8 @@ var origin := Vector2.ZERO
 var cell := 96
 var _ground: Texture2D
 var _stump: Texture2D
+## Crayon bush art (bush_topdown_a/b/c.png, or one bush_topdown.png), if generated.
+var _bushes: Array[Texture2D] = []
 var _t := 0.0
 
 
@@ -19,6 +21,10 @@ func _ready() -> void:
 		_ground = load(GROUND_TEX)
 	if ResourceLoader.exists(STUMP_TEX):
 		_stump = load(STUMP_TEX)
+	for n in ["bush_topdown_a", "bush_topdown_b", "bush_topdown_c", "bush_topdown"]:
+		var path := "res://assets/gen/ch1/%s.png" % n
+		if ResourceLoader.exists(path):
+			_bushes.append(load(path))
 
 
 func _process(delta: float) -> void:
@@ -37,6 +43,9 @@ func _draw() -> void:
 		var p := Vector2((i % 26) * 78 - 40, (i / 26) * 78 - 40) + Vector2(rng.randf_range(-30, 30), rng.randf_range(-30, 30))
 		var r := rng.randf_range(50, 90)
 		var g := rng.randf_range(0.22, 0.42)
+		if _bushes:
+			_bush(p, r * 1.15, Color(0.5, 0.62, 0.42) * (g / 0.42), rng)  # the canopy sits back, darker
+			continue
 		draw_circle(p, r, Color(g * 0.45, g, g * 0.3))
 		draw_circle(p + Vector2(-r * 0.25, -r * 0.25), r * 0.5, Color(g * 0.55, g * 1.2, g * 0.35))
 	# exit path off to the right edge
@@ -116,8 +125,20 @@ func _draw_floor(r: Rect2, rng: RandomNumberGenerator) -> void:
 		draw_circle(fp, 3.0, Color(1, 0.7, 0.1))
 
 
+## One bush texture centred at p with radius r, multiplied by col (the art is bright), flipped at random.
+func _bush(p: Vector2, r: float, col: Color, rng: RandomNumberGenerator) -> void:
+	var tex: Texture2D = _bushes[rng.randi() % _bushes.size()]
+	var flip := -1.0 if rng.randf() < 0.5 else 1.0
+	draw_set_transform(p, rng.randf_range(-0.4, 0.4), Vector2(flip, 1))
+	draw_texture_rect(tex, Rect2(-r, -r, r * 2, r * 2), false, Color(col, 1.0))
+	draw_set_transform(Vector2.ZERO)
+
+
 func _draw_hedge(r: Rect2, rng: RandomNumberGenerator) -> void:
 	var c := r.get_center()
+	if _bushes:
+		_bush(c + Vector2(rng.randf_range(-8, 8), rng.randf_range(-8, 8)), cell * 0.62, Color(0.72, 0.85, 0.6), rng)
+		return
 	for i in 4:
 		var off := Vector2(rng.randf_range(-24, 24), rng.randf_range(-24, 24))
 		var g := rng.randf_range(0.28, 0.4)

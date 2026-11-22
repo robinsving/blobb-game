@@ -3,9 +3,24 @@ extends Node2D
 
 const WIDTH := 110.0
 const HEIGHT := 760.0
+const ART := "res://assets/gen/ch1/tree_trunk.png"
+
+## Crayon trunk art, if generated; without it the trunk is drawn in code.
+var _tex: Texture2D
+
+
+func _ready() -> void:
+	if ResourceLoader.exists(ART):
+		_tex = load(ART)
 
 
 func _draw() -> void:
+	if _tex:
+		# fit the height (plus a little root below ground), centred on the trunk
+		var h := HEIGHT + 20.0
+		var w := h * _tex.get_width() / _tex.get_height()
+		draw_texture_rect(_tex, Rect2(WIDTH * 0.5 - w * 0.5, -HEIGHT, w, h), false)
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 88
 	var bark := Color(0.42, 0.27, 0.16)
