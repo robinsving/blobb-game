@@ -60,7 +60,7 @@ var story := StoryScript.load_file("res://chapters/ch2/story.txt")
 func _ready() -> void:
 	Game.music("res://assets/audio/music_pool.ogg", -16.0)
 	_build_world()
-	_drip_loop()
+	LevelKit.drip_loop(self)
 	if Game.warp >= 0:
 		_debug_warp(Game.warp)
 	else:
@@ -88,8 +88,6 @@ func _debug_warp(col: int) -> void:
 func _intro() -> void:
 	Game.control_locked = true
 	await ChapterCard.title(self, 2, Color(0.95, 0.9, 0.8), Color.BLACK)
-	Game.control_locked = false
-	await get_tree().create_timer(0.8).timeout
 	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_walk_in"), 6.0)
 
@@ -116,23 +114,9 @@ func _fail() -> void:
 	if _retelling:
 		return
 	_retelling = true
-	Game.control_locked = true
-	Game.sfx("rewind", -4.0)
-	fx.rewind_pulse(1.2)
-	player.visible = false
 	player.teleport(_checkpoint)
-	var scribble := Retell.scribble(self, _checkpoint + Vector2(0, -70))
-	if Narrator.busy:
-		# a scene is being told: Y's objection would wait behind it (Blobb gone, controls locked)
-		await get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
-		Game.control_locked = Narrator.busy_blocking
-	else:
-		await story.play("fail_%d" % (_fail_count % 4 + 1), self)
+	if await Retell.tell(self, story, fx, player, _checkpoint, _fail_count):
 		_fail_count += 1
-	Retell.clear(scribble)
-	player.visible = true
-	player.sprite.flash(0.6)
-	Game.sfx("pop", -6.0)
 	_retelling = false
 
 
@@ -169,10 +153,7 @@ func fx_blobb_blue() -> void:
 func fx_whistle() -> void:
 	Game.sfx("whistle", -8.0)
 	if _banana:
-		var y := _banana.position.y
-		var tw := create_tween()
-		tw.tween_property(_banana, "position:y", y - 18.0, 0.1).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_banana, "position:y", y, 0.15).set_ease(Tween.EASE_IN)
+		LevelKit.hop(_banana)
 
 
 func fx_gurgle() -> void:
@@ -225,12 +206,6 @@ func _animate_streaks() -> void:
 		if s.position.x < r.position.x:
 			s.position.x = r.end.x
 		s.modulate.a = 0.3 * clampf(minf(s.position.x - r.position.x, r.end.x - s.position.x) / 120.0, 0.0, 1.0)
-
-
-func _drip_loop() -> void:
-	while is_inside_tree():
-		await get_tree().create_timer(randf_range(2.5, 5.0)).timeout
-		Game.sfx("drip", -20.0, randf_range(0.95, 1.05))
 
 
 # ================================================================ world building
@@ -286,8 +261,8 @@ func _build_world() -> void:
 		_reeds(col)
 	for b in BLOCKS:
 		_block(b[0], b[1], b[2], b[3])
-	_wall(-1)
-	_wall(WIDTH)
+	LevelKit.solid_tiles(self, -1, -1, -ROWS, 2 * ROWS, TILE)  # the pond's ends
+	LevelKit.solid_tiles(self, WIDTH, WIDTH, -ROWS, 2 * ROWS, TILE)
 
 	for v in SPRINGS:
 		_spring(v)
@@ -299,11 +274,6 @@ func _build_world() -> void:
 	for f in FISH:
 		_fish(f)
 
-	for col in TRIGGERS:
-		_trigger(col, TRIGGERS[col])
-	for col in CHECKPOINTS:
-		_checkpoint_area(col)
-
 	player = PlayerSwim.new()
 	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 	player.surface_y = SURFACE_Y
@@ -312,19 +282,13 @@ func _build_world() -> void:
 	player.entered_water.connect(_on_entered_water)
 	add_child(player)
 	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
+	var retelling := func() -> bool: return _retelling
+	LevelKit.story_columns(self, player, TRIGGERS, _fired, TILE, ROWS * TILE, _beat, retelling)
+	LevelKit.checkpoint_columns(self, player, CHECKPOINTS, TILE, ROWS * TILE, _checkpoint_pos,
+		func(pos: Vector2) -> void: _checkpoint = pos, retelling)
 
-	camera = Camera2D.new()
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 5.0
-	camera.limit_left = 0
-	camera.limit_right = WIDTH * TILE
-	camera.limit_top = 0
-	camera.limit_bottom = ROWS * TILE
-	camera.drag_horizontal_enabled = true
+	camera = LevelKit.follow_camera(player, Vector2(WIDTH, ROWS) * TILE, 5.0, 0.0, Vector2.ZERO)
 	camera.drag_vertical_enabled = true
-	camera.drag_left_margin = 0.1
-	camera.drag_right_margin = 0.1
-	player.add_child(camera)
 
 	fx = StyleFX.new()
 	fx.set_look("real", 0.0)
@@ -398,17 +362,6 @@ func _block(x0: int, x1: int, top: int, bottom: int) -> void:
 		grass.position = rect.position - Vector2(0, 10)
 		grass.size = Vector2(rect.size.x, 18)
 		add_child(grass)
-
-
-func _wall(col: int) -> void:
-	var body := StaticBody2D.new()
-	var cs := CollisionShape2D.new()
-	var r := RectangleShape2D.new()
-	r.size = Vector2(TILE, ROWS * TILE * 3)
-	cs.shape = r
-	cs.position = Vector2(col * TILE + TILE * 0.5, 0)
-	body.add_child(cs)
-	add_child(body)
 
 
 func _reeds(col: int) -> void:
@@ -555,22 +508,6 @@ func _fish(f: Array) -> void:
 			player.knockback(fish.global_position.x))
 
 
-func _trigger(col: int, beat: String) -> void:
-	var a := _column_area(col)
-	a.body_entered.connect(func(b):
-		if b == player and not _fired.has(beat) and not _retelling:
-			_fired[beat] = true
-			_beat(beat))
-
-
-func _checkpoint_area(col: int) -> void:
-	var a := _column_area(col)
-	var pos := _checkpoint_pos(col)
-	a.body_entered.connect(func(b):
-		if b == player and not _retelling:
-			_checkpoint = pos)
-
-
 func _checkpoint_pos(col: int) -> Vector2:
 	var x := col * TILE + 32.0
 	if col < 8:
@@ -579,17 +516,6 @@ func _checkpoint_pos(col: int) -> Vector2:
 		return Vector2(x, 11 * TILE)
 	return Vector2(x, 15 * TILE - 4)
 
-
-func _column_area(col: int) -> Area2D:
-	var a := Area2D.new()
-	var cs := CollisionShape2D.new()
-	var r := RectangleShape2D.new()
-	r.size = Vector2(TILE, ROWS * TILE * 2)
-	cs.shape = r
-	cs.position = Vector2(col * TILE + 32, 0)
-	a.add_child(cs)
-	add_child(a)
-	return a
 
 # ================================================================ checking from outside
 

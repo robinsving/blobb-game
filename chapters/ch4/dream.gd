@@ -72,7 +72,7 @@ func _debug_warp(col: int) -> void:
 func _intro() -> void:
 	Game.control_locked = true
 	fx.white(1.0, 0.0)
-	await ChapterCard.title(self, 4, Color(0.45, 0.45, 0.55))
+	await ChapterCard.title(self, 4, Color(0.45, 0.45, 0.55), Color(0, 0, 0, 0), false)  # its own longer pause, in the white
 	fx.white(0.0, 1.0 if Game.fast else 5.0)
 	await get_tree().create_timer(0.5 if Game.fast else 3.0).timeout
 	Game.control_locked = false
@@ -154,7 +154,7 @@ func _build_world() -> void:
 	var back := CanvasLayer.new()
 	back.layer = -10
 	add_child(back)
-	var sky := _gradient_rect([Color(0.82, 0.8, 0.95), Color(0.97, 0.88, 0.86), Color(0.86, 0.95, 0.92)])
+	var sky := LevelKit.gradient_rect([Color(0.82, 0.8, 0.95), Color(0.97, 0.88, 0.86), Color(0.86, 0.95, 0.92)])
 	back.add_child(sky)
 	var par := Parallax2D.new()
 	par.scroll_scale = Vector2(0.35, 1.0)
@@ -195,28 +195,23 @@ func _build_world() -> void:
 	_world.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED  # the ground strip is sampled in world pixels
 	_world.draw.connect(_draw_ground)
 	add_child(_world)
-	_solid(0, WIDTH - 1, GROUND_ROW, ROWS - 1)
+	LevelKit.solid_tiles(self, 0, WIDTH - 1, GROUND_ROW, ROWS - 1, TILE)
 	for l in LEDGES:
-		_solid(l[0], l[1], l[2], GROUND_ROW)
-	_solid(-1, -1, -10, ROWS - 1)
-	_solid(WIDTH, WIDTH, -10, ROWS - 1)
+		LevelKit.solid_tiles(self, l[0], l[1], l[2], GROUND_ROW, TILE)
+	LevelKit.solid_tiles(self, -1, -1, -10, ROWS - 1, TILE)
+	LevelKit.solid_tiles(self, WIDTH, WIDTH, -10, ROWS - 1, TILE)
 	_make_props()
 	_mist = Node2D.new()
 	_mist.draw.connect(_draw_mist)
 	_mist.z_index = 5
 	add_child(_mist)
-	for col in TRIGGERS:
-		_column_area(col).body_entered.connect(func(b):
-			var beat: String = TRIGGERS[col]
-			if b == player and not _fired.has(beat):
-				_fired[beat] = true
-				_beat(beat))
 	player = PlayerSide.new()
 	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
 	player.position = Vector2(4 * TILE + 32, GROUND_ROW * TILE)
 	player.z_index = 2
 	add_child(player)
 	var gate := StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # Y is never outrun
+	LevelKit.story_columns(self, player, TRIGGERS, _fired, TILE, ROWS * TILE, _beat)
 	# a dream walk: slower, and slower still as he nears the next beat, so Y's lines keep up
 	# with him and he hardly ever has to stop and wait
 	gate.walk = 0.6
@@ -226,18 +221,8 @@ func _build_world() -> void:
 	player.speed_mul = gate.walk
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
 	player.jump_velocity = PlayerSide.STRONG_JUMP
-	camera = Camera2D.new()
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 5.0
-	camera.limit_left = 0
-	camera.limit_right = WIDTH * TILE
-	camera.limit_top = -130  # no higher: the painted background ends just above (about y = -140 on screen)
-	camera.limit_bottom = ROWS * TILE
-	camera.drag_horizontal_enabled = true
-	camera.drag_left_margin = 0.1
-	camera.drag_right_margin = 0.1
-	camera.offset = Vector2(0, -120)
-	player.add_child(camera)
+	# no higher than -130: the painted background ends just above (about y = -140 on screen)
+	camera = LevelKit.follow_camera(player, Vector2(WIDTH, ROWS) * TILE, 5.0, -130.0)
 	fx = StyleFX.new()
 	fx.set_look("plain", 0.0)
 	fx.tint(PASTELS[0], 0.2, 0.0)
@@ -346,23 +331,6 @@ func _prop(n: Node2D, at: Vector2) -> void:
 	_props.append(n)
 
 
-func _gradient_rect(cols: Array) -> TextureRect:
-	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.6, 1.0])
-	g.colors = PackedColorArray(cols)
-	var gt := GradientTexture2D.new()
-	gt.gradient = g
-	gt.fill_from = Vector2(0, 0)
-	gt.fill_to = Vector2(0, 1)
-	gt.width = 4
-	gt.height = 256
-	var r := TextureRect.new()
-	r.texture = gt
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.size = Vector2(1920, 1080)
-	return r
-
-
 ## Fallback background: soft rolling hills fading into mist, and a few vague floating shapes.
 func _draw_hills(n: Node2D) -> void:
 	var base := GROUND_ROW * TILE
@@ -440,34 +408,8 @@ func _draw_mist() -> void:
 	_mist.draw_rect(Rect2(x0 + 512.0, -400, WIDTH * TILE - x0, gy + 400), Color(0.95, 0.94, 0.98, 0.97))
 
 
-func _solid(x0: int, x1: int, top: int, bottom: int) -> void:
-	var body := StaticBody2D.new()
-	var cs := CollisionShape2D.new()
-	var shape := RectangleShape2D.new()
-	shape.size = Vector2((x1 - x0 + 1) * TILE, (bottom - top + 1) * TILE)
-	cs.shape = shape
-	cs.position = Vector2((x0 + x1 + 1) * 0.5 * TILE, (top + bottom + 1) * 0.5 * TILE)
-	body.add_child(cs)
-	add_child(body)
-
-
-func _column_area(col: int) -> Area2D:
-	var a := Area2D.new()
-	var cs := CollisionShape2D.new()
-	var r := RectangleShape2D.new()
-	r.size = Vector2(TILE, ROWS * TILE * 2)
-	cs.shape = r
-	cs.position = Vector2(col * TILE + 32, 0)
-	a.add_child(cs)
-	add_child(a)
-	return a
-
-
 func _ground_y(col: int) -> float:
-	for l in LEDGES:
-		if col >= l[0] and col <= l[1]:
-			return l[2] * TILE
-	return GROUND_ROW * TILE
+	return LevelKit.top_row([LEDGES], col, GROUND_ROW) * TILE
 
 # ================================================================ checking from outside
 

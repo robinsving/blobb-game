@@ -53,6 +53,21 @@ Y: A bit. Blobb waited.
   sv: Lite grann. Blobb väntade.
 O: ...Good of him.
   sv: ...Hyggligt av honom.
+@pause 1.0
+O: And he was... where?
+  sv: Och han var... var?
+Y: At the foot of the mountain. Where you left him.
+  sv: Vid foten av berget. Där du lämnade honom.
+O: A mountain. Yes. ...Tall. And very dark.
+  sv: Ett berg. Ja. ...Högt. Och väldigt mörkt.
+  @mountain
+Y: Not so dark. My half: stars. All of them.
+  sv: Inte så mörkt. Min halva: stjärnor. Allihop.
+  @stars
+O: ...All of them. There.
+  sv: ...Allihop. Så där.
+Y: Better.
+  sv: Bättre.
 
 
 # TRIGGER: the first heartbeat ledge (a few steps in). It kicks on each
@@ -265,6 +280,8 @@ Y: The last good bit was ALL of it.
 # =====================================================================
 #  Effects used in this chapter (what each @effect does)
 # ---------------------------------------------------------------------
+#  @mountain      (intro) the dark lifts halfway: the mountain, dimly
+#  @stars         (intro) the rest of the dark lifts and the stars come out
 #  @stretch       stretch & swing unlocked (the holds wake up; hint)
 #  @sunrise       the sun comes up over the summit; the sky to morning
 #  After "room", the level shows the end card and goes to the title.

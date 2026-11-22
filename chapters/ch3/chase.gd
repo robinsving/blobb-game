@@ -399,8 +399,8 @@ func fx_white_out() -> void:
 	_white = 1.0
 	await fx.white(1.0, 4.0)
 	await get_tree().create_timer(2.5 if not Game.fast else 0.3).timeout
+	Game.unlock_chapter(4)  # before the card: quitting during it still counts
 	await ChapterCard.closing(self, "chapter_end_3", Color(0.35, 0.37, 0.42), Color.WHITE)
-	Game.unlock_chapter(4)
 	Game.go("res://scenes/title.tscn", Color.WHITE, 1.5)
 
 

@@ -1,5 +1,5 @@
 class_name PlayerSide
-extends CharacterBody2D
+extends BlobbBody
 ## Side-view platformer Blobb. Movement is ignored while Game.control_locked.
 ## jump_velocity starts weak; the story upgrades it (see ch1 forest "jump" beat).
 
@@ -12,45 +12,20 @@ const GRAVITY := 2500.0
 const MAX_FALL := 1500.0
 const WEAK_JUMP := -420.0
 const STRONG_JUMP := -1060.0
-const SPRITE_SCALE := 0.42
 
 var jump_velocity := WEAK_JUMP
 ## Extra run speed set by a level (ch3's dash).
 var speed_mul := 1.0
-## The --autoplay run-right bot. Levels with their own test bot (ch3 roofs) turn it off.
-var use_bot := true
 ## Set by a level that moves Blobb itself for a moment (ch5's swing): no input, no physics here.
 var frozen := false
 ## Set by a level that launches Blobb (ch5's heartbeat ledges): letting go of jump doesn't cut the
 ## launch short. Cleared when he lands.
 var launched := false
-var sprite: BlobbSprite
-var _pivot: Node2D
+var _t := 0.0
 var _coyote := 0.0
 var _buffer := 0.0
 var _was_on_floor := true
-var _knock := 0.0
-var _t := 0.0
 var _folding := false
-
-
-func _ready() -> void:
-	floor_snap_length = 12.0
-	var shape := CollisionShape2D.new()
-	var cap := CapsuleShape2D.new()
-	cap.radius = 50.0
-	cap.height = 116.0
-	shape.shape = cap
-	shape.rotation = PI / 2.0
-	shape.position = Vector2(0, -54)
-	add_child(shape)
-	_pivot = Node2D.new()
-	add_child(_pivot)
-	sprite = BlobbSprite.new()
-	sprite.scale = Vector2.ONE * SPRITE_SCALE
-	# sprite feet at the body origin
-	sprite.position = Vector2(0, -305 * SPRITE_SCALE * 0.5 + 4)
-	_pivot.add_child(sprite)
 
 
 func _physics_process(delta: float) -> void:
@@ -133,12 +108,6 @@ func _jump_anim() -> String:
 	return "jump"
 
 
-func _squash(s: Vector2) -> void:
-	var tw := create_tween()
-	_pivot.scale = s
-	tw.tween_property(_pivot, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-
 ## Test bot: jump at walls and before gaps.
 func _bot_wants_jump() -> bool:
 	if not is_on_floor():
@@ -155,18 +124,3 @@ func _bot_wants_jump() -> bool:
 	q.exclude = [get_rid()]
 	return space.intersect_ray(q).is_empty()
 
-
-func knockback(from_x: float) -> void:
-	var d := signf(global_position.x - from_x)
-	if d == 0.0:
-		d = -1.0
-	velocity = Vector2(d * 650.0, -520.0)
-	_knock = 0.35
-	sprite.flash()
-	Game.sfx("bonk", -4.0)
-
-
-func teleport(pos: Vector2) -> void:
-	global_position = pos
-	velocity = Vector2.ZERO
-	_knock = 0.0

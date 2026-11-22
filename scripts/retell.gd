@@ -3,6 +3,31 @@ extends RefCounted
 ## Shared bits of the "that's not what happened" retell used by every level's _fail().
 
 
+## The side-view and rooftop retell. The level has already put Blobb back (`at` is where he
+## reappears); this rewinds, hides him under the scribble while Y objects (fail_1..fail_4, by
+## `count`), then pops him back. If a scene is being told, Y's objection would wait behind it
+## (Blobb gone, controls locked), so then he just comes back after a moment, unexplained.
+## Returns true if Y objected (the level counts those).
+static func tell(level: Node, story: StoryScript, fx: StyleFX, who: BlobbBody, at: Vector2, count: int) -> bool:
+	Game.control_locked = true
+	Game.sfx("rewind", -4.0)
+	fx.rewind_pulse(1.2)
+	who.visible = false
+	var s := scribble(level, at + Vector2(0, -70))
+	var told := false
+	if Narrator.busy:
+		await level.get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
+		Game.control_locked = Narrator.busy_blocking
+	else:
+		await story.play("fail_%d" % (count % 4 + 1), level)
+		told = true
+	clear(s)
+	who.visible = true
+	who.sprite.flash(0.6)
+	Game.sfx("pop", -6.0)
+	return told
+
+
 ## The big grey scribble from the original drawing pops up over `pos` (where Blobb will be
 ## re-told) while the younger narrator takes it back. Call clear() on it when he reappears.
 static func scribble(parent: Node, pos: Vector2, height := 320.0) -> Sprite2D:

@@ -86,6 +86,7 @@ func _intro() -> void:
 	Game.control_locked = true
 	player.visible = true
 	await _poster()
+	await ChapterCard.breath(self)
 	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_move"), 6.0)
 
@@ -123,7 +124,8 @@ func _poster() -> void:
 	var hold := 0.6 if Game.fast else 5.0
 	var tw := create_tween()
 	tw.tween_property(pic, "modulate:a", 1.0, 1.6)
-	tw.parallel().tween_property(pic, "scale", Vector2.ONE * 1.035, hold + 4.5).set_trans(Tween.TRANS_SINE)
+	# the slow push in runs on its own (in the same tween it held the title back until it was done)
+	create_tween().tween_property(pic, "scale", Vector2.ONE * 1.035, hold + 4.5).set_trans(Tween.TRANS_SINE)
 	for l in title.get_children():
 		tw.tween_property(l, "modulate:a", 1.0, 1.0)
 	tw.tween_interval(hold)
@@ -160,24 +162,10 @@ func _fail() -> void:
 	if _retelling:
 		return
 	_retelling = true
-	Game.control_locked = true
 	Game.sfx("splash", -6.0)
-	Game.sfx("rewind", -4.0)
-	fx.rewind_pulse(1.2)
-	player.visible = false
 	player.teleport(_checkpoint)
-	var scribble := Retell.scribble(self, _checkpoint + Vector2(0, -70))
-	if Narrator.busy:
-		# a scene is being told: Y's objection would wait behind it (Blobb gone, controls locked)
-		await get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
-		Game.control_locked = Narrator.busy_blocking
-	else:
-		await story.play("fail_%d" % (_fail_count % 4 + 1), self)
+	if await Retell.tell(self, story, fx, player, _checkpoint, _fail_count):
 		_fail_count += 1
-	Retell.clear(scribble)
-	player.visible = true
-	player.sprite.flash(0.6)
-	Game.sfx("pop", -6.0)
 	_retelling = false
 
 
@@ -314,9 +302,9 @@ func _build_world() -> void:
 	var back := CanvasLayer.new()
 	back.layer = -10
 	add_child(back)
-	_sky_dusk = _gradient_rect([Color(0.36, 0.38, 0.62), Color(0.95, 0.6, 0.42), Color(1.0, 0.78, 0.5)])
+	_sky_dusk = LevelKit.gradient_rect([Color(0.36, 0.38, 0.62), Color(0.95, 0.6, 0.42), Color(1.0, 0.78, 0.5)])
 	back.add_child(_sky_dusk)
-	_sky_night = _gradient_rect([Color(0.02, 0.03, 0.1), Color(0.07, 0.1, 0.24), Color(0.2, 0.2, 0.36)])
+	_sky_night = LevelKit.gradient_rect([Color(0.02, 0.03, 0.1), Color(0.07, 0.1, 0.24), Color(0.2, 0.2, 0.36)])
 	_sky_night.modulate.a = 0.0
 	back.add_child(_sky_night)
 	_stars = Node2D.new()
@@ -360,29 +348,17 @@ func _build_world() -> void:
 	street.draw.connect(_draw_street.bind(street))
 	add_child(street)
 	for g in GROUND:
-		_solid(g[0], g[1], g[2], ROWS - 1)
+		LevelKit.solid_tiles(self, g[0], g[1], g[2], ROWS - 1, TILE)
 	for s in STEPS:
-		_solid(s[0], s[1], s[2], s[2])
-	_solid(-1, -1, 0, ROWS - 1)
-	_solid(WIDTH, WIDTH, 0, ROWS - 1)
+		LevelKit.solid_tiles(self, s[0], s[1], s[2], s[2], TILE)
+	LevelKit.solid_tiles(self, -1, -1, 0, ROWS - 1, TILE)
+	LevelKit.solid_tiles(self, WIDTH, WIDTH, 0, ROWS - 1, TILE)
 
 	for i in LAMPS.size():
 		_make_lamp(LAMPS[i])
 	_make_pipe()
 	_make_sweeper()
 	_make_pigeons()
-
-	for col in TRIGGERS:
-		_column_area(col).body_entered.connect(func(b):
-			var beat: String = TRIGGERS[col]
-			if b == player and not _fired.has(beat) and not _retelling:
-				_fired[beat] = true
-				_beat(beat))
-	for col in CHECKPOINTS:
-		var pos := Vector2(col * TILE + 32, _ground_y(col))
-		_column_area(col).body_entered.connect(func(b):
-			if b == player and not _retelling:
-				_checkpoint = pos)
 
 	player = PlayerSide.new()
 	player.name = "Player"  # a stable path for gda: /root/<Level>/Player
@@ -392,42 +368,19 @@ func _build_world() -> void:
 	player.z_index = 2
 	add_child(player)
 	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
+	var retelling := func() -> bool: return _retelling
+	LevelKit.story_columns(self, player, TRIGGERS, _fired, TILE, ROWS * TILE, _beat, retelling)
+	LevelKit.checkpoint_columns(self, player, CHECKPOINTS, TILE, ROWS * TILE,
+		func(col: int) -> Vector2: return Vector2(col * TILE + 32, _ground_y(col)),
+		func(pos: Vector2) -> void: _checkpoint = pos, retelling)
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
 	player.jump_velocity = PlayerSide.STRONG_JUMP  # unlocked back in ch1
 
-	camera = Camera2D.new()
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 6.0
-	camera.limit_left = 0
-	camera.limit_right = WIDTH * TILE
-	camera.limit_top = 0
-	camera.limit_bottom = ROWS * TILE
-	camera.drag_horizontal_enabled = true
-	camera.drag_left_margin = 0.1
-	camera.drag_right_margin = 0.1
-	camera.offset = Vector2(0, -120)
-	player.add_child(camera)
+	camera = LevelKit.follow_camera(player, Vector2(WIDTH, ROWS) * TILE, 6.0)
 
 	fx = StyleFX.new()
 	fx.set_look("real", 0.0)
 	add_child(fx)
-
-
-func _gradient_rect(cols: Array) -> TextureRect:
-	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.65, 1.0])
-	g.colors = PackedColorArray(cols)
-	var gt := GradientTexture2D.new()
-	gt.gradient = g
-	gt.fill_from = Vector2(0, 0)
-	gt.fill_to = Vector2(0, 1)
-	gt.width = 4
-	gt.height = 256
-	var r := TextureRect.new()
-	r.texture = gt
-	r.stretch_mode = TextureRect.STRETCH_SCALE
-	r.size = Vector2(1920, 1080)
-	return r
 
 
 ## Fallback town: row houses with lit windows, in flat, soft shapes.
@@ -489,17 +442,6 @@ func _draw_street(n: Node2D) -> void:
 					x += 36.0
 				y += 24.0
 				row += 1
-
-
-func _solid(x0: int, x1: int, top: int, bottom: int) -> void:
-	var body := StaticBody2D.new()
-	var cs := CollisionShape2D.new()
-	var shape := RectangleShape2D.new()
-	shape.size = Vector2((x1 - x0 + 1) * TILE, (bottom - top + 1) * TILE)
-	cs.shape = shape
-	cs.position = Vector2((x0 + x1 + 1) * 0.5 * TILE, (top + bottom + 1) * 0.5 * TILE)
-	body.add_child(cs)
-	add_child(body)
 
 
 func _make_lamp(col: int) -> void:
@@ -619,26 +561,8 @@ func _pigeon_fallback() -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-func _column_area(col: int) -> Area2D:
-	var a := Area2D.new()
-	var cs := CollisionShape2D.new()
-	var r := RectangleShape2D.new()
-	r.size = Vector2(TILE, ROWS * TILE * 2)
-	cs.shape = r
-	cs.position = Vector2(col * TILE + 32, 0)
-	a.add_child(cs)
-	add_child(a)
-	return a
-
-
 func _ground_y(col: int) -> float:
-	for s in STEPS:
-		if col >= s[0] and col <= s[1]:
-			return s[2] * TILE
-	for g in GROUND:
-		if col >= g[0] and col <= g[1]:
-			return g[2] * TILE
-	return ROWS * TILE
+	return LevelKit.top_row([STEPS, GROUND], col, ROWS) * TILE
 
 # ================================================================ checking from outside
 

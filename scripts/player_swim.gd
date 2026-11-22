@@ -1,5 +1,5 @@
 class_name PlayerSwim
-extends CharacterBody2D
+extends BlobbBody
 ## Chapter 2 Blobb: walks on the pool deck, sinks and plods along the bottom until the story lets
 ## him swim ("fuzz holds bubbles"), then swims freely in every direction.
 ## Movement is ignored while Game.control_locked. The level sets `surface_y` (water line), and each
@@ -9,7 +9,6 @@ signal entered_water
 
 enum Mode { LAND, SINK, SWIM }
 
-const SPRITE_SCALE := 0.42
 # on land (the deck)
 const WALK := 380.0
 const GRAVITY := 2500.0
@@ -25,38 +24,23 @@ const SWIM_DRAG := 900.0
 const BUOYANCY := -30.0  # gentle drift up when idle
 
 var mode := Mode.LAND
-## Set before adding to the tree: sprite size, and whether --autoplay drives this Blobb.
-var sprite_scale := SPRITE_SCALE
-var use_bot := true
 var can_swim := false
 var surface_y := 200.0
 var flow := Vector2.ZERO
 var bot_y := 820.0  # depth the --autoplay bot cruises at (levels may steer it)
 var buoyancy := BUOYANCY  # the mill sets 0: he hovers where he stops, so a control stays in reach
-var sprite: BlobbSprite
-var _pivot: Node2D
-var _knock := 0.0
 var _t := 0.0
 var _bubble_t := 0.0
 var _bubble_tex: Texture2D
 
 
+func _init() -> void:
+	knock_push = Vector2(520.0, -260.0)  # softer in the water
+	knock_time = 0.4
+
+
 func _ready() -> void:
-	floor_snap_length = 12.0
-	var shape := CollisionShape2D.new()
-	var cap := CapsuleShape2D.new()
-	cap.radius = 50.0
-	cap.height = 116.0
-	shape.shape = cap
-	shape.rotation = PI / 2.0
-	shape.position = Vector2(0, -54)
-	add_child(shape)
-	_pivot = Node2D.new()
-	add_child(_pivot)
-	sprite = BlobbSprite.new()
-	sprite.scale = Vector2.ONE * sprite_scale
-	sprite.position = Vector2(0, -305 * sprite_scale * 0.5 + 4)
-	_pivot.add_child(sprite)
+	super()
 	const BUBBLE := "res://assets/gen/ch2/bubble.png"
 	if ResourceLoader.exists(BUBBLE):
 		_bubble_tex = load(BUBBLE)
@@ -179,28 +163,6 @@ func _spawn_bubble() -> void:
 	tw.tween_property(b, "global_position:x", b.global_position.x + randf_range(-25, 25), 1.4)
 	tw.tween_property(b, "modulate:a", 0.0, 1.4).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(b.queue_free)
-
-
-func _squash(s: Vector2) -> void:
-	var tw := create_tween()
-	_pivot.scale = s
-	tw.tween_property(_pivot, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-
-func knockback(from_x: float) -> void:
-	var d := signf(global_position.x - from_x)
-	if d == 0.0:
-		d = -1.0
-	velocity = Vector2(d * 520.0, -260.0)
-	_knock = 0.4
-	sprite.flash()
-	Game.sfx("bonk", -4.0)
-
-
-func teleport(pos: Vector2) -> void:
-	global_position = pos
-	velocity = Vector2.ZERO
-	_knock = 0.0
 
 
 ## Test bot: head right; swim over walls, keep low (out of the current), steer away from the filter.

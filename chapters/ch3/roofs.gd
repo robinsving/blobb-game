@@ -152,24 +152,10 @@ func _restart() -> void:
 
 func _fail() -> void:
 	_retelling = true
-	Game.control_locked = true
-	Game.sfx("rewind", -4.0)
-	fx.rewind_pulse(1.2)
-	player.visible = false
 	_load_room(room_i)  # the whole roof starts over, lamps too (or it could be solved the wrong way)
 	var start := _stand_pos(room.start_pos(room.states()))
-	var scribble := Retell.scribble(self, start + Vector2(0, -70))
-	if Narrator.busy:
-		# a scene is being told: Y's objection would wait behind it (Blobb gone, controls locked)
-		await get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
-		Game.control_locked = Narrator.busy_blocking
-	else:
-		await story.play("fail_%d" % (_fail_count % 4 + 1), self)
+	if await Retell.tell(self, story, fx, player, start, _fail_count):
 		_fail_count += 1
-	Retell.clear(scribble)
-	player.visible = true
-	player.sprite.flash(0.6)
-	Game.sfx("pop", -6.0)
 	_retelling = false
 
 
@@ -363,7 +349,7 @@ func _lamp(l: String) -> void:
 	n.set_meta("head", head)
 	_lamp_nodes[l] = n
 	if _pair_col.has(l):
-		var b := _badge(_pair_num[l], _pair_col[l])
+		var b := PuzzleMarks.badge(_pair_num[l], _pair_col[l], 22.0)
 		b.position = n.position + Vector2(CELL * 0.36, -CELL * 0.36)
 		_room_node.add_child(b)
 		_lamp_badges[l] = b
@@ -399,10 +385,10 @@ func _crank(c: Vector2i) -> void:
 			n.draw_circle(Vector2.ZERO, 12.0, Color(0.2, 0.2, 0.24))
 			n.draw_line(Vector2.ZERO, Vector2(30, 0), Color(0.3, 0.3, 0.35), 9.0)
 			n.draw_line(Vector2(30, 0), Vector2(30, -20), Color(0.55, 0.35, 0.2), 10.0))
-	var ring := _ring(_cell_pos(c), CELL * 0.36, col, 5.0)
+	var ring := PuzzleMarks.ring(_cell_pos(c), CELL * 0.36, col, 5.0)
 	_room_node.add_child(ring)
 	n.set_meta("ring", ring)
-	var b := _badge(_pair_num[room.cranks[c]], col)
+	var b := PuzzleMarks.badge(_pair_num[room.cranks[c]], col, 22.0)
 	b.position = _cell_pos(c) + Vector2(-CELL * 0.36, -CELL * 0.36)
 	_room_node.add_child(b)
 	_crank_nodes[c] = n
@@ -547,39 +533,6 @@ func _draw_link(n: Node2D) -> void:
 		if at > CELL * 0.3:
 			n.draw_line(from + dir * at, from + dir * minf(at + 20.0, total - CELL * 0.3), col, 7.0)
 		at += 36.0
-
-
-func _badge(num: String, col: Color) -> Node2D:
-	var b := Node2D.new()
-	b.z_index = 6
-	b.draw.connect(func() -> void:
-		b.draw_circle(Vector2.ZERO, 22.0, Color(0.08, 0.08, 0.08))
-		b.draw_circle(Vector2.ZERO, 18.0, col))
-	var lab := Label.new()
-	lab.text = num
-	lab.add_theme_font_size_override("font_size", 26)
-	lab.add_theme_color_override("font_color", Color.WHITE)
-	lab.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	lab.add_theme_constant_override("outline_size", 7)
-	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lab.size = Vector2(44, 44)
-	lab.position = Vector2(-22, -23)
-	b.add_child(lab)
-	return b
-
-
-func _ring(pos: Vector2, radius: float, col: Color, width: float) -> Line2D:
-	var l := Line2D.new()
-	l.width = width
-	l.default_color = col
-	var pts := PackedVector2Array()
-	for i in 41:
-		var a := TAU * i / 40.0
-		pts.append(pos + Vector2(cos(a), sin(a)) * radius)
-	l.points = pts
-	l.z_index = 2
-	return l
 
 
 # ================================================================ scenery

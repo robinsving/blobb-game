@@ -44,6 +44,8 @@ Y: There. And there. And THERE.
   sv: Där. Och där. Och DÄR.
 O: One by one, all the way down the street.
   sv: En efter en, hela gatan ner.
+Y: Better.
+  sv: Bättre.
 # (hint appears: walk)
 
 

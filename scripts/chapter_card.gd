@@ -4,10 +4,18 @@ extends RefCounted
 ## (ChapterCard.title), and the closing line at its end (ChapterCard.closing).
 
 
-## "Chapter N" + the chapter's name, over `bg` (transparent = over the scene), then it all fades away.
-static func title(parent: Node, n: int, color: Color, bg := Color(0, 0, 0, 0)) -> void:
+## "Chapter N" + the chapter's name, over `bg` (transparent = over the scene), then it all fades away,
+## and (`pause`) a short breath before the narrators start.
+static func title(parent: Node, n: int, color: Color, bg := Color(0, 0, 0, 0), pause := true) -> void:
 	await _show(parent, [[Game.t("chapter_%d" % n), 44, Fonts.serif()], [Game.t("chapter_%d_name" % n), 96, Fonts.hand()]],
 		color, bg, 0.0, 0.5 if Game.fast else 3.0, true)
+	if pause:
+		await breath(parent)
+
+
+## The moment between a chapter's title and its first line (every chapter waits the same).
+static func breath(parent: Node) -> void:
+	await parent.get_tree().create_timer(0.2 if Game.fast else 0.8).timeout
 
 
 ## The closing line ("End of chapter one."), on `bg` faded in over `bg_in` s. It stays up:

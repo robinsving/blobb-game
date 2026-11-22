@@ -59,7 +59,7 @@ func _ready() -> void:
 	fx.set_look("real", 0.0)
 	fx.tint(Color(0.95, 1.02, 1.05), 0.2, 0.0)
 	add_child(fx)
-	_drip_loop()
+	LevelKit.drip_loop(self)
 	_load_room(clampi(Game.warp - 1, 0, ROOMS.size() - 1) if Game.warp > 0 else 0)  # --warp=N: room N
 	_room_intro()
 
@@ -82,10 +82,7 @@ func _room_intro() -> void:
 func fx_whistle() -> void:
 	Game.sfx("whistle", -8.0)
 	if _banana:
-		var y := _banana.position.y
-		var tw := create_tween()
-		tw.tween_property(_banana, "position:y", y - 18.0, 0.1)
-		tw.tween_property(_banana, "position:y", y, 0.15)
+		LevelKit.hop(_banana)
 
 
 func fx_duck_bonk() -> void:
@@ -301,8 +298,8 @@ func _ending() -> void:
 	await get_tree().create_timer(0.7).timeout
 	Game.sfx("beep", -20.0)
 	await get_tree().create_timer(2.4).timeout
+	Game.unlock_chapter(3)  # before the card: quitting during it still counts
 	await ChapterCard.closing(self, "chapter_end_2", Color(0.95, 0.9, 0.8))
-	Game.unlock_chapter(3)
 	Game.go("res://scenes/title.tscn", Color.BLACK, 1.5)
 
 
@@ -490,7 +487,7 @@ func _goal(p: Vector2i) -> void:
 	var s := _sprite(_room_node, file, _cell_pos(p), CELL * 0.9)
 	if s and room_i != 2:
 		s.modulate = Color(1, 1, 1, 0.8)
-	var ring := _ring(_cell_pos(p), CELL * 0.42, Color(1.0, 0.95, 0.6, 0.8), 5.0)
+	var ring := PuzzleMarks.ring(_cell_pos(p), CELL * 0.42, Color(1.0, 0.95, 0.6, 0.8), 5.0)
 	_room_node.add_child(ring)
 
 
@@ -533,30 +530,10 @@ func _draw_spout(n: Node2D, l: String) -> void:
 func _target_badge(target: String, pos: Vector2, col: Color) -> void:
 	if not _pair_num.has(target):
 		return
-	var b := _badge(_pair_num[target], col)
+	var b := PuzzleMarks.badge(_pair_num[target], col)
 	b.position = pos + Vector2(CELL * 0.34, -CELL * 0.34)
 	_room_node.add_child(b)
 	_target_badges[target] = b
-
-
-func _badge(num: String, col: Color) -> Node2D:
-	var b := Node2D.new()
-	b.z_index = 6
-	b.draw.connect(func() -> void:
-		b.draw_circle(Vector2.ZERO, 24.0, Color(0.08, 0.08, 0.08))
-		b.draw_circle(Vector2.ZERO, 20.0, col))
-	var lab := Label.new()
-	lab.text = num
-	lab.add_theme_font_size_override("font_size", 28)
-	lab.add_theme_color_override("font_color", Color.WHITE)
-	lab.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	lab.add_theme_constant_override("outline_size", 7)
-	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lab.size = Vector2(48, 48)
-	lab.position = Vector2(-24, -25)
-	b.add_child(lab)
-	return b
 
 
 func _board(b: String, col: Color) -> void:
@@ -599,10 +576,10 @@ func _control(c: Vector2i, col: Color) -> void:
 		l.default_color = Color(0.8, 0.2, 0.15) if room.spouts.has(t) else Color(0.55, 0.38, 0.2)
 		l.points = PackedVector2Array([Vector2(-25, 25), Vector2(25, -25)]) if not room.spouts.has(t) else PackedVector2Array([Vector2(-30, 0), Vector2(30, 0), Vector2(0, 0), Vector2(0, -30), Vector2(0, 30)])
 		n.add_child(l)
-	var ring := _ring(_cell_pos(c), CELL * 0.4, col, 6.0)
+	var ring := PuzzleMarks.ring(_cell_pos(c), CELL * 0.4, col, 6.0)
 	_room_node.add_child(ring)
 	n.set_meta("ring", ring)
-	var b := _badge(_pair_num[t], col)
+	var b := PuzzleMarks.badge(_pair_num[t], col)
 	b.position = _cell_pos(c) + Vector2(-CELL * 0.34, -CELL * 0.34)
 	_room_node.add_child(b)
 	_control_nodes[c] = n
@@ -737,25 +714,6 @@ func _sprite(parent: Node, file: String, pos: Vector2, size: float) -> Sprite2D:
 	s.scale = Vector2(k, k)
 	parent.add_child(s)
 	return s
-
-
-func _ring(pos: Vector2, radius: float, col: Color, width: float) -> Line2D:
-	var l := Line2D.new()
-	l.width = width
-	l.default_color = col
-	var pts := PackedVector2Array()
-	for i in 41:
-		var a := TAU * i / 40.0
-		pts.append(pos + Vector2(cos(a), sin(a)) * radius)
-	l.points = pts
-	l.z_index = 2
-	return l
-
-
-func _drip_loop() -> void:
-	while is_inside_tree():
-		await get_tree().create_timer(randf_range(2.5, 5.0)).timeout
-		Game.sfx("drip", -20.0, randf_range(0.95, 1.05))
 
 
 # ================================================================ test bot (--autoplay)

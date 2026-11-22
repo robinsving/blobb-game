@@ -80,7 +80,6 @@ func _intro() -> void:
 	camera.offset = Vector2(0, -90)
 	camera.position_smoothing_enabled = false
 	await ChapterCard.title(self, 1, Color(0.3, 0.24, 0.18), Color(0.95, 0.92, 0.85))  # on paper, like the opening
-	await get_tree().create_timer(0.6).timeout
 	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_move"), 6.0)
 
@@ -99,24 +98,10 @@ func _fail() -> void:
 	if _retelling:
 		return
 	_retelling = true
-	Game.control_locked = true
-	Game.sfx("rewind", -4.0)
-	fx.rewind_pulse(1.2)
 	player.sprite.set_form("normal")
-	player.visible = false
 	player.teleport(_checkpoint)
-	var scribble := Retell.scribble(self, _checkpoint + Vector2(0, -70))
-	if Narrator.busy:
-		# a scene is being told: Y's objection would wait behind it (Blobb gone, controls locked)
-		await get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
-		Game.control_locked = Narrator.busy_blocking
-	else:
-		await story.play("fail_%d" % (_fail_count % 4 + 1), self)
+	if await Retell.tell(self, story, fx, player, _checkpoint, _fail_count):
 		_fail_count += 1
-	Retell.clear(scribble)
-	player.visible = true
-	player.sprite.flash(0.6)
-	Game.sfx("pop", -6.0)
 	_retelling = false
 
 
@@ -260,16 +245,11 @@ func _build_world() -> void:
 		terrain.add_block(g[0], g[1], g[2], ROWS - 1)
 	for p in PLATFORMS:
 		terrain.add_block(p[0], p[1], p[2], p[2])
-	_wall(-1)
-	_wall(WIDTH)
+	LevelKit.solid_tiles(self, -1, -1, -ROWS, 2 * ROWS, TILE)  # the level's ends
+	LevelKit.solid_tiles(self, WIDTH, WIDTH, -ROWS, 2 * ROWS, TILE)
 
 	for b in BRANCHES:
 		_branch_nodes.append(_make_branch(b[0], b[1], b[2]))
-
-	for col in TRIGGERS:
-		_trigger(col, TRIGGERS[col])
-	for col in CHECKPOINTS:
-		_checkpoint_area(col)
 
 	banana = Banana.new()
 	banana.position = Vector2(BANANA_X * TILE, _ground_y(BANANA_X))
@@ -285,19 +265,14 @@ func _build_world() -> void:
 	player.visible = false
 	add_child(player)
 	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
+	var retelling := func() -> bool: return _retelling
+	LevelKit.story_columns(self, player, TRIGGERS, _fired, TILE, ROWS * TILE, _beat, retelling)
+	LevelKit.checkpoint_columns(self, player, CHECKPOINTS, TILE, ROWS * TILE,
+		func(col: int) -> Vector2: return Vector2(col * TILE + 32, _ground_y(col)),
+		func(pos: Vector2) -> void: _checkpoint = pos, retelling)
 
-	camera = Camera2D.new()
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 6.0
-	camera.limit_left = 0
-	camera.limit_right = WIDTH * TILE
-	camera.limit_top = 0
-	camera.limit_bottom = ROWS * TILE
-	camera.drag_horizontal_enabled = true
-	camera.drag_left_margin = 0.1
-	camera.drag_right_margin = 0.1
+	camera = LevelKit.follow_camera(player, Vector2(WIDTH, ROWS) * TILE, 6.0, 0.0, Vector2.ZERO)
 	camera.ignore_rotation = false
-	player.add_child(camera)
 
 	fx = StyleFX.new()
 	fx.set_look("paper", 0.0)
@@ -360,51 +335,9 @@ func _make_branch(x0: int, x1: int, row: int) -> Node2D:
 	return root
 
 
-func _wall(col: int) -> void:
-	var body := StaticBody2D.new()
-	var cs := CollisionShape2D.new()
-	var r := RectangleShape2D.new()
-	r.size = Vector2(TILE, ROWS * TILE * 3)
-	cs.shape = r
-	cs.position = Vector2(col * TILE + TILE * 0.5, 0)
-	body.add_child(cs)
-	add_child(body)
-
-
-func _trigger(col: int, beat: String) -> void:
-	var a := _column_area(col)
-	a.body_entered.connect(func(b):
-		if b == player and not _fired.has(beat) and not _retelling:
-			_fired[beat] = true
-			_beat(beat))
-
-
-func _checkpoint_area(col: int) -> void:
-	var a := _column_area(col)
-	var pos := Vector2(col * TILE + 32, _ground_y(col))
-	a.body_entered.connect(func(b):
-		if b == player and not _retelling:
-			_checkpoint = pos)
-
-
-func _column_area(col: int) -> Area2D:
-	var a := Area2D.new()
-	var cs := CollisionShape2D.new()
-	var r := RectangleShape2D.new()
-	r.size = Vector2(TILE, ROWS * TILE * 2)
-	cs.shape = r
-	cs.position = Vector2(col * TILE + 32, 0)
-	a.add_child(cs)
-	add_child(a)
-	return a
-
-
 ## Pixel y of the ground surface at a column (top of the highest ground block there).
 func _ground_y(col: int) -> float:
-	for g in GROUND:
-		if col >= g[0] and col <= g[1]:
-			return g[2] * TILE
-	return ROWS * TILE
+	return LevelKit.top_row([GROUND], col, ROWS) * TILE
 
 
 func _physics_process(_delta: float) -> void:

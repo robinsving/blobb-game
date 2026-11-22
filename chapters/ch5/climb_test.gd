@@ -12,15 +12,7 @@ extends Node2D
 const TILE := 64.0
 const W := 1920.0
 const GROUND := 3000.0
-const BOUNCE := -1750.0        # a heartbeat ledge's launch (~610 px up); a normal jump is -1060 (~225 px)
 const EVEN := 0.85             # seconds between beats when the beat is even
-const REACH := 380.0           # how far Blobb can stretch to a hold
-const MIN_ROPE := 130.0
-const ROPE := 220.0            # after the stretch, Blobb pulls himself in to this length
-const PULL := 700.0            # how fast (px/s)
-const SWING_G := 2500.0        # same gravity as PlayerSide
-const PUMP := 900.0            # left/right while swinging
-const BODY := Vector2(0, -54)  # Blobb's middle, from his feet
 
 ## Plain ledges: [x0, x1, top]. The ground is the first.
 const LEDGES := [
@@ -50,18 +42,12 @@ var player: PlayerSide
 var camera: Camera2D
 var _world: Node2D
 var _rope: Line2D
+var rig: ClimbRig  # the climbing moves (scripts/climb_rig.gd)
 var _hud: Label
 var _t := 0.0
 var _beat_left := 1.0
 var _last_beat := -9.0
-var _kick := {}                # heart index -> time it last kicked
-var _standing_heart := -1
 var _force := -1.0             # forced unevenness (keys 1/2/3), or -1 for by-height
-var _hold := -1                # the hold Blobb is swinging on, or -1
-var _aim := -1                 # the nearest hold in reach (highlighted)
-var _theta := 0.0
-var _omega := 0.0
-var _len := 200.0
 var _safe := Vector2(120, GROUND)
 var _bot_step := 0
 var _bot_t := 0.0
@@ -99,6 +85,10 @@ func _ready() -> void:
 	player.use_bot = false
 	add_child(player)
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
+	var spots: Array[Vector2] = []
+	spots.assign(HOLDS)
+	rig = ClimbRig.new(player, HEARTS, spots, _rope)
+	rig.bot_pumps = true
 	camera = Camera2D.new()
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 5.0
@@ -122,15 +112,8 @@ func _ready() -> void:
 
 
 func _solid(r: Array) -> void:
-	var body := StaticBody2D.new()
-	var cs := CollisionShape2D.new()
-	var shape := RectangleShape2D.new()
 	var bottom: float = GROUND + 400.0 if r[2] >= GROUND - 100 else r[2] + 40.0
-	shape.size = Vector2(r[1] - r[0], bottom - r[2])
-	cs.shape = shape
-	cs.position = Vector2((r[0] + r[1]) * 0.5, (r[2] + bottom) * 0.5)
-	body.add_child(cs)
-	add_child(body)
+	LevelKit.solid(self, Rect2(r[0], r[2], r[1] - r[0], bottom - r[2]))
 
 
 # ================================================================ the beat
@@ -151,18 +134,9 @@ func _on_beat() -> void:
 	_last_beat = _t
 	var u := unevenness()
 	Game.sfx("monitor", lerpf(-8.0, -14.0, u))  # the monitor beep (tools/gen_monitor.py)
-	for i in HEARTS.size():
-		_kick[i] = _t
-	if _standing_heart >= 0 and _hold < 0:
-		_launch(BOUNCE)
-
-
-func _launch(v: float) -> void:
-	player.velocity.y = v
-	player.launched = true
-	Game.sfx("jump", -4.0, 0.8)
-	player.sprite.play("superjump")
-	_standing_heart = -1
+	rig.kick(_t)
+	if rig.standing_heart >= 0 and rig.hold < 0:
+		rig.launch()
 
 
 # ================================================================ per frame
@@ -173,11 +147,10 @@ func _physics_process(delta: float) -> void:
 	if _beat_left <= 0.0:
 		_beat_left = _next_interval()
 		_on_beat()
-	_swing(delta)
-	_standing_heart = _heart_under()
-	if player.is_on_floor() and _standing_heart < 0 and _hold < 0:
+	rig.update(delta)
+	if player.is_on_floor() and rig.standing_heart < 0 and rig.hold < 0:
 		_safe = player.position
-	if player.position.y > _safe.y + 900.0 or (Input.is_action_just_pressed("restart") and _hold < 0):
+	if player.position.y > _safe.y + 900.0 or (Input.is_action_just_pressed("restart") and rig.hold < 0):
 		player.teleport(_safe)
 	if Game.autoplay:
 		_bot()
@@ -192,87 +165,7 @@ func _process(_delta: float) -> void:
 	_world.queue_redraw()
 
 
-func _heart_under() -> int:
-	if not player.is_on_floor():
-		return -1
-	var p := player.position
-	for i in HEARTS.size():
-		var h: Array = HEARTS[i]
-		if p.x >= h[0] - 20 and p.x <= h[1] + 20 and absf(p.y - h[2]) < 6.0:
-			return i
-	return -1
-
-
 # ================================================================ stretch & swing
-
-func _nearest_hold() -> int:
-	var body := player.position + BODY
-	var best := -1
-	var bd := REACH
-	for i in HOLDS.size():
-		var d := body.distance_to(HOLDS[i])
-		if d < bd:
-			bd = d
-			best = i
-	return best
-
-
-func _swing(delta: float) -> void:
-	_aim = _nearest_hold() if _hold < 0 else _hold
-	if _hold < 0:
-		_rope.visible = false
-		if Input.is_action_just_pressed("use") and _aim >= 0:
-			_grab(_aim)
-		return
-	if not (Input.is_action_pressed("use") or Game.autoplay) or Input.is_action_just_pressed("jump"):
-		_let_go()
-		return
-	_len = move_toward(_len, ROPE, PULL * delta)
-	var input := Input.get_axis("left", "right")
-	if Game.autoplay:
-		input = signf(_omega)  # the bot pumps with the swing
-	_omega += (-(SWING_G / _len) * sin(_theta) + input * PUMP / _len * cos(_theta)) * delta
-	_omega *= 0.998
-	_theta = clampf(_theta + _omega * delta, -2.6, 2.6)
-	var target: Vector2 = HOLDS[_hold] + Vector2(sin(_theta), cos(_theta)) * _len - BODY
-	var hit := player.move_and_collide(target - player.position)
-	if hit:
-		if hit.get_normal().y < -0.7:
-			_let_go()  # swung down onto a ledge: he just lands there
-			return
-		_omega *= -0.3  # bumped the rock: swing back a little
-		var v: Vector2 = player.position + BODY - HOLDS[_hold]
-		_theta = atan2(v.x, v.y)
-	_rope.visible = true
-	_rope.points = PackedVector2Array([player.position + BODY, HOLDS[_hold]])
-	player.sprite.rotation = -_theta * 0.6
-	if input != 0.0:
-		player.sprite.face(input)
-
-
-func _grab(i: int) -> void:
-	_hold = i
-	var v: Vector2 = player.position + BODY - HOLDS[i]
-	_len = clampf(v.length(), MIN_ROPE, REACH)
-	_theta = atan2(v.x, v.y)
-	var tangent := Vector2(cos(_theta), -sin(_theta))
-	_omega = player.velocity.dot(tangent) / _len
-	player.frozen = true
-	player.velocity = Vector2.ZERO
-	player.sprite.play("superjump")
-	Game.sfx("jump", -8.0, 1.4)
-
-
-func _let_go() -> void:
-	var tangent := Vector2(cos(_theta), -sin(_theta))
-	player.velocity = tangent * _omega * _len + Vector2(0, -180)
-	player.frozen = false
-	player.launched = true
-	player.sprite.rotation = 0.0
-	player.sprite.play("jump")
-	_hold = -1
-	_rope.visible = false
-
 
 # ================================================================ drawing
 
@@ -294,7 +187,7 @@ func _draw_world() -> void:
 		_world.draw_rect(Rect2(r.position, Vector2(r.size.x, 8)), Color(0.66, 0.62, 0.74))
 	for i in HEARTS.size():
 		var h: Array = HEARTS[i]
-		var k := clampf(1.0 - (_t - _kick.get(i, -9.0)) / 0.25, 0.0, 1.0)
+		var k := clampf(1.0 - (_t - rig.kicked.get(i, -9.0)) / 0.25, 0.0, 1.0)
 		var up := sin(k * PI) * 16.0
 		var r := Rect2(h[0], h[2] - up, h[1] - h[0], 40)
 		_world.draw_rect(r.grow(6.0 * k), Color(1.0, 0.45, 0.55, 0.35 * k))
@@ -302,8 +195,8 @@ func _draw_world() -> void:
 		_world.draw_rect(Rect2(r.position, Vector2(r.size.x, 8)), Color(1.0, 0.72, 0.76))
 	for i in HOLDS.size():
 		var c: Vector2 = HOLDS[i]
-		var lit := i == _aim
-		if lit and _hold < 0:
+		var lit := i == rig.aim
+		if lit and rig.hold < 0:
 			_world.draw_arc(c, 34.0 + sin(_t * 8.0) * 4.0, 0.0, TAU, 32, Color(1.0, 0.9, 0.5, 0.8), 4.0)
 		_world.draw_circle(c, 20.0, Color(0.95, 0.75, 0.3) if lit else Color(0.75, 0.58, 0.28))
 		_world.draw_circle(c + Vector2(-5, -6), 6.0, Color(1.0, 0.92, 0.7))
@@ -333,20 +226,20 @@ func _bot() -> void:
 				player.velocity = Vector2(-430, -900)
 				_bot_step = 4
 		4:
-			if _hold < 0 and _nearest_hold() >= 0:
-				_grab(_nearest_hold())
-				print("BOT grabbed hold ", _hold, " rope ", int(_len))
+			if rig.hold < 0 and rig.nearest_hold() >= 0:
+				rig.grab(rig.nearest_hold())
+				print("BOT grabbed hold ", rig.hold)
 				_bot_t = _t
 				_bot_step = 5
 		5:
 			# hang on a while (for screenshots), then let go on a fast swing to the left
-			if _t - _bot_t > 3.0 and _theta < -0.1 and _omega * _len < -500.0:
-				_let_go()
+			if _t - _bot_t > 3.0 and rig.swing_angle() < -0.1 and rig.swing_speed() < -500.0:
+				rig.let_go()
 				print("BOT flung at ", player.velocity.round(), " from ", player.position.round())
 				_bot_step = 6
 		6:
-			if _hold < 0 and _nearest_hold() == 1:
-				_grab(1)
+			if rig.hold < 0 and rig.nearest_hold() == 1:
+				rig.grab(1)
 				print("BOT caught hold 1 in the air")
 				_bot_step = 7
 			elif player.is_on_floor():

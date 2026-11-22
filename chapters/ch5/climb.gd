@@ -16,17 +16,10 @@ extends Node2D
 
 const ART := "res://assets/gen/ch5/"
 const W := 1920.0
+const DARK := Color(0.02, 0.03, 0.08)  # the night before the narrators tell it back
 const GROUND := 7000.0
 const TOP := 700.0             # camera limit
-const BOUNCE := -1750.0        # a heartbeat ledge's launch (~610 px up); a normal jump is ~225 px
 const EVEN := 0.95             # seconds between beats once the beat is even
-const REACH := 380.0
-const MIN_ROPE := 130.0
-const ROPE := 220.0
-const PULL := 700.0
-const SWING_G := 2500.0
-const PUMP := 900.0
-const BODY := Vector2(0, -54)
 const PAN := 900.0             # at the summit the camera looks up this far, into the morning sky
 const SKY_PAN := 620.0         # the sky moves less than the mountain (it's far away)
 const FALL := 700.0            # this far below the last safe ledge is a fall (a retell)
@@ -72,20 +65,14 @@ var camera: Camera2D
 var story := StoryScript.load_file("res://chapters/ch5/story.txt")
 var _world: Node2D
 var _sky: Node2D
+var _lit := 1.0  # the stars, as told: 0 until Y puts them in (the intro), 1 after
 var _sky_sprites := {}
 var _rope: Line2D
+var rig: ClimbRig  # the climbing moves: heartbeat ledges, holds, the swing
 var _tex := {}
 var _t := 0.0
 var _beat_left := 2.0
-var _kick := {}
-var _standing_heart := -1
-var _stretch := false
 var _swung := false
-var _hold := -1
-var _aim := -1
-var _theta := 0.0
-var _omega := 0.0
-var _len := 200.0
 var _safe := Vector2(200, GROUND)
 var _fired := {}
 var _retelling := false
@@ -163,6 +150,15 @@ func _build_world() -> void:
 	player.use_bot = false
 	add_child(player)
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
+	var spots: Array[Vector2] = []
+	for h in HOLDS:
+		spots.append(Vector2(h[0], h[1]))
+	rig = ClimbRig.new(player, HEARTS, spots, _rope)
+	rig.can_reach = false  # not before O's rule
+	rig.flung.connect(func() -> void:
+		if not _swung:
+			_swung = true
+			story.play("swing", self))
 	camera = Camera2D.new()
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 5.0
@@ -179,16 +175,8 @@ func _build_world() -> void:
 
 ## One-way ledges: Blobb jumps up through them and lands on top (the ground and walls are solid).
 func _solid(r: Array, one_way: bool) -> void:
-	var body := StaticBody2D.new()
-	var cs := CollisionShape2D.new()
-	var shape := RectangleShape2D.new()
 	var bottom: float = GROUND + 400.0 if not one_way else r[2] + 40.0
-	shape.size = Vector2(r[1] - r[0], bottom - r[2])
-	cs.shape = shape
-	cs.position = Vector2((r[0] + r[1]) * 0.5, (r[2] + bottom) * 0.5)
-	cs.one_way_collision = one_way
-	body.add_child(cs)
-	add_child(body)
+	LevelKit.solid(self, Rect2(r[0], r[2], r[1] - r[0], bottom - r[2]), one_way)
 
 
 func _debug_warp(i: int) -> void:
@@ -199,7 +187,7 @@ func _debug_warp(i: int) -> void:
 	if i >= 1:
 		_fired["intro"] = true
 	if i >= 2:
-		_stretch = true
+		rig.can_reach = true
 	player.teleport(p)
 	_safe = p
 	Game.control_locked = false
@@ -210,7 +198,9 @@ func _debug_warp(i: int) -> void:
 ## The chapter's name over the night, then O comes back.
 func _intro() -> void:
 	Game.control_locked = true
-	await ChapterCard.title(self, 5, Color(0.85, 0.85, 0.95))
+	_lit = 0.0
+	fx.tint(DARK, 0.85, 0.0)  # nothing told yet: the narrators put the mountain and the stars back
+	await ChapterCard.title(self, 5, Color(0.85, 0.85, 0.95), Color(0.03, 0.04, 0.1))  # on the night, then the climb
 	await story.play("intro", self)
 	Game.control_locked = false
 	Narrator.hint(Game.t("hint_move"), 6.0)
@@ -240,7 +230,7 @@ func _fail() -> void:
 	if _retelling or _done:
 		return
 	_retelling = true
-	_release_hold()
+	rig.release()
 	Game.sfx("rewind", -4.0)
 	fx.rewind_pulse(1.2)
 	player.visible = false
@@ -265,7 +255,7 @@ func _fail() -> void:
 ## The top: the morning rule works, because both halves say it. Then the room, and the end.
 func _summit() -> void:
 	_done = true
-	_release_hold()
+	rig.release()
 	Game.control_locked = true
 	player.velocity = Vector2.ZERO
 	await story.play("summit", self)
@@ -296,8 +286,20 @@ func _look_up() -> void:
 # ================================================================ story effects
 
 ## O's rule: "In my half, Blobb is a good deal longer than he looks." The holds wake up.
+## O, faint, tells the mountain back: it shows, dimly.
+func fx_mountain() -> void:
+	fx.tint(DARK, 0.45, 2.5)
+
+
+## Y's half: the stars, all of them.
+func fx_stars() -> void:
+	fx.tint(DARK, 0.0, 2.5)
+	Game.sfx("chime", -10.0, 1.2)
+	create_tween().tween_property(self, "_lit", 1.0, 2.5)
+
+
 func fx_stretch() -> void:
-	_stretch = true
+	rig.can_reach = true
 	Game.sfx("pop", -6.0, 0.8)
 	Narrator.hint(Game.t("hint_swing"), 10.0)
 
@@ -423,14 +425,13 @@ func _physics_process(delta: float) -> void:
 		_on_beat()
 	if _done or _retelling:
 		return
-	_swing(delta)
-	_standing_heart = _heart_under()
-	if player.is_on_floor() and _standing_heart < 0 and _hold < 0:
+	rig.update(delta)
+	if player.is_on_floor() and rig.standing_heart < 0 and rig.hold < 0:
 		_safe = player.position
-	if player.position.y > _safe.y + FALL and _hold < 0:
+	if player.position.y > _safe.y + FALL and rig.hold < 0:
 		_fail()
 		return
-	if Input.is_action_just_pressed("restart") and _hold < 0 and not Game.control_locked:
+	if Input.is_action_just_pressed("restart") and rig.hold < 0 and not Game.control_locked:
 		player.teleport(_safe)
 	_check_triggers()
 	if Game.autoplay:
@@ -458,105 +459,12 @@ func _next_interval() -> float:
 
 func _on_beat() -> void:
 	Game.sfx("monitor", -12.0 if not _room else -20.0)
-	for i in HEARTS.size():
-		_kick[i] = _t
-	if _standing_heart >= 0 and _hold < 0 and not _done and not Game.control_locked:
-		player.velocity.y = BOUNCE
-		player.launched = true
-		player.sprite.play("superjump")
-		Game.sfx("jump", -4.0, 0.8)
-		_standing_heart = -1
-
-
-func _heart_under() -> int:
-	if not player.is_on_floor():
-		return -1
-	var p := player.position
-	for i in HEARTS.size():
-		var h: Array = HEARTS[i]
-		if p.x >= h[0] - 20 and p.x <= h[1] + 20 and absf(p.y - h[2]) < 6.0:
-			return i
-	return -1
+	rig.kick(_t)
+	if rig.standing_heart >= 0 and rig.hold < 0 and not _done and not Game.control_locked:
+		rig.launch()
 
 
 # ================================================================ stretch & swing
-
-func _nearest_hold() -> int:
-	if not _stretch:
-		return -1
-	var body := player.position + BODY
-	var best := -1
-	var bd := REACH
-	for i in HOLDS.size():
-		var d := body.distance_to(_hold_pos(i))
-		if d < bd:
-			bd = d
-			best = i
-	return best
-
-
-func _hold_pos(i: int) -> Vector2:
-	return Vector2(HOLDS[i][0], HOLDS[i][1])
-
-
-func _swing(delta: float) -> void:
-	_aim = _nearest_hold() if _hold < 0 else _hold
-	if _hold < 0:
-		if Input.is_action_just_pressed("use") and _aim >= 0 and not Game.control_locked:
-			_grab(_aim)
-		return
-	if not (Input.is_action_pressed("use") or Game.autoplay) or Input.is_action_just_pressed("jump"):
-		_let_go()
-		return
-	_len = move_toward(_len, ROPE, PULL * delta)
-	var input := Input.get_axis("left", "right")
-	_omega += (-(SWING_G / _len) * sin(_theta) + input * PUMP / _len * cos(_theta)) * delta
-	_omega *= 0.998
-	_theta = clampf(_theta + _omega * delta, -2.6, 2.6)
-	var target := _hold_pos(_hold) + Vector2(sin(_theta), cos(_theta)) * _len - BODY
-	var hit := player.move_and_collide(target - player.position)
-	if hit:
-		if hit.get_normal().y < -0.7:
-			_let_go()  # swung down onto a ledge: he just lands there
-			return
-		_omega *= -0.3
-		var v := player.position + BODY - _hold_pos(_hold)
-		_theta = atan2(v.x, v.y)
-	_rope.visible = true
-	_rope.points = PackedVector2Array([player.position + BODY, _hold_pos(_hold)])
-	player.sprite.rotation = -_theta * 0.6
-	if input != 0.0:
-		player.sprite.face(input)
-
-
-func _grab(i: int) -> void:
-	_hold = i
-	var v := player.position + BODY - _hold_pos(i)
-	_len = clampf(v.length(), MIN_ROPE, REACH)
-	_theta = atan2(v.x, v.y)
-	_omega = player.velocity.dot(Vector2(cos(_theta), -sin(_theta))) / _len
-	player.frozen = true
-	player.velocity = Vector2.ZERO
-	player.sprite.play("superjump")
-	Game.sfx("jump", -8.0, 1.4)
-
-
-func _let_go() -> void:
-	player.velocity = Vector2(cos(_theta), -sin(_theta)) * _omega * _len + Vector2(0, -180)
-	_release_hold()
-	player.launched = true
-	player.sprite.play("jump")
-	if not _swung:
-		_swung = true
-		story.play("swing", self)
-
-
-func _release_hold() -> void:
-	player.frozen = false
-	player.sprite.rotation = 0.0
-	_hold = -1
-	_rope.visible = false
-
 
 # ================================================================ pigeons (cameo)
 
@@ -607,7 +515,7 @@ func _sky_mix() -> float:
 func _update_sky() -> void:
 	var m := _sky_mix()
 	if _sky_sprites.has("night"):
-		_sky_sprites["night"].modulate.a = 1.0
+		_sky_sprites["night"].modulate.a = lerpf(0.4, 1.0, _lit)
 	if _sky_sprites.has("bluehour"):
 		_sky_sprites["bluehour"].modulate.a = smoothstep(0.25, 0.9, m) * (1.0 - _dawn)
 	var dawn: Sprite2D = _sky_sprites.get("summit", _sky_sprites.get("dawn"))
@@ -635,7 +543,7 @@ func _draw_sky() -> void:
 		_sky.draw_rect(Rect2(0, i * 36, 1920, 37), top.lerp(low, i / 29.0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 55
-	var star_a := (1.0 - m * 0.6) * (1.0 - _dawn)
+	var star_a := (1.0 - m * 0.6) * (1.0 - _dawn) * _lit
 	for i in 200:
 		_sky.draw_circle(Vector2(rng.randf() * 1920, rng.randf() * 1000), rng.randf_range(0.8, 2.2), Color(1, 1, 0.92, rng.randf_range(0.3, 0.9) * star_a))
 	# the sun rises behind the far ranges
@@ -773,7 +681,7 @@ func _draw_ledge(r: Array, ground: bool, heart: int) -> void:
 	var top: float = r[2]
 	var k := 0.0
 	if heart >= 0:
-		k = clampf(1.0 - (_t - _kick.get(heart, -9.0)) / 0.3, 0.0, 1.0)
+		k = clampf(1.0 - (_t - rig.kicked.get(heart, -9.0)) / 0.3, 0.0, 1.0)
 	var up := sin(k * PI) * 16.0
 	if ground:
 		_world.draw_rect(Rect2(x0, top, x1 - x0, 600), Color(0.2, 0.18, 0.26))
@@ -797,10 +705,10 @@ func _draw_ledge(r: Array, ground: bool, heart: int) -> void:
 
 
 func _draw_hold(i: int) -> void:
-	var c := _hold_pos(i)
+	var c := rig.holds[i]
 	var star: bool = HOLDS[i][2] == "star"
-	var lit := _stretch and i == _aim and _hold < 0
-	var a := 1.0 if _stretch else 0.45
+	var lit := rig.can_reach and i == rig.aim and rig.hold < 0
+	var a := 1.0 if rig.can_reach else 0.45
 	if lit:
 		_world.draw_arc(c, 40.0 + sin(_t * 8.0) * 4.0, 0.0, TAU, 32, Color(1.0, 0.9, 0.5, 0.8), 4.0)
 	var key := "hold_star" if star else "hold_root"
@@ -848,5 +756,5 @@ const GDA_CALLABLE := ["debug_state"]
 
 func debug_state() -> Dictionary:
 	var d := DebugState.base(player)
-	d.merge(DebugState.json({"fired": _fired.keys(), "stretch": _stretch, "hold": _hold, "standing_heart": _standing_heart, "done": _done, "dawn": _dawn}), true)
+	d.merge(DebugState.json({"fired": _fired.keys(), "stretch": rig.can_reach, "hold": rig.hold, "standing_heart": rig.standing_heart, "done": _done, "dawn": _dawn}), true)
 	return d
