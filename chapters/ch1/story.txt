@@ -42,13 +42,13 @@
 Y: Tell me something.
   sv: Berätta något.
 O: Something. Hmm. I used to know a great many somethings.
-  sv: Något. Hmm. Förr kunde jag en hel massa någonting.
+  sv: Något. Hmm. Förr hade jag en hel massa saker att berätta.
 Y: Used to?
   sv: Förr?
 O: They wander off, somethings. Like cats.
-  sv: De vandrar iväg, alla någonting. Som katter.
+  sv: De smiter iväg, sakerna. Som katter.
 Y: Then catch one. Quick, before it wanders.
-  sv: Fånga ett då. Fort, innan det vandrar iväg.
+  sv: Fånga en då. Fort, innan den smiter.
 # (O's attention drifts to something nearby. Keep it vague: we don't say what or where.)
 @pause 0.8
 O: ...What about him? The fuzzy one. Over there.
@@ -56,7 +56,7 @@ O: ...What about him? The fuzzy one. Over there.
 Y: That's Blobb!
   sv: Det är Blobb!
 O: Blobb. Yes. I believe I know half of his story.
-  sv: Blobb. Ja. Jag tror att jag kan halva hans saga.
+  sv: Blobb. Ja. Jag tror jag kan halva hans saga.
 O: You'll have to tell the other half. It's in there somewhere, I'm sure.
   sv: Den andra halvan får du berätta. Den finns säkert där inne någonstans.
 Y: Deal. I'm good at halves.
@@ -65,20 +65,20 @@ O: Once, in the days when the moss was still young, there was a Blobb.
   sv: En gång, på den tiden när mossan fortfarande var ung, fanns det en Blobb.
   @blobb_appears
 O: He was round. And fuzzy. And the most magnificent yellow.
-  sv: Han var rund. Och luddig. Och alldeles praktfullt gul.
+  sv: Han var rund. Och luddig. Och alldeles strålande gul.
   @blobb_color yellow
 Y: Yellow?! Blobb is GREEN. Everybody knows that.
   sv: Gul?! Blobb är GRÖN. Det vet ju alla.
   @blobb_color green
 O: Green. There, you see? That was your half already.
-  sv: Grön. Där ser du. Det där var redan din halva.
+  sv: Grön. Där ser du. Där kom din halva redan.
 Y: Where does he live?
   sv: Var bor han?
 O: In a deep, dark forest, where the trees are so old they've forgotten what the sun looks like...
   sv: I en djup, mörk skog, där träden är så gamla att de har glömt hur solen ser ut...
   @forest_dark
 Y: Boring. And scary. Make it a simple forest. Bright colours. And a big sun.
-  sv: Tråkigt. Och läskigt. Gör det till en enkel skog. Starka färger. Och en stor sol.
+  sv: Tråkigt. Och läskigt. Gör en enkel skog i stället. Starka färger. Och en stor sol.
   @forest_crayon
 O: A simple forest, and a big sun. The trees didn't mind one bit.
   sv: En enkel skog, och en stor sol. Träden hade inte det minsta emot det.
@@ -94,21 +94,21 @@ O: And one morning, Blobb set off to see what was on the other side of it all.
 Y: He's stuck.
   sv: Han sitter fast.
 O: Blobb's legs were short. Jumping was not among his talents.
-  sv: Blobbs ben var korta. Att hoppa hörde inte till hans talanger.
+  sv: Blobbs ben var korta. Att hoppa var inte direkt hans starka sida.
 Y: Wrong half. In my half, Blobb jumps higher than trees.
   sv: Fel halva. I min halva hoppar Blobb högre än träd.
   @jump_unlock
 O: ...Higher than trees. Well. Your half is louder than mine.
-  sv: ...Högre än träd. Nåväl. Din halva hörs mer än min.
+  sv: ...Högre än träd. Jaha. Din halva hörs mer än min.
 # (hint appears: Space / A to jump)
 
 
 # TRIGGER: just before the first pit (column 31).
 === careful (ambient) ===
 Y: Hole! There's a hole!
-  sv: Hål! Det är ett hål!
+  sv: Ett hål! Där är ett hål!
 O: Blobb saw it. Blobb had very good eyes for holes.
-  sv: Blobb såg det. Blobb hade väldigt bra ögon för hål.
+  sv: Blobb såg det. Blobb var väldigt bra på att se hål.
 
 
 # TRIGGER: Blobb falls into a pit. The scene rewinds to the last checkpoint.
@@ -117,7 +117,7 @@ O: Blobb saw it. Blobb had very good eyes for holes.
 Y: Nope. Blobb didn't fall in. Take it back.
   sv: Nej. Blobb ramlade inte ner. Ta tillbaka det.
 O: Taken back. Now, where were we?
-  sv: Tillbakataget. Nå, var var vi?
+  sv: Då tar vi tillbaka det. Nå, var var vi?
 
 === fail_2 ===
 Y: That's not how it goes.
@@ -125,7 +125,7 @@ Y: That's not how it goes.
 O: No? How does it go?
   sv: Inte? Hur går det då?
 Y: He jumps over. Obviously.
-  sv: Han hoppar över. Självklart.
+  sv: Han hoppar över, så klart.
 
 === fail_3 ===
 Y: Again!
@@ -155,24 +155,24 @@ Y: Bananas can't be grumpy.
 O: This one had stood on that path for a very long time. It had earned a little grumpiness.
   sv: Den här hade stått på den där stigen väldigt länge. Den hade förtjänat att vara lite sur.
 Y: Nope. Tiny banana. Normal banana size.
-  sv: Nix. Pytteliten banan. Vanlig banan-storlek.
+  sv: Nix. Pytteliten banan. Vanlig bananstorlek.
   @banana_shrink
   @hold 0.7
 O: ...A tiny banana. Still grumpy, though. You can't take that away from it.
-  sv: ...En pytteliten banan. Fortfarande sur, dock. Det kan man inte ta ifrån den.
+  sv: ...En pytteliten banan. Men fortfarande sur. Det kan man inte ta ifrån den.
 
 
 # TRIGGER: the tiny banana bumps into Blobb for the first time.
 === banana_bump (ambient) ===
 Y: Hey! No pushing!
-  sv: Hallå! Ingen knuffning!
+  sv: Hallå! Sluta knuffas!
   @blobb_form grumpy
 O: And Blobb went prickly all over. Two small, stubborn things on one path.
-  sv: Och Blobb blev taggig över hela kroppen. Två små, envisa saker på samma stig.
+  sv: Och Blobb blev taggig överallt. Två små, envisa saker på samma stig.
 Y: Grumpy Blobb! I KNEW he had spikes.
   sv: Sur-Blobb! Jag VISSTE att han hade taggar.
 O: Perhaps he could simply hop over it, spikes and all.
-  sv: Han kunde kanske helt enkelt hoppa över den, taggar och allt.
+  sv: Han kanske kunde hoppa över den, taggar och allt.
   @blobb_form normal
 
 
@@ -183,11 +183,11 @@ Y: Way too high.
 O: It was. Blobb sat down under the old tree and had a long think.
   sv: Det var det. Blobb satte sig under det gamla trädet och tänkte länge.
 Y: Then the tree grew branches. For climbing. Right now.
-  sv: Då växte det grenar på trädet. Att klättra på. Nu direkt.
+  sv: Då fick trädet grenar. Att klättra på. Nu på en gång.
   @grow_branches
   @hold 0.8
 O: It takes a tree a hundred years to do that.
-  sv: Det tar hundra år för ett träd att göra så.
+  sv: Sånt tar hundra år för ett träd.
 Y: This one was in a hurry.
   sv: Det här hade bråttom.
 O: ...Fair enough.
@@ -202,19 +202,19 @@ O: The sun was going down, and everything went orange and gold.
   sv: Solen gick ner, och allt blev orange och guld.
   @evening
 Y: Orange is the best one.
-  sv: Orange är den bästa.
+  sv: Orange är bäst.
 O: Mine used to be blue. I think you might be right, though.
-  sv: Min brukade vara blå. Men jag tror att du kanske har rätt.
+  sv: Min var blå förr. Men du har nog rätt.
 
 
 # TRIGGER: the end of the forest path (column 133).
 === end ===
 O: At the end of the path, Blobb found a clearing.
-  sv: Vid slutet av stigen hittade Blobb en glänta.
+  sv: Där stigen tog slut hittade Blobb en glänta.
 Y: What's a clearing?
   sv: Vad är en glänta?
 O: A place where the trees have stepped aside. Only stumps left, and things nobody came back for.
-  sv: Ett ställe där träden har klivit undan. Bara stubbar kvar, och saker som ingen kom tillbaka och hämtade.
+  sv: Ett ställe där träden har klivit undan. Bara stubbar kvar, och saker som ingen kom tillbaka efter.
 Y: Show it from above. Like a bird.
   sv: Visa den uppifrån. Som en fågel.
 O: Like a bird, then. Up we go.
@@ -245,9 +245,9 @@ Y: Who leaves boxes in a forest?
 O: Someone who was moving, perhaps.
   sv: Någon som skulle flytta, kanske.
 Y: Moving where?
-  sv: Flytta vart?
+  sv: Vart då?
 O: Somewhere else. If Blobb pushes the crates onto the flat stones, perhaps the gate will remember how to open.
-  sv: Någon annanstans. Om Blobb knuffar lådorna till de platta stenarna kanske grinden kommer ihåg hur man öppnar sig.
+  sv: Någon annanstans. Om Blobb knuffar lådorna till de platta stenarna kanske grinden kommer ihåg hur den öppnas.
 # (hint appears: arrows, Z undo, R restart)
 
 
@@ -281,7 +281,7 @@ O: Not yet.
 Y: Wait. Do boxes float?
   sv: Vänta. Flyter lådor?
 O: Wooden ones do, I believe. Push one in, and maybe it'll hold him up.
-  sv: Trälådor gör det, tror jag. Knuffa i en, så kanske den bär honom.
+  sv: Trälådor gör det, tror jag. Knuffa ner en, så kanske den bär honom.
   @crates_float
 Y: Box bridge!
   sv: Lådbro!
@@ -291,11 +291,11 @@ Y: Box bridge!
 # Keep this ambiguous: nothing here may suggest WHICH of them is unwell, or where they are.
 === ending ===
 O: On the other side, the grass was warm and soft. So Blobb lay down to rest.
-  sv: På andra sidan var gräset varmt och mjukt. Så Blobb lade sig ner och vilade.
+  sv: På andra sidan var gräset varmt och mjukt. Så Blobb la sig och vilade.
 Y: Is that the end?
   sv: Är det slut nu?
 O: The end of this part. The rest can keep until tomorrow.
-  sv: Slut på den här delen. Resten kan vänta till i morgon.
+  sv: Den här delen är slut. Resten får vänta till i morgon.
 Y: Will you be here tomorrow?
   sv: Är du här i morgon?
   @fade_to_black

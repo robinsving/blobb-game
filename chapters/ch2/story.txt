@@ -33,14 +33,14 @@ O: Now. Where had we got to?
 Y: Swimming. Blobb learns to swim. That was the deal.
   sv: Simma. Blobb lär sig simma. Det var det vi sa.
 O: So it was. The stream from the clearing ran downhill, and Blobb followed it all the way to a millpond.
-  sv: Så var det. Bäcken från gläntan rann nedför, och Blobb följde den hela vägen till en kvarndamm.
+  sv: Just det. Bäcken från gläntan rann nedåt, och Blobb följde den hela vägen till en kvarndamm.
 O: The water was as brown as old tea. You couldn't see your own feet in it.
   sv: Vattnet var brunt som gammalt te. Man kunde inte se sina egna fötter i det.
 Y: Yuck. Make it clear. And sunny. With little fish.
-  sv: Usch. Gör det klart. Och soligt. Med små fiskar.
+  sv: Usch. Gör vattnet klart. Och soligt. Med små fiskar.
   @pond_clear
 O: Clear as glass, then. And the sun came down in long stripes.
-  sv: Klart som glas, då. Och solen föll ner i långa ränder.
+  sv: Klart som glas, då. Och solen sken ner i långa strimmor.
 Y: Better.
   sv: Bättre.
 # (hint appears: walk right to jump in)
@@ -49,7 +49,7 @@ Y: Better.
 # TRIGGER: Blobb drops into the water for the first time.
 === splash ===
 O: In jumped Blobb, with a splash... and down he went, like a stone.
-  sv: I hoppade Blobb, med ett plask... och ner sjönk han, som en sten.
+  sv: Plask, sa det när Blobb hoppade i... och så sjönk han som en sten.
   @sink
 Y: Why?!
   sv: Varför?!
@@ -65,21 +65,21 @@ O: Like a very determined crab.
 # TRIGGER: the spring bubbling up from the riverbed (column 27).
 === bubbles ===
 Y: Wait. Fuzz holds bubbles. Everybody knows that.
-  sv: Vänta. Ludd håller kvar bubblor. Det vet ju alla.
+  sv: Vänta. Ludd är fullt av bubblor. Det vet ju alla.
 O: Does it?
   sv: Gör det?
 Y: Loads. Blobb's full of bubbles now. He floats.
   sv: Massor. Blobb är full av bubblor nu. Han flyter.
   @swim_unlock
 O: ...And so he did. Up he came, light as a cork.
-  sv: ...Och det gjorde han. Upp kom han, lätt som en kork.
+  sv: ...Och det gjorde han. Upp åkte han, lätt som en kork.
 # (hint appears: arrows swim every way)
 
 
 # TRIGGER: just past the big rock (column 35).
 === cold (ambient) ===
 O: Pond water is cold, even in summer. Blobb went quite blue.
-  sv: Dammvatten är kallt, till och med på sommaren. Blobb blev alldeles blå.
+  sv: Vattnet i en damm är kallt, även på sommaren. Blobb blev alldeles blå.
   @blobb_blue
 Y: Blue's fine. Blue's a swimming colour.
   sv: Blått är bra. Blått är en simfärg.
@@ -93,7 +93,7 @@ O: On an old stump sat the pond warden. A small banana, with a whistle.
 Y: The grumpy banana! He got a job!
   sv: Den sura bananen! Han har fått jobb!
 O: "No running," said the banana.
-  sv: "Ingen springning", sa bananen.
+  sv: "Spring inte här", sa bananen.
   @whistle
 Y: He's SWIMMING.
   sv: Han SIMMAR ju.
@@ -104,14 +104,14 @@ Y: He's SWIMMING.
 Y: Fish!
   sv: Fiskar!
 O: River fish. They don't think much of visitors.
-  sv: Flodfiskar. De tycker inte mycket om besökare.
+  sv: Flodfiskar. De är inte så förtjusta i besök.
 
 
 # TRIGGER: where the river starts pushing back (column 57).
 # O loses the thread here. Y's matching crack is in "ending".
 === current (ambient) ===
 O: Then the river started pushing. Blobb pushed back, harder and harder, and...
-  sv: Sedan började strömmen knuffa. Blobb knuffade tillbaka, hårdare och hårdare, och...
+  sv: Sen började strömmen trycka på. Blobb tryckte emot, hårdare och hårdare, och...
 @pause 1.6
 O: ...Where was he?
   sv: ...Var var han?
@@ -141,9 +141,9 @@ O: A whole row of little whirlpools, each spinning its own way. Under one, over 
 # The game cycles fail_1 to fail_4, then starts over.
 === fail_1 ===
 Y: Nope. He swam right round it.
-  sv: Nix. Han simmade rakt runt den.
+  sv: Nix. Han simmade förbi den.
 O: Right round it. Of course he did.
-  sv: Rakt runt den. Naturligtvis.
+  sv: Förbi den. Så klart.
 
 === fail_2 ===
 Y: That's not what happened.
@@ -151,7 +151,7 @@ Y: That's not what happened.
 O: What did happen?
   sv: Vad hände då?
 Y: He did a loop-the-loop. Then he went round it.
-  sv: Han gjorde en loop. Sen simmade han runt den.
+  sv: Han gjorde en kullerbytta. Sen simmade han förbi.
 
 === fail_3 ===
 Y: Again!
@@ -169,12 +169,12 @@ O: Too fuzzy. I'll try to keep that in mind.
 # TRIGGER: the far end of the pond (column 103). Then we cut to the mill channel.
 === deep_end ===
 O: At the far end of the pond stood the old mill, and under it the water ran in through a dark channel.
-  sv: Längst bort vid dammen stod den gamla kvarnen, och under den rann vattnet in genom en mörk kanal.
+  sv: Längst bort i dammen stod den gamla kvarnen, och under den rann vattnet in i en mörk kanal.
   @gurgle
 Y: What's that noise?
   sv: Vad är det för ljud?
 O: Something stuck in there, going round and round. Something yellow, and very cross.
-  sv: Något har fastnat där inne och åker runt, runt. Något gult, och väldigt argt.
+  sv: Något har fastnat där inne och snurrar runt, runt. Något gult, och väldigt argt.
 
 
 # ---------------------------------------------------------------------
@@ -186,12 +186,12 @@ O: Something stuck in there, going round and round. Something yellow, and very c
 Y: A duck! A rubber duck!
   sv: En anka! En badanka!
 O: A rubber duck, stuck behind the mill's old fence. And the warden would not stop whistling about it.
-  sv: En badanka, fast bakom kvarnens gamla staket. Och vakten slutade inte vissla om den.
+  sv: En badanka, fast bakom kvarnens gamla staket. Och vakten bara visslade och visslade.
   @whistle
 Y: Blobb can't get through the fence.
   sv: Blobb kommer inte igenom staketet.
 O: No. But water can. The wheels open the spouts, and the levers turn the boards.
-  sv: Nej. Men vatten gör det. Hjulen sätter på vattnet, och spakarna vänder brädorna.
+  sv: Nej. Men vattnet kommer igenom. Hjulen sätter på vattnet, och spakarna vänder brädorna.
 Y: So Blobb moves the water, and the water moves the duck.
   sv: Så Blobb flyttar vattnet, och vattnet flyttar ankan.
 # (hint appears: swim to a wheel or lever, Space to use it, R to start the room again)
@@ -210,7 +210,7 @@ O: The banana threw it straight back in.
 Y: BANANA!
   sv: BANAN!
 O: Grumpiness is catching.
-  sv: Surhet smittar.
+  sv: Det smittar, det där med att vara sur.
 
 
 # TRIGGER: room 2 starts.
@@ -239,14 +239,14 @@ Y: Not in my half. In my half, it can go backwards.
   sv: Inte i min halva. I min halva kan det rinna baklänges.
   @reverse
 O: ...Backwards. Well. Turn a wheel twice and see what it does.
-  sv: ...Baklänges. Nåväl. Vrid ett hjul två gånger och se vad som händer.
+  sv: ...Baklänges. Jaha. Vrid ett hjul två gånger och se vad som händer.
 # (hint appears: a wheel goes off, on, backwards)
 
 
 # TRIGGER: room 3 is solved.
 === hatch ===
 O: Through the hatch went the duck. And Blobb, right behind it.
-  sv: Ut genom luckan for ankan. Och Blobb, tätt efter.
+  sv: Ut genom luckan åkte ankan. Och Blobb tätt efter.
 
 
 # TRIGGER: the player restarts a room (R) for the first time.
@@ -269,7 +269,7 @@ Y: Let's leave them there a while. In the warm bit.
   sv: Vi låter dem vara där en stund. I det varma.
 @pause 1.8
 Y: ...Lost my words. Where was I?
-  sv: ...Tappade orden. Var var jag?
+  sv: ...Jag tappade bort mig. Var var jag?
 O: Watching bubbles, I think. Both of us.
   sv: Vi tittade på bubblor, tror jag. Båda två.
 Y: Where do bubbles go when they pop?

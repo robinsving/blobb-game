@@ -35,7 +35,7 @@ Y: Where had we got to?
   sv: Var var vi någonstans?
 @pause 2.0
 Y: That's your line. You always say that.
-  sv: Det är din replik. Det säger du alltid.
+  sv: Det ska du säga. Det säger du alltid.
 
 # TRIGGER: Blobb has walked a little way.
 === roofs (ambient) ===
@@ -43,7 +43,7 @@ Y: Blobb was running. On the roofs. And then...
   sv: Blobb sprang. På taken. Och sen...
 @pause 2.5
 Y: I don't know the next bit. That's your half.
-  sv: Jag kan inte nästa bit. Det är din halva.
+  sv: Jag kan inte fortsättningen. Det är din halva.
 
 # TRIGGER: a patch of moss drifts past, glowing a little.
 === moss (ambient) ===
@@ -51,7 +51,7 @@ Y: Once, in the days when the moss was still young...
   sv: En gång, på den tiden när mossan fortfarande var ung...
 @pause 2.0
 Y: That's how you start it. You do it better.
-  sv: Det är så du börjar. Du gör det bättre.
+  sv: Så brukar du börja. Du gör det bättre.
 
 # TRIGGER: Y tries a rule. NOTHING happens: no change of light, no effect.
 # The silence after it matters; don't fill it.
@@ -79,7 +79,7 @@ Y: Say something cross back. You always do.
 # TRIGGER: a street lamp from ch3 stands alone on the path, lit.
 === lamp (ambient) ===
 Y: I left the lights on. For you.
-  sv: Jag lät ljusen vara tända. För din skull.
+  sv: Jag lät lamporna vara tända. För din skull.
 
 # TRIGGER: the path has quietly looped; the same stump/lamp comes round again.
 === again (ambient) ===
@@ -87,7 +87,7 @@ Y: We've been here before.
   sv: Här har vi varit förut.
 @pause 2.0
 Y: Blobb's just walking. He doesn't know where. You have to tell him.
-  sv: Blobb bara går. Han vet inte vart. Du måste säga det till honom.
+  sv: Blobb bara går. Han vet inte vart. Du måste berätta för honom.
 
 # TRIGGER: the last stretch. The world goes very quiet and plain.
 # Short lines, long gaps.

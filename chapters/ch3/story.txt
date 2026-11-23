@@ -33,17 +33,17 @@ O: Now. Where had we got to?
 Y: Lights. Lots of them. And you were bringing the night.
   sv: Ljus. Massor av dem. Och du skulle ta med natten.
 O: So I was. The river carried Blobb all the way into town, and the sun went down behind the roofs.
-  sv: Det skulle jag. Floden bar Blobb hela vägen in till stan, och solen gick ner bakom taken.
+  sv: Det skulle jag, ja. Floden bar Blobb hela vägen in till stan, och solen gick ner bakom taken.
   @nightfall
 O: There. One night, as promised. Deep and blue, with the stars put in.
-  sv: Så. En natt, som utlovat. Djup och blå, med stjärnorna på plats.
+  sv: Så där. En natt, som jag lovade. Djupblå, med stjärnor och allt.
 Y: Too dark. My half: lights.
   sv: För mörkt. Min halva: ljus.
   @lamps_on
 Y: There. And there. And THERE.
   sv: Där. Och där. Och DÄR.
 O: One by one, all the way down the street.
-  sv: En efter en, hela gatan ner.
+  sv: En i taget, hela gatan bort.
 Y: Better.
   sv: Bättre.
 # (hint appears: walk)
@@ -53,7 +53,7 @@ Y: Better.
 # O's crack: the colour slips. Settled in ch1 ("He's green!"), now it's forgotten.
 === glow ===
 O: Under the lamps, Blobb's fuzz shone like honey. Gold, all over.
-  sv: Under lyktorna lyste Blobbs ludd som honung. Guld, överallt.
+  sv: Under lyktorna lyste Blobbs ludd som honung. Guld från topp till tå.
   @blobb_yellow
 Y: Wait. Wasn't he green?
   sv: Vänta. Var han inte grön?
@@ -66,7 +66,7 @@ O: Green. Of course he was. I don't know where yellow came from.
   sv: Grön. Naturligtvis var han det. Jag vet inte var det gula kom ifrån.
   @blobb_green
 Y: Green, but shiny. Both.
-  sv: Grön, men glänsande. Båda.
+  sv: Grön, men glansig. Både och.
   @blobb_shine
 
 
@@ -105,7 +105,7 @@ Y: Pigeons. Asleep.
 O: Pigeons sleep standing up, with one eye open.
   sv: Duvor sover stående, med ett öga öppet.
 Y: Shh. Don't wake them.
-  sv: Sch. Väck dem inte.
+  sv: Schh. Väck dem inte.
 
 
 # TRIGGER: Blobb falls into the canal. The scene rewinds to the last checkpoint.
@@ -120,9 +120,9 @@ Y: He jumped further. Much further.
 
 === fail_2 ===
 O: And down he went...
-  sv: Och ner for han...
+  sv: Och ner föll han...
 Y: Up. He went UP. Again.
-  sv: Upp. Han for UPP. Igen.
+  sv: Upp. Han flög UPP. Igen.
 
 === fail_3 ===
 Y: Again!
@@ -157,12 +157,12 @@ O: Up on the roofs, the whole town was lit up below.
 Y: Told you. Lights from up high.
   sv: Vad var det jag sa. Ljus högt uppifrån.
 O: But the roofs had gaps between them. Too wide, even for a super jump.
-  sv: Men det var glipor mellan taken. För breda, till och med för ett superhopp.
+  sv: Men det var långt mellan taken. För långt, till och med för ett superhopp.
 Y: Then the lights help. In my half, light is solid. You can walk on it.
-  sv: Då hjälper ljusen till. I min halva är ljus fast. Man kan gå på det.
+  sv: Då hjälper ljusen till. I min halva är ljuset hårt. Man kan gå på det.
   @solid_light
 O: Solid light. Mind your step on it, then.
-  sv: Fast ljus. Se dig för var du sätter fötterna, då.
+  sv: Hårt ljus. Se var du sätter fötterna, då.
 # (hint appears: cranks turn the lamps)
 
 
@@ -181,7 +181,7 @@ O: The last roof. Three lamps, walls in the way, and a long way down.
 Y: Light goes through walls.
   sv: Ljus går igenom väggar.
 O: It doesn't, you know.
-  sv: Det gör det inte, vet du.
+  sv: Nej, det gör det faktiskt inte.
 Y: ...Fine. Climb over them, then.
   sv: ...Okej. Klättra över dem, då.
 
@@ -203,7 +203,7 @@ O: And up on the roofs, the birds were...
   sv: Och uppe på taken höll fåglarna på att...
 @pause 2.2
 Y: The birds were what?
-  sv: Fåglarna höll på att vad?
+  sv: Höll på att vad?
 @pause 1.6
 Y: ...Waking up. The birds were waking up.
   sv: ...Vakna. Fåglarna höll på att vakna.
@@ -247,7 +247,7 @@ Y: What's that noise?
 
 === chase_6 (ambient) ===
 Y: What is going on?
-  sv: Vad är det som pågår?
+  sv: Vad är det här?
 
 === chase_7 (ambient) ===
 Y: Why is it so fast?
@@ -270,7 +270,7 @@ Y: Again. ...Again.
 
 === chase_fail_3 (ambient) ===
 Y: Not like that. Tell it right.
-  sv: Inte så. Berätta rätt.
+  sv: Inte så. Berätta det rätt.
 
 # TRIGGER: the last roof. The hospital (blue H sign, helipad) fills the view.
 # Silence after this: the beeps stop, a slow fade to white, then the chapter card.

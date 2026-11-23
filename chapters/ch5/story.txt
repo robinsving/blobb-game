@@ -45,7 +45,7 @@ O: ...Where...
 O: ...had...
   sv: ...var vi...
 Y: ...had we got to. That's your line. You're back.
-  sv: ...någonstans. Det är din replik. Du är tillbaka.
+  sv: ...någonstans. Det är du som brukar säga det. Du är tillbaka.
 @pause 1.5
 O: Was I... away?
   sv: Var jag... borta?
@@ -55,7 +55,7 @@ O: ...Good of him.
   sv: ...Hyggligt av honom.
 @pause 1.0
 O: And he was... where?
-  sv: Och han var... var?
+  sv: Och han var... var någonstans?
 Y: At the foot of the mountain. Where you left him.
   sv: Vid foten av berget. Där du lämnade honom.
 O: A mountain. Yes. ...Tall. And very dark.
@@ -74,12 +74,12 @@ Y: Better.
 # beat, unevenly.
 === heartbeat (ambient) ===
 Y: Listen. The mountain has a heartbeat.
-  sv: Lyssna. Berget har hjärtslag.
+  sv: Lyssna. Berget har ett hjärta som slår.
 @pause 1.5
 O: ...An uneven one.
-  sv: ...Ett ojämnt.
+  sv: ...Lite ojämnt.
 Y: Then stand on it and wait for the beat.
-  sv: Då ställer man sig på den och väntar på slaget.
+  sv: Då ställer man sig där och väntar på slaget.
 
 
 # TRIGGER: a patch of moss on a ledge (the same glowing moss as ch4).
@@ -92,7 +92,7 @@ Y: ...when the moss was still young. I know it now.
 O: You do it better.
   sv: Du gör det bättre.
 Y: I don't. I just remembered it.
-  sv: Nix. Jag kom bara ihåg den.
+  sv: Nej då. Jag kom bara ihåg den.
 
 
 # TRIGGER: higher up the foot. O's first joke: the ch1 colour mix-up,
@@ -119,17 +119,17 @@ O: No.
 # beat. A glowing root hangs above it. Blocking: O's first rule.
 === rule ===
 Y: Too high. Even on the beat.
-  sv: För högt. Även i takt.
+  sv: För högt. Även på slaget.
 O: Then... in my half...
   sv: Då... i min halva...
 @pause 1.5
 O: In my half, Blobb is a good deal longer than he looks.
-  sv: I min halva är Blobb betydligt längre än han ser ut.
+  sv: I min halva är Blobb mycket längre än han ser ut.
   @stretch
 Y: That's a rule. You made a RULE.
   sv: Det där är en regel. Du hittade på en REGEL.
 O: Somebody has to, now and then.
-  sv: Någon måste ju, då och då.
+  sv: Någon måste ju göra det ibland.
 Y: That's MY job.
   sv: Det är MITT jobb.
 O: Half each.
@@ -141,7 +141,7 @@ O: Half each.
 Y: He's like a sock with a stone in it.
   sv: Han är som en strumpa med en sten i.
 O: A very determined sock.
-  sv: En mycket beslutsam strumpa.
+  sv: En mycket bestämd strumpa.
 
 
 # TRIGGER: the end of the middle stretch. The beat is regular now.
@@ -150,7 +150,7 @@ Y: It's beating properly now. Hear it?
   sv: Nu slår det ordentligt. Hör du?
 @pause 1.0
 O: I hear it.
-  sv: Jag hör.
+  sv: Jag hör det.
 
 
 # ---------------------------------------------------------------------
@@ -160,11 +160,11 @@ O: I hear it.
 # TRIGGER: the high stretch starts. The holds up here are low stars.
 === stars (ambient) ===
 O: Up here the stars hang so low you could hang a coat on one.
-  sv: Här uppe hänger stjärnorna så lågt att man kunde hänga en rock på dem.
+  sv: Här uppe hänger stjärnorna så lågt att man nästan når dem.
 Y: Blobb hasn't got a coat.
-  sv: Blobb har ingen rock.
+  sv: Blobb når dem.
 O: Then he'll have to swing from one instead.
-  sv: Då får han väl svinga sig i en i stället.
+  sv: Då får han väl hänga i en.
 
 
 # TRIGGER: the pigeons from ch3 fly up alongside (friendly now; they
@@ -189,9 +189,9 @@ Y: Where do stories go when they end?
 O: Up. Into the air. Everywhere, a little.
   sv: Upp. Ut i luften. Lite överallt.
 Y: That's what you said about bubbles.
-  sv: Det sa du om bubblor.
+  sv: Det sa du om bubblorna.
 O: It's true of most things.
-  sv: Det stämmer på det mesta.
+  sv: Det gäller det mesta.
 @pause 2.0
 Y: In my half, this one doesn't end yet.
   sv: I min halva tar den här inte slut än.
@@ -220,7 +220,7 @@ O: ...In mine too.
 Y: It worked.
   sv: Det funkade.
 O: It took both halves.
-  sv: Det krävdes båda halvorna.
+  sv: Det behövdes båda halvorna.
 Y: It always does.
   sv: Det gör det alltid.
 
@@ -248,7 +248,7 @@ Y: ...The other side of the forest.
 Y: He didn't fall!
   sv: Han ramlade inte!
 O: He didn't. I'd remember.
-  sv: Nej. Det skulle jag minnas.
+  sv: Nej. Det skulle jag komma ihåg.
 Y: You'd forget.
   sv: Du skulle glömma.
 O: Not that.
@@ -260,7 +260,7 @@ O: And then Blobb fell all the way down to...
 Y: Nope.
   sv: Nix.
 O: ...to a slightly lower ledge. And climbed straight back up.
-  sv: ...till en lite lägre avsats. Och klättrade genast upp igen.
+  sv: ...till en lite lägre avsats. Och klättrade upp igen direkt.
 Y: Better.
   sv: Bättre.
 
@@ -272,9 +272,9 @@ O: Mountains have a great deal to answer for.
 
 === fail_4 (ambient) ===
 O: Again. From the last good bit.
-  sv: Igen. Från senaste bra biten.
+  sv: Igen. Från sista bra biten.
 Y: The last good bit was ALL of it.
-  sv: Senaste bra biten var ALLTIHOP.
+  sv: Sista bra biten var ALLTIHOP.
 
 
 # =====================================================================
