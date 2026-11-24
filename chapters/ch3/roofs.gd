@@ -181,6 +181,7 @@ func _solved() -> void:
 # ================================================================ room building
 
 func _load_room(i: int) -> void:
+	Game.checkpoint(i + 1 if i > 0 else -1)  # a save point: Continue starts on this roof
 	room_i = i
 	_room_gen += 1
 	for n in [_room_node, _beam_node, _overlay, _beam_bodies]:

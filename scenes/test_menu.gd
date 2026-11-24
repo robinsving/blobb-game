@@ -98,6 +98,7 @@ func _ready() -> void:
 
 func _start(path: String, at: int) -> void:
 	queue_free()
+	Game.testing = true  # a test run never touches the player's save point
 	Game.start_at(path, at)
 
 

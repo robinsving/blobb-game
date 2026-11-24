@@ -130,6 +130,7 @@ func fx_pancake() -> void:
 # ================================================================ rooms
 
 func _load_room(i: int) -> void:
+	Game.checkpoint(i + 1 if i > 0 else -1)  # a save point: Continue starts in this room
 	room = i
 	for c in get_children():
 		if c != fx:

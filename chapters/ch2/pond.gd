@@ -62,12 +62,12 @@ func _ready() -> void:
 	_build_world()
 	LevelKit.drip_loop(self)
 	if Game.warp >= 0:
-		_debug_warp(Game.warp)
+		_warp_to(Game.warp)
 	else:
 		_intro()
 
 
-func _debug_warp(col: int) -> void:
+func _warp_to(col: int) -> void:
 	_fired["splash"] = true
 	fx_pond_clear()
 	for c in TRIGGERS:
@@ -505,7 +505,10 @@ func _fish(f: Array) -> void:
 	add_child(fish)
 	fish.connect("bumped", func(body):
 		if body == player:
-			player.knockback(fish.global_position.x))
+			player.knockback(fish.global_position.x)
+			player.sprite.bristle()  # he goes prickly, the fish darts off: nobody is hurt
+			fish.startle(player.global_position.x)
+			Game.sfx("pop", -8.0, 0.8))
 
 
 func _checkpoint_pos(col: int) -> Vector2:

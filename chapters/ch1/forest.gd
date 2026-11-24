@@ -43,12 +43,12 @@ func _ready() -> void:
 	Game.music("res://assets/audio/music_forest.ogg", -16.0)
 	_build_world()
 	if Game.warp >= 0:
-		_debug_warp(Game.warp)
+		_warp_to(Game.warp)
 	else:
 		_intro()
 
 
-func _debug_warp(col: int) -> void:
+func _warp_to(col: int) -> void:
 	player.visible = true
 	player.jump_velocity = PlayerSide.STRONG_JUMP
 	pass

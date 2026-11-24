@@ -18,9 +18,13 @@ const STRIPS := {
 	# the big story-unlocked jump: he crouches, then stretches into a long tilted oval
 	# (tools/key_superjump.py; like the little flying Blobb in the original drawing)
 	"superjump": ["res://assets/sprites/blobb_superjump.png", 20.0, false],
+	# animated forms (tools/key_form.py): when one exists, set_form() plays it instead of the drawing
+	"grumpy": ["res://assets/sprites/blobb_grumpy.png", 24.0, true],
+	"dash": ["res://assets/sprites/blobb_dash.png", 32.0, true],
 }
 ## Forms taken straight from the child's drawing (tools/cut_drawing.py). While a form is
-## shown, the animated strips are hidden and the drawn figure breathes gently instead.
+## shown, the animated strips are hidden and the drawn figure breathes gently instead
+## (or, if STRIPS has an animation with the form's name, that plays instead of the drawing).
 const FORMS := {
 	"grumpy": "res://assets/sprites/drawn_grumpy.png",   # spiky dark crown, angry brows, jagged teeth
 	"blue": "res://assets/sprites/drawn_blue.png",       # blue, open-mouthed (ch2: pair with set_tint(BLUE))
@@ -39,6 +43,8 @@ var facing_left := false
 var _mat: ShaderMaterial
 var _tint_tween: Tween
 var _drawn: Sprite2D
+var _anim: AnimatedSprite2D  # an animated form (a strip in STRIPS with the form's name)
+var _bristles := 0  # counts bristle() calls, so only the latest one turns him back
 var _t := 0.0
 
 
@@ -86,10 +92,24 @@ func set_form(new_form: String) -> void:
 		push_warning("BlobbSprite.set_form: no form " + new_form)
 		return
 	form = new_form
+	if _drawn:
+		_drawn.visible = false
+	if _anim:
+		_anim.visible = false
 	if new_form == "normal":
-		if _drawn:
-			_drawn.visible = false
 		self_modulate.a = 1.0
+	elif sprite_frames.has_animation(new_form):
+		if not _anim:
+			_anim = AnimatedSprite2D.new()
+			_anim.sprite_frames = sprite_frames
+			_anim.use_parent_material = true
+			add_child(_anim)
+		_anim.visible = true
+		_anim.play(new_form)
+		self_modulate.a = 0.0
+		var tw := create_tween()
+		_anim.scale = Vector2(1.3, 0.7)
+		tw.tween_property(_anim, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
 		if not _drawn:
 			_drawn = Sprite2D.new()
@@ -109,6 +129,19 @@ func set_form(new_form: String) -> void:
 		tw.tween_property(_drawn, "scale", Vector2(k, k), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## A knock makes him prickly for a moment (the grumpy form), then he's himself again. Spikes are
+## his stubbornness, never a weapon: whatever knocked him (a fish, the banana) is not hurt.
+func bristle(secs := 1.2) -> void:
+	if form != "normal" and form != "grumpy":
+		return  # a story form (blue, dash, ...) stays as the story set it
+	_bristles += 1
+	var mine := _bristles
+	set_form("grumpy")
+	await get_tree().create_timer(secs).timeout
+	if mine == _bristles and form == "grumpy":
+		set_form("normal")
+
+
 ## Turn Blobb toward dir (< 0 left, > 0 right; 0 keeps his facing).
 func face(dir: float) -> void:
 	if dir != 0.0:
@@ -121,6 +154,8 @@ func _apply_facing() -> void:
 	flip_h = facing_left == FACES_RIGHT.has(animation)
 	if _drawn:
 		_drawn.flip_h = facing_left == FACES_RIGHT.has(form)
+	if _anim:
+		_anim.flip_h = facing_left == FACES_RIGHT.has(form)
 
 
 func _process(delta: float) -> void:

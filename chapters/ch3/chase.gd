@@ -58,6 +58,7 @@ var _retelling := false      # between a hit and the restart: the clock stops
 var _checkpoint := 0.0
 var _fired := {}
 var _squash := 1.0
+var _spikes := 0.0            # 0..1: he bristles when he hits something (see _bristle)
 var _t := 0.0
 var _ball: Texture2D
 var _pigeon_tex: Texture2D
@@ -232,6 +233,9 @@ func _tick(prev: float, now: float, _db: float) -> void:
 	if w > _last_whole and now >= prev:
 		_last_whole = w
 		_on_beat(w)
+		# a save point at each roof's start (warp N starts on the roof that began before beat N)
+		var cp := _checkpoint_for(now)
+		Game.checkpoint(ceili(cp) + 1 if cp > 0.0 else -1)
 	if floori(now - 0.5) != floori(prev - 0.5) and now > prev:
 		_on_offbeat(w)
 
@@ -311,6 +315,7 @@ func _move(delta: float, db: float) -> void:
 		if z > o["z0"] - 0.2 and z < o["z1"] + 0.2 and absf(_x - o["lane"]) < 0.45 and _h < o["top"] - 0.05:
 			o["gone"] = _t  # it breaks apart (see _draw_obstacle) and stays gone after the restart
 			Game.sfx("bonk", -6.0, 0.8 if o["kind"] == "chimney" else 1.2)
+			_bristle()
 			_fail("chimney" if o["kind"] == "chimney" else "vent")
 			return
 	# the birds: the shadow appears two beats ahead, aimed at Blobb's lane; then the dive
@@ -328,6 +333,7 @@ func _move(delta: float, db: float) -> void:
 			var base: float = roof_h if roof != null else 0.0
 			if absf(_x - d["lane"]) < 0.6 and _h < base + 0.7 and not auto:
 				d["gone"] = true  # this bird doesn't dive again after the restart
+				_bristle()  # the bird only gets a fright and flies off
 				_fail("bird")
 				return
 	if _beat >= END_BEAT and not _ended:
@@ -381,6 +387,17 @@ func _fail(why: String) -> void:
 	camera.position = _proj(0, _beat * BEAT_LEN + 3.0, 0)
 	camera.reset_smoothing()
 	_retelling = false
+
+
+## He goes prickly as he hits something, like the grumpy Blobb in the forest: that's why a
+## chimney or vent breaks apart. The spikes are gone again before he starts over.
+func _bristle() -> void:
+	Game.sfx("pop", -8.0, 0.8)
+	_spikes = 0.0
+	var tw := create_tween()
+	tw.tween_property(self, "_spikes", 1.0, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.25 if Game.fast else RETELL_SECS * 0.45)
+	tw.tween_property(self, "_spikes", 0.0, 0.2 if Game.fast else RETELL_SECS * 0.4)
 
 
 func _end() -> void:
@@ -702,10 +719,28 @@ func _draw_blobb() -> void:
 	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95))
 	# body
 	_world.draw_set_transform(center, sin(_t * 9.0) * 0.04, sq)
+	if _spikes > 0.01:  # behind the fuzz, so they grow out of him
+		_draw_spikes(r)
 	_world.draw_texture_rect(_ball, Rect2(-r * 1.15, -r * 1.15, r * 2.3, r * 2.3), false)
 	# no face: he runs away from the camera (into the screen), so we see the back of him.
 	# A face here made him look like he was running backwards.
 	_world.draw_set_transform(Vector2.ZERO)
+
+
+## The grumpy form's spikes (dark brown crayon cones, as in the drawing), round the top of him,
+## in his body's transform.
+func _draw_spikes(r: float) -> void:
+	var dark := Color(0.3, 0.18, 0.09)
+	var light := Color(0.52, 0.34, 0.18)
+	for i in 9:
+		var a := lerpf(PI * 1.08, PI * 1.92, i / 8.0)  # from left round the top to right
+		var dir := Vector2(cos(a), sin(a))
+		var side := Vector2(-dir.y, dir.x)
+		var base := dir * r * 0.9
+		var tip := dir * r * (0.95 + 0.5 * _spikes * (1.0 + 0.15 * sin(i * 2.3)))
+		var w := r * 0.17
+		_world.draw_colored_polygon(PackedVector2Array([base - side * w, tip, base + side * w]), dark)
+		_world.draw_colored_polygon(PackedVector2Array([base, tip, base + side * w]), light)
 
 
 func _draw_hospital() -> void:

@@ -19,6 +19,13 @@ signal locale_changed
 signal input_device_changed
 
 const SAVE_PATH := "user://save.cfg"
+## Exists while the game runs; a clean quit() removes it. Still there at start = the last run
+## ended without quit() (a crash), and the title screen says so next to "Continue".
+const SESSION_PATH := "user://session.cfg"
+const TITLE := "res://scenes/title.tscn"
+## Where each chapter starts (Continue goes here once the chapter before it is finished).
+const CHAPTER_STARTS := ["", "res://chapters/ch1/forest.tscn", "res://chapters/ch2/pond.tscn",
+	"res://chapters/ch3/city.tscn", "res://chapters/ch4/dream.tscn", "res://chapters/ch5/climb.tscn"]
 const LOCALES := ["en", "sv"]
 
 var locale := "en"
@@ -49,6 +56,8 @@ const UI := {
 	"quit": {"en": "Quit", "sv": "Avsluta"},
 	"resume": {"en": "Resume", "sv": "Fortsätt"},
 	"to_title": {"en": "Back to title", "sv": "Till startskärmen"},
+	"continue_game": {"en": "Continue", "sv": "Fortsätt"},
+	"crashed": {"en": "The game closed unexpectedly last time. Continue takes you back to where you were.", "sv": "Spelet stängdes oväntat förra gången. Fortsätt tar dig tillbaka dit du var."},
 	"paused": {"en": "Paused", "sv": "Paus"},
 	"hint_move": {"en": "← → to move", "sv": "← → för att gå"},
 	"hint_jump": {"en": "{jump} to jump", "sv": "{jump} för att hoppa"},
@@ -102,6 +111,15 @@ var _shot_dir := ""
 var _shot_timer := 0.0
 var _shot_n := 0
 var _transitioning := false
+## The save point: the scene being played and where in it (the same numbers as --warp: a checkpoint
+## column, a room, a beat or a section; -1 = its start). Empty scene = nothing to continue.
+var progress_scene := ""
+var progress_at := -1
+## The last run ended without quit() (set at start, from SESSION_PATH).
+var crashed_last_time := false
+## A test run (--scene, --warp, --autoplay, --shots, --moves, --quit-after-secs, a --script test,
+## a gda session, or the F1 test menu): it never touches the player's save point or the crash marker.
+var testing := false
 
 
 func _ready() -> void:
@@ -110,6 +128,7 @@ func _ready() -> void:
 	_setup_input()
 	_load()
 	_parse_args()
+	_start_session()
 	_fade_layer = CanvasLayer.new()
 	_fade_layer.layer = 55  # below Narrator (60) so lines can play over black
 	add_child(_fade_layer)
@@ -131,7 +150,12 @@ func _ready() -> void:
 
 
 func _parse_args() -> void:
+	if "--script" in OS.get_cmdline_args() or "-s" in OS.get_cmdline_args() or ProjectSettings.has_setting("autoload/GdaHarness"):
+		testing = true  # a headless test script, or a gda session
 	for a in OS.get_cmdline_user_args():
+		for t_flag in ["--scene=", "--warp=", "--autoplay", "--shots=", "--moves=", "--quit-after-secs="]:
+			if a.begins_with(t_flag):
+				testing = true
 		if a == "--fast":
 			fast = true
 		elif a == "--autoplay":
@@ -155,6 +179,16 @@ func _parse_args() -> void:
 
 func _goto_on_start(path: String) -> void:
 	get_tree().change_scene_to_file(path)
+
+
+## Notes whether the last run crashed, then marks this one as running (until quit()).
+func _start_session() -> void:
+	crashed_last_time = FileAccess.file_exists(SESSION_PATH)
+	if testing:
+		return
+	var f := FileAccess.open(SESSION_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(Time.get_datetime_string_from_system())
 
 
 func _process(delta: float) -> void:
@@ -243,6 +277,8 @@ func sfx(sound: String, volume_db := 0.0, pitch := 1.0) -> void:
 ## Quits cleanly: frees the level (and the coroutines waiting in it) and lets go of the music
 ## a couple of frames before the engine shuts down, so nothing is reported leaked at exit.
 func quit() -> void:
+	if not testing:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SESSION_PATH))  # a clean exit
 	Narrator.clear()
 	for p: Node in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
 		(p as AudioStreamPlayer).stop()
@@ -308,6 +344,8 @@ func go(path: String, color := Color.BLACK, dur := 0.7) -> void:
 	control_locked = false
 	get_tree().paused = false
 	warp = _next_warp  # a warp only ever applies to the scene it was asked for
+	if path != TITLE:
+		_set_progress(path, warp)  # a new scene (or a chapter begun again) is the new save point
 	_next_warp = -1
 	get_tree().change_scene_to_file(path)
 	await get_tree().process_frame
@@ -366,23 +404,66 @@ func toggle_pause() -> void:
 
 # ---------------------------------------------------------------- save
 
+## A chapter is finished: chapter n opens, and Continue now starts it (after the last one,
+## n = 6, there is nothing left to continue).
 func unlock_chapter(n: int) -> void:
-	unlocked_chapter = maxi(unlocked_chapter, n)
+	unlocked_chapter = maxi(unlocked_chapter, mini(n, CHAPTER_STARTS.size() - 1))
+	progress_scene = CHAPTER_STARTS[n] if n < CHAPTER_STARTS.size() else ""
+	progress_at = -1
 	save()
 
 
+## The player reached a save point in the current scene (a checkpoint column, a room, ...:
+## the number its --warp takes). Saved at once, so a crash loses only what came after it.
+func checkpoint(at: int) -> void:
+	var path := get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
+	if path != "" and path != TITLE and (path != progress_scene or at != progress_at):
+		_set_progress(path, at)
+
+
+## Continue: back to the save point.
+func continue_game() -> void:
+	if progress_scene != "" and ResourceLoader.exists(progress_scene):
+		start_at(progress_scene, progress_at)
+
+
+func _set_progress(path: String, at: int) -> void:
+	progress_scene = path
+	progress_at = at
+	save()
+
+
+## Writes the save file safely: to a temporary file first, then renamed over the old one, so a
+## crash in the middle of saving never leaves a broken save. A test run only saves the language.
 func save() -> void:
 	var cf := ConfigFile.new()
+	var old := ConfigFile.new()
+	old.load(SAVE_PATH)
 	cf.set_value("game", "locale", locale)
-	cf.set_value("game", "unlocked_chapter", unlocked_chapter)
-	cf.save(SAVE_PATH)
+	cf.set_value("game", "unlocked_chapter", unlocked_chapter if not testing else old.get_value("game", "unlocked_chapter", 1))
+	if testing:
+		for k in ["scene", "at"]:
+			if old.has_section_key("progress", k):
+				cf.set_value("progress", k, old.get_value("progress", k))
+	elif progress_scene != "":
+		cf.set_value("progress", "scene", progress_scene)
+		cf.set_value("progress", "at", progress_at)
+	var tmp := SAVE_PATH + ".tmp"
+	if cf.save(tmp) == OK:
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(SAVE_PATH))
 
 
 func _load() -> void:
 	var cf := ConfigFile.new()
-	if cf.load(SAVE_PATH) == OK:
-		locale = cf.get_value("game", "locale", "en")
-		unlocked_chapter = cf.get_value("game", "unlocked_chapter", 1)
+	if cf.load(SAVE_PATH) != OK and cf.load(SAVE_PATH + ".tmp") != OK:  # .tmp: a save cut off just before its rename
+		TranslationServer.set_locale(locale)
+		return
+	locale = cf.get_value("game", "locale", "en")
+	unlocked_chapter = cf.get_value("game", "unlocked_chapter", 1)
+	progress_scene = cf.get_value("progress", "scene", "")
+	progress_at = cf.get_value("progress", "at", -1)
+	if progress_scene != "" and not ResourceLoader.exists(progress_scene):
+		progress_scene = ""
 	TranslationServer.set_locale(locale)
 
 

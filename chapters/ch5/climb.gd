@@ -99,7 +99,7 @@ func _ready() -> void:
 			_tex[n] = load(ART + n + ".png")
 	_build_world()
 	if Game.warp >= 0:
-		_debug_warp(clampi(Game.warp, 0, WARPS.size() - 1))
+		_warp_to(clampi(Game.warp, 0, WARPS.size() - 1))
 	else:
 		_intro()
 
@@ -179,7 +179,7 @@ func _solid(r: Array, one_way: bool) -> void:
 	LevelKit.solid(self, Rect2(r[0], r[2], r[1] - r[0], bottom - r[2]), one_way)
 
 
-func _debug_warp(i: int) -> void:
+func _warp_to(i: int) -> void:
 	var p: Vector2 = WARPS[i]
 	for y in TRIGGERS:
 		if y > p.y + 5:
@@ -252,9 +252,20 @@ func _fail() -> void:
 	_retelling = false
 
 
+## A save point per section (the --warp numbers): the highest one he has stood above.
+## Section 0 is the start, where Continue plays the intro again.
+func _save_section() -> void:
+	var i := WARPS.size() - 1
+	while i > 0 and player.position.y > WARPS[i].y + 5.0:
+		i -= 1
+	if i > 0 and i > Game.progress_at:
+		Game.checkpoint(i)
+
+
 ## The top: the morning rule works, because both halves say it. Then the room, and the end.
 func _summit() -> void:
 	_done = true
+	Game.unlock_chapter(6)  # the story is finished: nothing left to continue
 	rig.release()
 	Game.control_locked = true
 	player.velocity = Vector2.ZERO
@@ -428,6 +439,7 @@ func _physics_process(delta: float) -> void:
 	rig.update(delta)
 	if player.is_on_floor() and rig.standing_heart < 0 and rig.hold < 0:
 		_safe = player.position
+		_save_section()
 	if player.position.y > _safe.y + FALL and rig.hold < 0:
 		_fail()
 		return

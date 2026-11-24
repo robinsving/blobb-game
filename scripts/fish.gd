@@ -1,5 +1,6 @@
 extends Node2D
 ## A silly fish that swims back and forth between from_x and to_x and bumps Blobb on contact.
+## When he bristles at it, it turns tail and darts off for a moment (startle()).
 
 signal bumped(body: Node2D)
 
@@ -11,6 +12,7 @@ var _dir := 1.0
 var _t := 0.0
 var _sprite: Sprite2D
 var _base_y := 0.0
+var _dart := 0.0  # seconds of fleeing left: faster, and a little wiggle
 
 
 func _ready() -> void:
@@ -32,11 +34,18 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	position.x += _dir * speed * delta
+	_dart = maxf(_dart - delta, 0.0)
+	position.x += _dir * speed * (1.0 + 1.8 * minf(_dart, 1.0)) * delta
 	if position.x > to_x:
 		_dir = -1.0
 	elif position.x < from_x:
 		_dir = 1.0
 	_sprite.flip_h = _dir < 0.0  # the art faces right
 	position.y = _base_y + sin(_t * 2.0) * 10.0
-	_sprite.rotation = sin(_t * 6.0) * 0.06
+	_sprite.rotation = sin(_t * (6.0 + 14.0 * minf(_dart, 1.0))) * 0.06
+
+
+## Blobb went prickly at it: turn away from him and dart off.
+func startle(from_x: float) -> void:
+	_dir = signf(position.x - from_x) if position.x != from_x else -_dir
+	_dart = 1.2

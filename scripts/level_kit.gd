@@ -31,14 +31,18 @@ static func story_columns(level: Node, who: Node, triggers: Dictionary, fired: D
 
 
 ## Checkpoints by column: when `who` walks into one, `reached` is called with `spot.call(col)`
-## (where he comes back after a retell). Not while `paused` returns true.
+## (where he comes back after a retell), and the game is saved there (Game.checkpoint: Continue
+## starts at that column; not the first one, where he starts anyway, so the intro isn't skipped).
+## Not while `paused` returns true.
 static func checkpoint_columns(level: Node, who: Node, cols: Array, tile: float, height: float,
 		spot: Callable, reached: Callable, paused := func() -> bool: return false) -> void:
 	for col in cols:
 		var pos: Vector2 = spot.call(col)
 		column_area(level, col, tile, height).body_entered.connect(func(b: Node) -> void:
 			if b == who and not paused.call():
-				reached.call(pos))
+				reached.call(pos)
+				if col != cols[0]:
+					Game.checkpoint(col))
 
 
 ## A solid block in pixels (`one_way`: only stood on from above).
@@ -107,10 +111,10 @@ static func follow_camera(who: Node, size: Vector2, smoothing := 5.0, top := 0.0
 
 ## Drips now and then for as long as `level` is in the tree (the pond and the mill).
 static func drip_loop(level: Node) -> void:
-	while level.is_inside_tree():
+	while is_instance_valid(level) and level.is_inside_tree():
 		await level.get_tree().create_timer(randf_range(2.5, 5.0)).timeout
-		if not level.is_inside_tree():
-			return
+		if not is_instance_valid(level) or not level.is_inside_tree():
+			return  # the level was left (and freed) while waiting
 		Game.sfx("drip", -20.0, randf_range(0.95, 1.05))
 
 

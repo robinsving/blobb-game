@@ -352,6 +352,7 @@ func _build_scenery() -> void:
 
 
 func _load_room(i: int) -> void:
+	Game.checkpoint(i + 1 if i > 0 else -1)  # a save point: Continue starts in this room
 	room_i = i
 	_room_gen += 1
 	_room_time = 0.0

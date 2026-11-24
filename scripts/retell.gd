@@ -21,6 +21,8 @@ static func tell(level: Node, story: StoryScript, fx: StyleFX, who: BlobbBody, a
 	else:
 		await story.play("fail_%d" % (count % 4 + 1), level)
 		told = true
+	if not is_instance_valid(who):
+		return told  # the level was left mid-retell (a static func keeps running after it's freed)
 	clear(s)
 	who.visible = true
 	who.sprite.flash(0.6)

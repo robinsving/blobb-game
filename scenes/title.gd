@@ -7,6 +7,7 @@ const CH3 := "res://chapters/ch3/city.tscn"
 const CH4 := "res://chapters/ch4/dream.tscn"
 const CH5 := "res://chapters/ch5/climb.tscn"
 
+var _continue: Button
 var _begin: Button
 var _lang: Button
 var _quit: Button
@@ -15,6 +16,7 @@ var _ch3: Button
 var _ch4: Button
 var _ch5: Button
 var _blobb: BlobbSprite
+var _notice: Label  # "the game closed unexpectedly last time", after a crash
 var _t := 0.0
 var _blobb_y := 600.0
 
@@ -70,6 +72,8 @@ func _ready() -> void:
 	box.position = Vector2(190, 430)  # room for five chapters
 	box.add_theme_constant_override("separation", -10)  # seven rows must fit under the title
 	add_child(box)
+	if Game.progress_scene != "":
+		_continue = _button(box, "continue_game", Game.continue_game)
 	_begin = _button(box, "begin", func(): Game.go(CH1))
 	if Game.unlocked_chapter >= 2:
 		_ch2 = _button(box, "chapter_2_btn", func(): Game.go(CH2))
@@ -90,7 +94,17 @@ func _ready() -> void:
 		b.add_theme_color_override("font_hover_color", Color(0.75, 0.3, 0.1))
 	(func():
 		if _begin.is_inside_tree():  # --scene= replaces the title within its first frame
-			_begin.grab_focus()).call_deferred()
+			(_continue if _continue else _begin).grab_focus()).call_deferred()
+	if Game.crashed_last_time and _continue:
+		_notice = Label.new()
+		_notice.add_theme_font_override("font", Fonts.hand())
+		_notice.add_theme_font_size_override("font_size", 30)
+		_notice.add_theme_color_override("font_color", Color(0.55, 0.3, 0.15))
+		_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_notice.position = Vector2(470, 448)  # beside Continue
+		_notice.size = Vector2(560, 80)
+		_notice.text = Game.t("crashed")
+		add_child(_notice)
 
 	var fx := StyleFX.new()
 	fx.set_look("crayon", 0.0)
@@ -98,7 +112,7 @@ func _ready() -> void:
 
 
 func _button(parent: Node, key: String, cb: Callable) -> Button:
-	var b := Fonts.menu_button(Game.t(key), 64)
+	var b := Fonts.menu_button(Game.t(key), 56 if Game.progress_scene != "" else 64)  # one row more with Continue
 	b.set_meta("key", key)
 	b.pressed.connect(cb)
 	parent.add_child(b)
@@ -106,12 +120,14 @@ func _button(parent: Node, key: String, cb: Callable) -> Button:
 
 
 func _buttons() -> Array:
-	return [_begin, _ch2, _ch3, _ch4, _ch5, _lang, _quit].filter(func(b): return b != null)
+	return [_continue, _begin, _ch2, _ch3, _ch4, _ch5, _lang, _quit].filter(func(b): return b != null)
 
 
 func _refresh() -> void:
 	for b in _buttons():
 		b.text = Game.t(b.get_meta("key"))
+	if _notice:
+		_notice.text = Game.t("crashed")
 
 
 ## F1 opens the test menu (every scene, and spots inside them).
