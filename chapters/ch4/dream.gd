@@ -4,7 +4,8 @@ extends Node2D
 ## chapters (moss, a crate, the rubber duck, a ch3 street lamp, which comes round twice: the
 ## path loops) -> Y tries a rule and nothing happens -> "...Dad?" / "Wake up." -> the mist
 ## thins onto the mountain -> a short, simple climb (O climbing back to consciousness): the
-## monitor beep comes back, faint and uneven at the foot, slow and even at the top -> card.
+## monitor beep comes back, faint and very uneven at the foot, steadier towards the top, but still a
+## little uneven when chapter 5 takes over (it carries on there, and evens out as Blobb climbs).
 ## No pits, no hazards, no retells. The world drifts between looks and never settles, until
 ## the mountain, which is clear. Dialogue: chapters/ch4/story.txt. Art: assets/gen/ch4/
 ## (optional; everything has a drawn fallback).
@@ -109,10 +110,9 @@ func _reach_top() -> void:
 	_climbing = false
 	Game.control_locked = true
 	Game.unlock_chapter(5)
-	# a few seconds of the slow, even beep: that's the answer. Nobody speaks.
+	# a few seconds of the slower, almost even beep. Nobody speaks.
 	await get_tree().create_timer(1.5 if Game.fast else 7.0).timeout
-	await ChapterCard.closing(self, "chapter_end_4", Color(0.4, 0.4, 0.5), Color(0.93, 0.92, 0.97), 2.0, 4.0)
-	Game.go("res://scenes/title.tscn", Color(0.93, 0.92, 0.97), 1.5)
+	Game.go("res://chapters/ch5/climb.tscn", Color.BLACK, 2.5)  # into the black chapter 5 starts in
 
 
 # ================================================================ per frame
@@ -136,15 +136,16 @@ func _process(delta: float) -> void:
 		_reach_top()
 
 
-## The monitor beep on the climb: faint and uneven at the foot, slow and even at the top.
+## The monitor beep on the climb: faint and very uneven at the foot, at the top only a little
+## uneven, the same beat chapter 5 starts with (climb.gd EVEN, SLIGHT).
 func _beep(delta: float) -> void:
 	var p := 1.0 if _done else clampf((_foot_y - player.position.y) / ((GROUND_ROW - LEDGES[-1][2]) * TILE), 0.0, 1.0)
 	_beep_clock -= delta
 	if _beep_clock > 0.0:
 		return
-	var even := 1.1
+	var slight := 0.95 * randf_range(0.8, 1.35)
 	var uneven := randf_range(1.2, 3.2)
-	_beep_clock = lerpf(uneven, even, p)
+	_beep_clock = lerpf(uneven, slight, p)
 	Game.sfx("monitor", lerpf(-34.0, -13.0, p))  # the monitor beep (tools/gen_monitor.py)
 
 

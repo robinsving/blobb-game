@@ -18,8 +18,9 @@ static func breath(parent: Node) -> void:
 	await parent.get_tree().create_timer(0.2 if Game.fast else 0.8).timeout
 
 
-## The closing line ("End of chapter one."), on `bg` faded in over `bg_in` s. It stays up:
-## the level goes to the title screen afterwards.
+## The closing line of the whole story ("The end."), on `bg` faded in over `bg_in` s. It stays
+## up: the level goes to the title screen afterwards. Chapters don't close: each runs straight on
+## into the next one's title.
 static func closing(parent: Node, key: String, color: Color, bg := Color(0, 0, 0, 0), bg_in := 0.0, hold := 3.5) -> void:
 	await _show(parent, [[Game.t(key), 44, Fonts.serif()]], color, bg, bg_in, 0.5 if Game.fast else hold, false)
 

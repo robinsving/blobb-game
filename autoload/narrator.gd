@@ -101,6 +101,7 @@ func _ready() -> void:
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.position = Vector2(0, 990)
 	_hint.size = Vector2(1920, 60)
+	_hint.pivot_offset = _hint.size * 0.5  # it grows and shrinks round its middle (see hint())
 	_hint.modulate.a = 0.0
 	add_child(_hint)
 
@@ -243,8 +244,17 @@ func hint(text: String, dur := 5.0) -> void:
 	_hint.text = text
 	_hint_tween = create_tween()
 	_hint_tween.tween_property(_hint, "modulate:a", 1.0, 0.4)
-	_hint_tween.tween_interval(dur)
+	_hint_tween.parallel().tween_method(_hint_pulse, 0.0, 1.0, 2.4)
+	_hint_tween.tween_interval(maxf(dur - 2.0, 0.5))
 	_hint_tween.tween_property(_hint, "modulate:a", 0.0, 0.8)
+
+
+## A new hint calls for attention: it pops in, then grows and shrinks twice and settles. Only
+## the text moves (nothing screen-wide), and only for a moment.
+func _hint_pulse(k: float) -> void:
+	var pop := 0.75 + 0.25 * ease(minf(k / 0.15, 1.0), 0.4)  # in from smaller
+	var swell := sin(clampf((k - 0.15) / 0.85, 0.0, 1.0) * TAU * 2.0) * 0.07 * (1.0 - k)
+	_hint.scale = Vector2.ONE * (pop + maxf(swell, -0.03))
 
 
 func hint_off() -> void:

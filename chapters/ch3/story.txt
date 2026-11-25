@@ -273,7 +273,7 @@ Y: Not like that. Tell it right.
   sv: Inte så. Berätta det rätt.
 
 # TRIGGER: the last roof. The hospital (blue H sign, helipad) fills the view.
-# Silence after this: the beeps stop, a slow fade to white, then the chapter card.
+# Silence after this: the beeps stop, a slow fade to white, then chapter 4 begins in the white.
 === help ===
 Y: ...Help.
   sv: ...Hjälp.

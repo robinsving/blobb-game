@@ -166,7 +166,7 @@ O: Too fuzzy. I'll try to keep that in mind.
   sv: För luddiga. Det ska jag försöka komma ihåg.
 
 
-# TRIGGER: the far end of the pond (column 103). Then we cut to the mill channel.
+# TRIGGER: the far end of the pond (column 115). Then we cut to the mill channel.
 === deep_end ===
 O: At the far end of the pond stood the old mill, and under it the water ran in through a dark channel.
   sv: Längst bort i dammen stod den gamla kvarnen, och under den rann vattnet in i en mörk kanal.
@@ -268,24 +268,26 @@ O: Blobb floated on his back. The duck floated beside him, still cross.
 Y: Let's leave them there a while. In the warm bit.
   sv: Vi låter dem vara där en stund. I det varma.
 @pause 1.8
-Y: ...Lost my words. Where was I?
-  sv: ...Jag tappade bort mig. Var var jag?
-O: Watching bubbles, I think. Both of us.
-  sv: Vi tittade på bubblor, tror jag. Båda två.
+Y: ...Wait, where did they get to? I was thinking about bubbles.
+  sv: ...Vänta, var hamnade de? Jag tänkte på bubblor.
+O: So was I. We were watching the same bubbles.
+  sv: Jag med. Vi tittade på samma bubblor.
 Y: Where do bubbles go when they pop?
   sv: Vart tar bubblorna vägen när de spricker?
 @pause 1.2
 O: Up. Into the air. Everywhere, a little.
   sv: Upp. Ut i luften. Lite överallt.
-Y: ...Everywhere. Okay.
-  sv: ...Överallt. Okej.
+Y: ...Like stars?
+  sv: ...Som stjärnor?
+O: Maybe. From down here you can't tell them apart.
+  sv: Kanske. Härifrån går de inte att skilja åt.
   @fade_to_black
 @pause 1.4
-Y: Tomorrow, lights. Lots of them. At night, from up high.
-  sv: I morgon: ljus. Massor av dem. På natten, högt uppifrån.
+Y: Then Blobb watches lights tomorrow. Lots of them. At night, from up high.
+  sv: I så fall tittar Blobb på ljus i morgon. Massor av dem. På natten, högt uppifrån.
 O: You bring the lights. I'll bring the night.
-  sv: Du tar med ljusen. Jag tar med natten.
-# (silence... two quiet beeps... then the chapter card)
+  sv: Ljusen är din halva. Natten är min.
+# (silence... two quiet beeps... then straight on into chapter 3)
 
 
 # =====================================================================

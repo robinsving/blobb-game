@@ -25,6 +25,8 @@ const LANE_TIME := 0.12
 const END_BEAT := 124
 const BODY_R := 0.4
 const CATCH := 0.6                         # dropped less than this below a roof's edge: he scrambles up
+const RESTART_PAUSE := 0.7                 # after a restart he stands a moment before running on
+const RESTART_CLEAR := 3.0                 # no bird dives in the first beats after a restart
 const RETELL_SECS := 1.1                   # the pause before he's back at the start of the roof
 ## beat -> scene (chapters/ch3/story.txt). Only Y.
 const LINES := {2: "chase_go", 14: "chase_1", 28: "chase_2", 44: "chase_3", 58: "chase_4",
@@ -106,6 +108,7 @@ func _ready() -> void:
 				_fired[b] = true
 		_checkpoint = _checkpoint_for(_beat)
 		_beat = _checkpoint
+		_h = (_roof_at(_beat * BEAT_LEN) as Dictionary)["h"]  # standing on that roof, not inside it
 	camera.position = _proj(0, _beat * BEAT_LEN + 3.0, 0)
 	camera.reset_smoothing()
 	_last_whole = floori(_beat)
@@ -127,9 +130,10 @@ func _build_course() -> void:
 		var length := float(rng.randi_range(5, 8)) if b > 8 else 14.0
 		var z0 := b * BEAT_LEN
 		_buildings.append({"z0": z0, "z1": (b + length) * BEAT_LEN - 0.9, "h": h, "seed": rng.randi()})
-		# things on this roof, on whole beats, leaving the first two beats (the checkpoint) and the last clear
+		# things on this roof, on whole beats, leaving the last beat and the first three clear: the
+		# checkpoint is beat 1, so after a restart he has two clear beats to find his feet
 		var busy := clampf((b - 6.0) / 90.0, 0.15, 0.8)
-		for k in range(2, int(length) - 1):
+		for k in range(3, int(length) - 1):
 			var at := b + k
 			if at < 6 or rng.randf() > busy:
 				continue
@@ -381,11 +385,14 @@ func _fail(why: String) -> void:
 	_lane = 0
 	_x = 0.0
 	for d in _dives:  # the birds after the checkpoint dive again (aimed afresh), except the one that hit
-		if not d.has("gone"):
-			d["done"] = d["beat"] < _beat
+		if not d.has("gone"):  # and none in the first beats after the restart: he needs a moment
+			d["done"] = d["beat"] < _beat + RESTART_CLEAR
 			d["lane"] = 99
 	camera.position = _proj(0, _beat * BEAT_LEN + 3.0, 0)
 	camera.reset_smoothing()
+	await get_tree().create_timer(0.2 if Game.fast else RESTART_PAUSE).timeout  # see where he is first
+	if _ended:
+		return
 	_retelling = false
 
 
@@ -416,9 +423,8 @@ func fx_white_out() -> void:
 	_white = 1.0
 	await fx.white(1.0, 4.0)
 	await get_tree().create_timer(2.5 if not Game.fast else 0.3).timeout
-	Game.unlock_chapter(4)  # before the card: quitting during it still counts
-	await ChapterCard.closing(self, "chapter_end_3", Color(0.35, 0.37, 0.42), Color.WHITE)
-	Game.go("res://scenes/title.tscn", Color.WHITE, 1.5)
+	Game.unlock_chapter(4)
+	Game.go("res://chapters/ch4/dream.tscn", Color.WHITE, 1.5)  # no closing card: the white is where ch4 begins
 
 
 ## Test bot: jump at roof edges and steps up, sidestep chimneys and birds, hop vents.

@@ -4,8 +4,11 @@
 #
 #  Format: see chapters/ch1/story.txt.
 #
-#  The last chapter. Up the mountain from where ch4 ended, from night
-#  through blue hour to sunrise. It ends hopeful: O recovers.
+#  The last chapter. Up the mountain from where ch4 ended, at night: the
+#  higher Blobb climbs, the more stars come out (parallax layers, then the
+#  milky way), until the top is the fullest night sky. He looks at it a
+#  while; Y wants morning, O wants a little more rest, and they keep the
+#  night: the moon beside the star. Then the room, at night. O is back.
 #
 #  O COMES BACK, FAINT. At the foot O only manages fragments and Y fills
 #  the gaps (often with O's own words). The lines grow as Blobb climbs;
@@ -35,8 +38,12 @@
 #  PART 1: THE FOOT  (night; the beat uneven; O in fragments)
 # ---------------------------------------------------------------------
 
-# TRIGGER: the chapter starts on the ledges where ch4 ended. Night, the
-# slow, even beep from ch4's last seconds. Blocking: this is O's return.
+# TRIGGER: the chapter starts on the ledges where ch4 ended. All black but
+# Blobb. The beep from ch4's last seconds, still a little uneven; it evens
+# out as Blobb climbs. Blocking: this is O's return, and Y is glad of it.
+# O wants to finish the lights (ch2: "The lights are your half"; ch4: "I
+# left the lights on. For you."), but they're on the mountain now, so the
+# lights come up here: they become the stars (ch2: bubbles "like stars").
 === intro ===
 @pause 2.0
 O: ...Where...
@@ -44,15 +51,17 @@ O: ...Where...
 @pause 2.0
 O: ...had...
   sv: ...var vi...
-Y: ...had we got to. That's your line. You're back.
-  sv: ...någonstans. Det är du som brukar säga det. Du är tillbaka.
+Y: ...had we got to! That's your line! You're back!
+  sv: ...någonstans! Det är ju din replik! Du är tillbaka!
 @pause 1.5
 O: Was I... away?
   sv: Var jag... borta?
-Y: A bit. Blobb waited.
-  sv: Lite grann. Blobb väntade.
+Y: A bit. Blobb waited. Right here, in the dark.
+  sv: Lite grann. Blobb väntade. Precis här, i mörkret.
 O: ...Good of him.
   sv: ...Hyggligt av honom.
+Y: I knew you'd come back. I KNEW it.
+  sv: Jag visste att du skulle komma tillbaka. Jag VISSTE det.
 @pause 1.0
 O: And he was... where?
   sv: Och han var... var någonstans?
@@ -61,11 +70,18 @@ Y: At the foot of the mountain. Where you left him.
 O: A mountain. Yes. ...Tall. And very dark.
   sv: Ett berg. Ja. ...Högt. Och väldigt mörkt.
   @mountain
-Y: Not so dark. My half: stars. All of them.
-  sv: Inte så mörkt. Min halva: stjärnor. Allihop.
+@pause 1.5
+O: ...The lights. We never finished the lights. I wanted to help with those.
+  sv: ...Ljusen. Vi blev aldrig klara med ljusen. Jag ville hjälpa till med dem.
+Y: They're still on. Down in the town, far away.
+  sv: De lyser fortfarande. Nere i stan, långt bort.
+O: Then we bring them up here. Higher than the mountain.
+  sv: Då tar vi upp dem hit. Högre än berget.
+Y: My half: all the way up. Into the sky.
+  sv: Min halva: hela vägen upp. Upp i himlen.
   @stars
-O: ...All of them. There.
-  sv: ...Allihop. Så där.
+O: ...Like stars. From down here you can't tell them apart.
+  sv: ...Som stjärnor. Härifrån går de inte att skilja åt.
 Y: Better.
   sv: Bättre.
 
@@ -112,7 +128,7 @@ O: No.
 
 
 # ---------------------------------------------------------------------
-#  PART 2: THE MIDDLE  (blue hour; the beat steadier; O's rule)
+#  PART 2: THE MIDDLE  (more stars; the beat steadier; O's rule)
 # ---------------------------------------------------------------------
 
 # TRIGGER: a ledge too high to reach, even off a heartbeat ledge on the
@@ -154,7 +170,7 @@ O: I hear it.
 
 
 # ---------------------------------------------------------------------
-#  PART 3: THE HIGH STRETCH  (the last stars; equals again)
+#  PART 3: THE HIGH STRETCH  (the fullest sky; equals again)
 # ---------------------------------------------------------------------
 
 # TRIGGER: the high stretch starts. The holds up here are low stars.
@@ -180,16 +196,27 @@ O: In mine they're arguing about it.
   sv: I min grälar de om den.
 
 
-# TRIGGER: near the top, the last stars going out one by one.
-# The softened question (the director's decision). Long gaps; don't fill them.
+# TRIGGER: near the top, the sky fuller of stars than ever. The softened
+# question (the director's decision), led up to by the stars and ch2's bubbles.
+# Long gaps; don't fill them.
 === question (ambient) ===
-Y: Where do stories go when they end?
-  sv: Vart tar sagor vägen när de tar slut?
+Y: So many stars now. More with every ledge.
+  sv: Så många stjärnor nu. Fler för varje avsats.
+O: The higher you get, the more of them there are.
+  sv: Ju högre upp man kommer, desto fler blir de.
+@pause 2.0
+Y: ...Did the bubbles come up here too? Into the air?
+  sv: ...Kom bubblorna också hit upp? Ut i luften?
+O: Some of them, I should think.
+  sv: En del av dem, skulle jag tro.
+@pause 2.0
+Y: And stories? Where do they go when they end?
+  sv: Och sagor då? Vart tar de vägen när de tar slut?
 @pause 2.5
 O: Up. Into the air. Everywhere, a little.
   sv: Upp. Ut i luften. Lite överallt.
-Y: That's what you said about bubbles.
-  sv: Det sa du om bubblorna.
+Y: Like the bubbles.
+  sv: Som bubblorna.
 O: It's true of most things.
   sv: Det gäller det mesta.
 @pause 2.0
@@ -205,37 +232,46 @@ Y: Good. That's both halves.
 #  PART 4: THE SUMMIT, AND THE ROOM
 # ---------------------------------------------------------------------
 
-# TRIGGER: Blobb stands on the summit. Deep blue, one star left.
-# Blocking. Pays off ch4, where "In my half, it's morning." did nothing:
-# a rule only works with both halves.
+# TRIGGER: Blobb on the summit has looked up at the whole night sky a
+# while (no words; one shooting star). Blocking. Y wants morning, so they
+# can get up; O would like a little more rest. In ch4 "In my half, it's
+# morning." did nothing because O wasn't there; now O is, and they decide
+# it together: the night stays, and the moon comes out beside the star.
 === summit ===
-@pause 2.0
-Y: In my half, it's morning.
-  sv: I min halva är det morgon.
+@pause 1.5
+Y: In my half, it's morning now. Then we can get up.
+  sv: I min halva är det morgon nu. Då kan vi gå upp.
 @pause 2.5
-O: ...In mine too.
-  sv: ...I min också.
-  @sunrise
-  @hold 3.0
-Y: It worked.
-  sv: Det funkade.
-O: It took both halves.
-  sv: Det behövdes båda halvorna.
-Y: It always does.
-  sv: Det gör det alltid.
+O: ...Not quite yet. A little more rest can be good, sometimes.
+  sv: ...Inte riktigt än. Det kan vara bra med lite mer vila ibland.
+@pause 1.5
+Y: ...Okay. A little more night.
+  sv: ...Okej. Lite mer natt.
+O: Your stars are still up.
+  sv: Dina stjärnor är ju kvar.
+Y: And your moon.
+  sv: Och din måne.
+  @moon
+  @hold 4.0
 
 
-# TRIGGER: after the sunrise, a slow cross-fade to the real room in
-# morning light: two silhouettes, the window, and the drawing of Blobb
-# on the wall (assets/drawing.jpeg). The steady beep, quieter. Ambient,
-# short; then the end card.
+# TRIGGER: after the moon, a slow cross-fade to the real room at night:
+# two silhouettes, the window with the moon and the star in it, and the
+# drawing of Blobb on the wall (assets/drawing.jpeg). The steady beep,
+# quieter. Ambient, short; then the end card.
 === room (ambient) ===
 @pause 3.0
 O: Where had we got to?
   sv: Var var vi någonstans?
 @pause 2.0
-Y: ...The other side of the forest.
-  sv: ...Andra sidan skogen.
+Y: ...Blobb has made it to the other side of the forest now.
+  sv: ...Nu har Blobb kommit till andra sidan skogen.
+@pause 1.5
+Y: And he's going to have more adventures... if you're up to it.
+  sv: Och han ska ha fler äventyr... om du orkar.
+@pause 2.0
+O: I'm up to it.
+  sv: Jag orkar.
   @hold 3.0
 
 
@@ -283,8 +319,8 @@ Y: The last good bit was ALL of it.
 #  @mountain      (intro) the dark lifts halfway: the mountain, dimly
 #  @stars         (intro) the rest of the dark lifts and the stars come out
 #  @stretch       stretch & swing unlocked (the holds wake up; hint)
-#  @sunrise       the sun comes up over the summit; the sky to morning
+#  @moon          the moon comes out beside the bright star (night kept)
 #  After "room", the level shows the end card and goes to the title.
-#  The beat itself (uneven at the foot, steadier at "steady", even at the
-#  top) is driven by height climbed, not by lines.
+#  The beat itself (a little uneven at the foot, as ch4 ended; even from
+#  "steady" up) is driven by height climbed, not by lines.
 # =====================================================================

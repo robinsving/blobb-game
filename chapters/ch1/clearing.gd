@@ -93,9 +93,8 @@ func _ending() -> void:
 	await get_tree().create_timer(1.2).timeout
 	Game.sfx("beep", -20.0)
 	await get_tree().create_timer(2.2).timeout
-	Game.unlock_chapter(2)  # before the card: quitting during it still counts
-	await ChapterCard.closing(self, "chapter_end", Color(0.95, 0.9, 0.8))
-	Game.go("res://scenes/title.tscn", Color.BLACK, 1.5)
+	Game.unlock_chapter(2)
+	Game.go("res://chapters/ch2/pond.tscn", Color.BLACK, 1.5)  # straight on: chapter 2's title is on black
 
 
 # ================================================================ story effects (@name in story.txt)

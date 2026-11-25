@@ -19,8 +19,9 @@ const STRIPS := {
 	# (tools/key_superjump.py; like the little flying Blobb in the original drawing)
 	"superjump": ["res://assets/sprites/blobb_superjump.png", 20.0, false],
 	# animated forms (tools/key_form.py): when one exists, set_form() plays it instead of the drawing
-	"grumpy": ["res://assets/sprites/blobb_grumpy.png", 24.0, true],
-	"dash": ["res://assets/sprites/blobb_dash.png", 32.0, true],
+	# (a 4th entry true: played forward then back, so a clip that doesn't loop cleanly has no seam)
+	"grumpy": ["res://assets/sprites/blobb_grumpy.png", 24.0, true, true],
+	"dash": ["res://assets/sprites/blobb_dash.png", 32.0, true, true],
 }
 ## Forms taken straight from the child's drawing (tools/cut_drawing.py). While a form is
 ## shown, the animated strips are hidden and the drawn figure breathes gently instead
@@ -37,6 +38,8 @@ const FORMS := {
 const FACES_RIGHT := {"superjump": true, "dash": true}
 ## Height of a drawn form in this sprite's local pixels (the strips' Blobb is ~280 tall).
 const FORM_HEIGHT := 270.0
+## How far below a strip frame's centre his feet are (305 tall, feet ~20 px above the bottom).
+const FEET_BELOW_CENTRE := 132.0
 
 var form := "normal"
 var facing_left := false
@@ -76,7 +79,10 @@ static func build_frames() -> SpriteFrames:
 		sf.add_animation(anim)
 		sf.set_animation_speed(anim, info[1])
 		sf.set_animation_loop(anim, info[2])
-		for i in count:
+		var order := range(count)
+		if info.size() > 3 and info[3]:
+			order += range(count - 2, 0, -1)
+		for i in order:
 			var at := AtlasTexture.new()
 			at.atlas = tex
 			at.region = Rect2(i * FRAME_W, 0, FRAME_W, tex.get_height())
@@ -106,6 +112,7 @@ func set_form(new_form: String) -> void:
 			add_child(_anim)
 		_anim.visible = true
 		_anim.play(new_form)
+		_t = 0.0
 		self_modulate.a = 0.0
 		var tw := create_tween()
 		_anim.scale = Vector2(1.3, 0.7)
@@ -165,6 +172,33 @@ func _process(delta: float) -> void:
 		var k: float = _drawn.get_meta("k")
 		if _t > 0.4:  # after the pop: breathe
 			_drawn.scale = Vector2(k, k * (1.0 + sin(_t * 3.0) * 0.025))
+	elif _anim and _anim.visible:
+		_t += delta
+		if _t > 0.4:  # after the pop
+			_live(_anim)
+
+
+## Keeps an animated form alive the way the idle and run strips are: it breathes standing
+## still, and bobs and leans in step while he moves (the form clips themselves barely move).
+func _live(n: Node2D) -> void:
+	var moving := animation != "idle"  # the hidden strip still follows what the player does
+	var lean := -1.0 if facing_left else 1.0
+	if form == "dash":  # always on the go: a quick, low bob and a forward lean
+		var b := absf(sin(_t * 16.0))
+		n.position = Vector2(0, -b * 7.0)
+		n.rotation = lean * (0.06 + sin(_t * 16.0) * 0.025)
+		n.scale = Vector2(1.0 + b * 0.04, 1.0 - b * 0.04)
+	elif moving:  # a hop each step, squashed as he lands
+		var b := absf(sin(_t * 11.0))
+		n.position = Vector2(0, -b * 12.0)
+		n.rotation = lean * sin(_t * 11.0) * 0.05
+		n.scale = Vector2(1.0 + (1.0 - b) * 0.06, 1.0 - (1.0 - b) * 0.06)
+	else:  # breathing, a little deeper than the drawn forms (it's the whole body)
+		var br := sin(_t * 3.2)
+		n.position = Vector2(0, -br * 2.0)
+		n.rotation = sin(_t * 1.3) * 0.015
+		n.scale = Vector2(1.0 - br * 0.02, 1.0 + br * 0.035)
+	n.position.y += (1.0 - n.scale.y) * FEET_BELOW_CENTRE  # squash from the feet, not the middle
 
 
 ## Recolour Blobb. amount 0 = his natural crayon colours.

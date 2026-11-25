@@ -306,7 +306,7 @@ Y: Then tomorrow, Blobb learns to swim.
   sv: I morgon lär sig Blobb simma, då.
 O: Tomorrow, Blobb learns to swim.
   sv: I morgon lär sig Blobb simma.
-# (silence... one quiet beep from a monitor... then the chapter card)
+# (silence... one quiet beep from a monitor... then straight on into chapter 2)
 
 
 # =====================================================================

@@ -298,9 +298,8 @@ func _ending() -> void:
 	await get_tree().create_timer(0.7).timeout
 	Game.sfx("beep", -20.0)
 	await get_tree().create_timer(2.4).timeout
-	Game.unlock_chapter(3)  # before the card: quitting during it still counts
-	await ChapterCard.closing(self, "chapter_end_2", Color(0.95, 0.9, 0.8))
-	Game.go("res://scenes/title.tscn", Color.BLACK, 1.5)
+	Game.unlock_chapter(3)
+	Game.go("res://chapters/ch3/city.tscn", Color.BLACK, 1.5)  # straight on into chapter 3's poster
 
 
 # ================================================================ building

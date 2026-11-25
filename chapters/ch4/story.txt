@@ -70,11 +70,11 @@ Y: ...It's not working.
 
 # TRIGGER: the rubber duck floats by in mid-air, still cross.
 === duck (ambient) ===
-Y: The duck. He's still cross.
-  sv: Ankan. Han är fortfarande arg.
+Y: The duck. Still cross.
+  sv: Ankan. Fortfarande arg.
 @pause 1.5
-Y: Say something cross back. You always do.
-  sv: Säg nåt surt tillbaka. Det gör du alltid.
+Y: ...That's what you say. "Still cross."
+  sv: ...Det är ju du som brukar säga så. "Fortfarande arg."
 
 # TRIGGER: a street lamp from ch3 stands alone on the path, lit.
 === lamp (ambient) ===
@@ -102,7 +102,7 @@ Y: Wake up.
   @mountain
 
 # At the top of the short climb nobody speaks: a few seconds of the slow,
-# even beep (the answer), then the chapter card. No scene needed.
+# even beep (the answer), then straight on into chapter 5. No scene needed.
 
 
 # =====================================================================
@@ -112,5 +112,5 @@ Y: Wake up.
 #                 first ledges (simple jumps, no falling off, no retells).
 #                 The beep comes back as Blobb climbs, faint and uneven at
 #                 the foot and steadier with every ledge, until it's slow and
-#                 normal at the top. It keeps going under the chapter card.
+#                 normal at the top. It keeps going into chapter 5.
 # =====================================================================

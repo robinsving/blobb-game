@@ -9,7 +9,7 @@ extends Node2D
 
 const TILE := 64
 const ROWS := 17
-const WIDTH := 114
+const WIDTH := 126
 const SURFACE_Y := 3 * TILE
 const NEXT_SCENE := "res://chapters/ch2/mill.tscn"
 const ART := "res://assets/gen/ch2/"
@@ -17,15 +17,15 @@ const ART := "res://assets/gen/ch2/"
 ## [x0, x1, top_row, bottom_row] solid banks, riverbed and rocks
 const BLOCKS := [
 	[0, 7, 3, 16],      # the bank Blobb starts on
-	[8, 105, 15, 16],   # riverbed
+	[8, 117, 15, 16],   # riverbed
 	[17, 18, 13, 14],   # a stone to hop over while sinking
 	[22, 22, 14, 14],   # a smaller one
 	[31, 32, 6, 14],    # the big rock: only a swimmer gets over it
 	[68, 76, 3, 9],     # a fallen log jam over the whirlpool
-	[106, 113, 3, 16],  # far bank, under the mill
+	[118, 125, 3, 16],  # far bank, under the mill
 ]
-const CHECKPOINTS := [3, 12, 26, 36, 50, 60, 67, 78, 90]
-const TRIGGERS := {27: "bubbles", 35: "cold", 40: "lifeguard", 45: "fish", 57: "current", 66: "whirlpool", 77: "whirls", 103: "deep_end"}
+const CHECKPOINTS := [3, 12, 26, 36, 50, 60, 67, 78, 90, 102]
+const TRIGGERS := {27: "bubbles", 35: "cold", 40: "lifeguard", 45: "fish", 57: "current", 66: "whirlpool", 77: "whirls", 115: "deep_end"}
 ## [x0_col, x1_col, row, speed, texture]
 const FISH := [[42, 52, 7, 140.0, "fish_a"], [44, 55, 11, 180.0, "fish_b"], [47, 54, 5, 110.0, "fish_c"]]
 ## current: Rect in tiles [x0, y0, x1, y1] and push (px/s). Strong up high, weak near the bottom.
@@ -33,12 +33,12 @@ const CURRENTS := [[56, 3, 66, 10, Vector2(-330, 0)], [56, 11, 66, 14, Vector2(-
 ## springs whose bubbles lift a swimmer: [col, top_row, bottom_row]
 const LIFTS := [[50, 4, 14]]
 const SPRINGS := [27, 50]
-const REEDS := [10, 14, 24, 29, 38, 53, 63, 102, 104]
+const REEDS := [10, 14, 24, 29, 38, 53, 63, 114, 116]
 const WHIRL_COL := 72
 ## whirlpools: [col, centre y in px, size (1 = the big one under the log jam)]. After the big one,
 ## a short passage of smaller ones, high and low in turn: under one, over the next.
 const WHIRLS := [[WHIRL_COL, 15 * TILE - 70, 1.0], [81, 6 * TILE, 0.8], [87, 12 * TILE, 0.8],
-	[93, 6 * TILE, 0.8], [99, 12 * TILE, 0.8]]
+	[93, 6 * TILE, 0.8], [99, 12 * TILE, 0.8], [105, 6 * TILE, 0.8], [111, 12 * TILE, 0.8]]
 const BUBBLE_COL := 27
 const STUMP_COL := 41
 

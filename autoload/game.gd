@@ -65,12 +65,10 @@ const UI := {
 	"hint_push": {"en": "{arrows} to move · {undo} undo · {restart} start again", "sv": "{arrows} för att gå · {undo} ångra · {restart} börja om"},
 	"chapter_1": {"en": "Chapter 1", "sv": "Kapitel 1"},
 	"chapter_1_name": {"en": "The Other Side of the Forest", "sv": "Andra sidan skogen"},
-	"chapter_end": {"en": "End of chapter one. More tomorrow.", "sv": "Slut på kapitel ett. Mer i morgon."},
 	"locked": {"en": "(not yet)", "sv": "(inte än)"},
 	"chapter_2_btn": {"en": "Chapter 2", "sv": "Kapitel 2"},
 	"chapter_2": {"en": "Chapter 2", "sv": "Kapitel 2"},
 	"chapter_2_name": {"en": "Learning to Swim", "sv": "Lära sig simma"},
-	"chapter_end_2": {"en": "End of chapter two. More tomorrow.", "sv": "Slut på kapitel två. Mer i morgon."},
 	"hint_walk_in": {"en": "→ to walk in", "sv": "→ för att hoppa i"},
 	"hint_hop": {"en": "← → to walk · {jump} to hop", "sv": "← → för att gå · {jump} för att hoppa"},
 	"hint_swim": {"en": "{arrows} to swim", "sv": "{arrows} för att simma"},
@@ -81,7 +79,6 @@ const UI := {
 	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3_name": {"en": "Lights", "sv": "Ljus"},
-	"chapter_end_3": {"en": "End of chapter three.", "sv": "Slut på kapitel tre."},
 	"hint_dash": {"en": "{jump} to jump the canal", "sv": "{jump} för att hoppa över kanalen"},
 	"hint_roofs": {"en": "{use} at a crank turns its lamp · {restart} start again", "sv": "{use} vid en vev vrider lampan · {restart} börja om"},
 	"hint_chase": {"en": "← → change lanes · {jump} jump on the beat", "sv": "← → byt fil · {jump} hoppa i takt"},
@@ -93,7 +90,6 @@ const UI := {
 	"hint_swing": {"en": "Hold {use} near a glowing hold to stretch and swing. Let go to fly.", "sv": "Håll {use} nära något som lyser för att sträcka dig dit och svinga. Släpp för att flyga."},
 	"chapter_4": {"en": "Chapter 4", "sv": "Kapitel 4"},
 	"chapter_4_name": {"en": "The Other Half", "sv": "Den andra halvan"},
-	"chapter_end_4": {"en": "End of chapter four.", "sv": "Slut på kapitel fyra."},
 }
 
 const SFX_NAMES := ["jump", "blip_old", "blip_young", "pop", "push", "splash", "plate", "gate",
