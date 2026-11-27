@@ -18,8 +18,16 @@ const ART := "res://assets/gen/ch4/"
 
 ## [x0, x1, top_row] the mountain's first ledges, solid down to the ground. Each is 2 rows up.
 const LEDGES := [[117, 119, 11], [120, 122, 9], [123, 125, 7], [126, 128, 5], [129, WIDTH - 1, 3]]
+const DARK := Color(0.02, 0.03, 0.08)  # ch5's opening dark (climb.gd DARK), Blobb dimmed in it
 const MOUNTAIN_COL := 112                       # where the mist hides the mountain until @mountain
 const TOP_COL := 132
+## The painted mountain (mountain.png, 1800 px tall) is drawn 1500 px tall, its left edge 80 px
+## before the first ledge; the cave mouth on the top ledge is at image x 1500.
+const PEAK_H := 1500.0
+const PEAK_K := PEAK_H / 1800.0
+const PEAK_X := LEDGES[0][0] * TILE - 80.0
+const CAVE_X := PEAK_X + 1500.0 * PEAK_K
+const HUG := 30.0  # how close his feet come to the wall while he clambers up it
 const TRIGGERS := {12: "roofs", 30: "moss", 46: "morning", 62: "duck", 78: "lamp", 94: "again", 108: "ending"}
 const MOSS_COL := 30
 const CRATE_COL := 40
@@ -34,6 +42,10 @@ var fx: StyleFX
 var camera: Camera2D
 var _world: Node2D
 var _mist: Node2D
+var _heard := false  # the beep is back (after the "foot" line); until then he can't get up a ledge
+var _clambering := false  # in the middle of hauling himself up a ledge (_clamber())
+var _tries := 0  # clambers that failed (before the beep): each one gives up a little sooner
+
 var _mountain: Node2D
 var _props: Array[Node2D] = []
 var _fired := {}
@@ -65,6 +77,9 @@ func _warp_to(col: int) -> void:
 	player.teleport(Vector2(col * TILE + 32, _ground_y(col)))
 	if col >= MOUNTAIN_COL:
 		fx_mountain()
+	if col > LEDGES[0][0]:
+		_fired["foot"] = true
+		_heard = true
 
 
 # ================================================================ story
@@ -86,6 +101,9 @@ func _beat(scene: String) -> void:
 		_drifting = false
 		fx.set_look("plain", 4.0)
 	await story.play(scene, self)
+	if scene == "foot":
+		_heard = true  # "Blobb can't manage without you": the beep comes back, and the strength with it
+		_beep_clock = 0.8
 
 
 # ================================================================ story effects
@@ -110,9 +128,29 @@ func _reach_top() -> void:
 	_climbing = false
 	Game.control_locked = true
 	Game.unlock_chapter(5)
-	# a few seconds of the slower, almost even beep. Nobody speaks.
-	await get_tree().create_timer(1.5 if Game.fast else 7.0).timeout
-	Game.go("res://chapters/ch5/climb.tscn", Color.BLACK, 2.5)  # into the black chapter 5 starts in
+	# Nobody speaks. He walks on into the cave mouth, the slower, almost even beep with him, and
+	# the dark closes round him until only he is left: the black chapter 5 starts in.
+	player.frozen = true
+	player.sprite.face(1.0)
+	player.sprite.play("run")
+	var walk := absf(CAVE_X - player.position.x) / (PlayerSide.SPEED * 0.5)
+	var tw := create_tween()
+	tw.tween_property(player, "position:x", CAVE_X, walk)
+	tw.tween_callback(player.sprite.play.bind("idle"))
+	var dark := ColorRect.new()
+	dark.color = Color.BLACK
+	dark.size = Vector2(6000, 4000)
+	dark.position = player.position - dark.size * 0.5
+	dark.modulate.a = 0.0
+	dark.z_index = 8  # over the world and the mist; Blobb goes above it
+	add_child(dark)
+	player.z_index = 9
+	var fade := 1.5 if Game.fast else 5.0
+	var tw2 := create_tween().set_parallel()
+	tw2.tween_property(dark, "modulate:a", 1.0, fade).set_delay(walk * 0.6)
+	tw2.tween_callback(func(): fx.tint(DARK, 0.3, fade)).set_delay(walk * 0.6)
+	await get_tree().create_timer(walk * 0.6 + fade + (0.5 if Game.fast else 3.0)).timeout
+	Game.go("res://chapters/ch5/climb.tscn", Color.BLACK, 0.5)  # already black: chapter 5 starts here
 
 
 # ================================================================ per frame
@@ -130,8 +168,9 @@ func _process(delta: float) -> void:
 	# drifting things bob gently in place (small, slow; the camera never moves with them)
 	for p in _props:
 		p.position.y = p.get_meta("y") + sin(_t * 0.7 + p.get_meta("ph")) * 6.0
-	if _climbing or _done:
+	if (_climbing and _heard) or _done:
 		_beep(delta)
+
 	if _climbing and player.position.x > TOP_COL * TILE and player.is_on_floor():
 		_reach_top()
 
@@ -147,6 +186,84 @@ func _beep(delta: float) -> void:
 	var uneven := randf_range(1.2, 3.2)
 	_beep_clock = lerpf(uneven, slight, p)
 	Game.sfx("monitor", lerpf(-34.0, -13.0, p))  # the monitor beep (tools/gen_monitor.py)
+	if not _clambering:
+		player._squash(Vector2(1.08, 0.93))  # each beep goes through Blobb, a small thump
+	if not _fired.has("beep"):
+		# the first beep: he lights up with it, and from now on he gets up the ledges. Y notices.
+		_fired["beep"] = true
+		player.sprite.flash(0.8)
+		story.play("beep", self)
+
+
+# ================================================================ the climb
+
+## On the mountain there is no jumping up: Blobb hauls himself up each ledge, slowly ("climb"
+## strip, or his idle drawing stretching). Before the beep he can't: he gets partway and slides
+## back. After it he makes it, a little quicker the higher (the steadier the beep) he gets.
+func _physics_process(_delta: float) -> void:
+	if not _climbing or _clambering or _done or Game.control_locked or not player.is_on_floor():
+		return
+	var push := Input.get_axis("left", "right") > 0.5 or (Game.autoplay and player.use_bot)
+	if not push or not player.is_on_wall():
+		return
+	var col := int(player.position.x / TILE)
+	var row := roundi(player.position.y / TILE)
+	for l: Array in LEDGES:
+		if l[0] - col <= 1 and l[0] > col and row - l[2] == 2:
+			_clamber(l)
+			return
+
+
+## Hauling himself up a ledge. He has no arms (stretching is O's rule, in ch5), so he does it
+## like a blob: a crouch, a heave that flops his front over the edge (leaning from his feet), a
+## strain, then he drags the rest of himself up after it. Before the beep: the heave doesn't get
+## far enough, he strains with his front on the edge... and slides back down.
+func _clamber(ledge: Array) -> void:
+	_clambering = true
+	player.frozen = true
+	player.velocity = Vector2.ZERO
+	player.sprite.face(1.0)
+	player.sprite.play("idle")
+	var lip := Vector2(ledge[0] * TILE, ledge[2] * TILE)
+	var start := Vector2(lip.x - HUG, player.position.y)  # snug against the wall
+	var rise := start.y - lip.y
+	var pivot: Node2D = player._pivot
+	var tw := create_tween()
+	tw.tween_property(player, "position:x", start.x, 0.25)
+	tw.tween_property(pivot, "scale", Vector2(1.12, 0.88), 0.3).set_trans(Tween.TRANS_SINE)  # crouch
+	if not _heard:
+		var up := lerpf(0.4, 0.25, clampf(_tries / 3.0, 0.0, 1.0)) * rise
+		_tries += 1
+		tw.tween_property(player, "position:y", start.y - up, 0.5).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(pivot, "rotation", 0.45, 0.5).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(pivot, "scale", Vector2(0.92, 1.12), 0.5)
+		for n in 2:  # strain
+			tw.tween_property(pivot, "scale", Vector2(0.96, 1.05), 0.35).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(pivot, "scale", Vector2(0.92, 1.12), 0.35).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(player, "position:y", start.y, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(pivot, "rotation", 0.0, 0.45)
+		tw.parallel().tween_property(pivot, "scale", Vector2(1.15, 0.86), 0.45)
+		tw.tween_property(pivot, "scale", Vector2.ONE, 0.35)
+		Game.sfx("push", -18.0, 0.7)
+	else:
+		# a heave, a strain, a drag; quicker as the beep steadies
+		var p := clampf((_foot_y - start.y) / ((GROUND_ROW - LEDGES[-1][2]) * TILE), 0.0, 1.0)
+		var k := lerpf(1.0, 0.6, p)
+		tw.tween_property(player, "position:y", start.y - rise * 0.55, 0.5 * k).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(pivot, "rotation", 0.55, 0.5 * k).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(pivot, "scale", Vector2(0.92, 1.12), 0.5 * k)
+		tw.tween_property(pivot, "scale", Vector2(0.96, 1.05), 0.3 * k).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(player, "position", lip + Vector2(34, 0), 0.75 * k).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(pivot, "rotation", 0.0, 0.75 * k).set_trans(Tween.TRANS_SINE)
+		tw.parallel().tween_property(pivot, "scale", Vector2(1.1, 0.9), 0.75 * k)
+		tw.tween_property(pivot, "scale", Vector2.ONE, 0.25)
+		Game.sfx("push", -16.0, 0.8)
+	await tw.finished
+	player.frozen = false
+	_clambering = false
+	if not _heard and not _fired.has("foot"):
+		_fired["foot"] = true
+		_beat("foot")  # he tried, and couldn't: "Blobb can't manage without you."
 
 
 # ================================================================ world building
@@ -186,9 +303,9 @@ func _build_world() -> void:
 		peak.texture = load(ART + "mountain.png")
 		peak.centered = false
 		peak.show_behind_parent = true  # behind the ledges, which _mountain draws itself
-		var k := 1500.0 / peak.texture.get_height()
+		var k := PEAK_H / peak.texture.get_height()
 		peak.scale = Vector2(k, k)
-		peak.position = Vector2(LEDGES[0][0] * TILE - 80.0, GROUND_ROW * TILE - 1500.0 + 30.0)
+		peak.position = Vector2(PEAK_X, GROUND_ROW * TILE - PEAK_H + 30.0)
 		_mountain.add_child(peak)
 	if ResourceLoader.exists(ART + "dream_ground_strip.png"):
 		_ground_tex = load(ART + "dream_ground_strip.png")
@@ -221,7 +338,7 @@ func _build_world() -> void:
 	gate.hurry = false  # Y's silences are the point here
 	player.speed_mul = gate.walk
 	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 0.0)
-	player.jump_velocity = PlayerSide.STRONG_JUMP
+	player.jump_velocity = PlayerSide.WEAK_JUMP  # in the dream the super jump is gone: the ch1 hop, too low for the ledges
 	# no higher than -130: the painted background ends just above (about y = -140 on screen)
 	camera = LevelKit.follow_camera(player, Vector2(WIDTH, ROWS) * TILE, 5.0, -130.0)
 	fx = StyleFX.new()
@@ -375,9 +492,13 @@ func _draw_mountain() -> void:
 		# the painting has the ledges in it, lined up with LEDGES (see build/mountain_guide.png in
 		# git history: tops at image rows 1610/1457/1303/1150/996). Only the top ledge runs on past
 		# the painting's right edge, so draw that bit.
-		var edge := LEDGES[0][0] * TILE - 80.0 + 1400.0 * 1500.0 / 1800.0
+		var tex: Texture2D = load(ART + "mountain.png")
+		var edge := PEAK_X + tex.get_width() * PEAK_H / tex.get_height()
 		var l: Array = LEDGES[-1]
-		_ledge(Rect2(edge - 2.0, l[2] * TILE, (l[1] + 1) * TILE - edge + 2.0, (GROUND_ROW - l[2]) * TILE))
+		if edge < (l[1] + 1) * TILE:
+			_ledge(Rect2(edge - 2.0, l[2] * TILE, (l[1] + 1) * TILE - edge + 2.0, (GROUND_ROW - l[2]) * TILE))
+		if tex.get_width() < 2000:  # the older painting has no cave: draw its mouth
+			_cave_mouth()
 		return
 	else:
 		_mountain.draw_colored_polygon(PackedVector2Array([Vector2(x0, gy), Vector2(x0 + 700, gy - 1250), Vector2(x0 + 900, gy - 1150),
@@ -386,6 +507,22 @@ func _draw_mountain() -> void:
 			Vector2(x0 + 780, gy - 1180), Vector2(x0 + 720, gy - 1150)]), Color(0.96, 0.96, 1.0))
 	for l in LEDGES:
 		_ledge(Rect2(l[0] * TILE, l[2] * TILE, (l[1] - l[0] + 1) * TILE, (GROUND_ROW - l[2]) * TILE))
+	_cave_mouth()
+
+
+## A dark arch on the top ledge, for when the painting has no cave of its own.
+func _cave_mouth() -> void:
+	var base := Vector2(CAVE_X, LEDGES[-1][2] * TILE)
+	var pts := PackedVector2Array()
+	for i in 25:
+		var a := PI + PI * i / 24.0
+		pts.append(base + Vector2(cos(a) * 100.0, sin(a) * 190.0))
+	_mountain.draw_colored_polygon(pts, Color(0.36, 0.3, 0.42))
+	pts = PackedVector2Array()
+	for i in 25:
+		var a := PI + PI * i / 24.0
+		pts.append(base + Vector2(cos(a) * 84.0, sin(a) * 172.0))
+	_mountain.draw_colored_polygon(pts, Color(0.04, 0.04, 0.08))
 
 
 ## One drawn ledge, in the painted mountain's colours: lavender rock, a warm lit top, a cool side.

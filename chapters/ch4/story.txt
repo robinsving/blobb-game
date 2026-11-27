@@ -96,10 +96,24 @@ Y: Blobb's just walking. He doesn't know where. You have to tell him.
 Y: ...Dad?
   sv: ...pappa?
 @pause 3.0
-Y: Wake up.
+Y: Dad, wake up.
   sv: Pappa, vakna.
   @hold 2.0
   @mountain
+
+# At the foot of the mountain (dream.gd _clamber): Blobb tries to haul himself up the first
+# ledge, slowly, and slides back down. After this line the beep comes back, and with it the
+# strength to get up the ledges (the "beep" scene).
+=== foot (ambient) ===
+Y: Blobb can't manage without you.
+  sv: Blobb kan inte klara sig utan dig.
+
+# The first beep: it goes through Blobb (he lights up), and from now on his jump reaches the
+# ledges. Y hears it too.
+=== beep (ambient) ===
+@pause 0.6
+Y: Everything's easier when you're with us.
+  sv: Allting blir enklare när du är med.
 
 # At the top of the short climb nobody speaks: a few seconds of the slow,
 # even beep (the answer), then straight on into chapter 5. No scene needed.

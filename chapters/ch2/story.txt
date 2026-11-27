@@ -133,8 +133,8 @@ O: A whirlpool. It spins anything that comes too close. Best keep clear.
 === whirls (ambient) ===
 Y: More! A whole row of them!
   sv: Fler! En hel rad!
-O: A whole row of little whirlpools, each spinning its own way. Under one, over the next.
-  sv: En hel rad små virvlar, som snurrade åt var sitt håll. Under den ena, över nästa.
+O: A whole row of little whirlpools, each spinning its own way. Over one, under the next, between two.
+  sv: En hel rad små virvlar, som snurrade åt var sitt håll. Över en, under nästa, mellan två.
 
 
 # TRIGGER: the whirlpool catches Blobb. The scene rewinds to the last checkpoint.
@@ -247,6 +247,14 @@ O: ...Backwards. Well. Turn a wheel twice and see what it does.
 === hatch ===
 O: Through the hatch went the duck. And Blobb, right behind it.
   sv: Ut genom luckan åkte ankan. Och Blobb tätt efter.
+
+
+# TRIGGER: the duck can't get out from here any more (no solution left). The room starts over after it.
+=== stuck (ambient) ===
+O: The duck is stuck.
+  sv: Ankan har fastnat.
+Y: Then we do it again.
+  sv: Då gör vi om det.
 
 
 # TRIGGER: the player restarts a room (R) for the first time.

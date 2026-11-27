@@ -4,7 +4,7 @@ extends SceneTree
 
 const Rooms := preload("res://chapters/ch2/flow_rooms.gd")
 ## Shortest solutions (control presses) per room, as found by tools/solve_flow.py.
-const SHORTEST := [5, 8, 13]
+const SHORTEST := [5, 7, 13]
 
 var failures := 0
 
@@ -44,6 +44,15 @@ func _test_rules() -> void:
 	r.spouts["A"]["state"] = FlowRoom.BACK
 	flow = r.streams()
 	_check(flow.get(Vector2i(3, 1)) == Vector2i.DOWN and flow.get(Vector2i(2, 2)) == Vector2i.LEFT, "backwards spout pulls water toward itself")
+	var meet := FlowRoom.from_room({
+		"rows": ["###G####", "#A.D..B#", "########"],
+		"spouts": {"A": {"dir": ">", "on": true}, "B": {"dir": "<", "on": true}}, "boards": {}, "controls": {},
+	})
+	flow = meet.streams()
+	_check(flow.get(Vector2i(3, 1)) == Vector2i.RIGHT and flow.get(Vector2i(4, 1)) == Vector2i.LEFT, "head-on streams meet halfway")
+	_check(meet.settle() == "rest" and meet.duck == Vector2i(3, 1), "the duck stays where two streams meet head-on")
+	meet.spouts["A"]["state"] = FlowRoom.OFF
+	_check(meet.streams().get(Vector2i(2, 1)) == Vector2i.LEFT, "with one off, the other runs all the way")
 
 
 func _test_rooms() -> void:

@@ -18,6 +18,7 @@ var jump_velocity := WEAK_JUMP
 var speed_mul := 1.0
 ## Set by a level that moves Blobb itself for a moment (ch5's swing): no input, no physics here.
 var frozen := false
+var rest_anim := "idle"  # what he plays standing still (ch5 starts with "climb": still straining)
 ## Set by a level that launches Blobb (ch5's heartbeat ledges): letting go of jump doesn't cut the
 ## launch short. Cleared when he lands.
 var launched := false
@@ -87,8 +88,8 @@ func _animate(dir: float, on_floor: bool) -> void:
 			sprite.rotation = sin(_t * 18.0) * 0.08
 			_pivot.position.y = -absf(sin(_t * 18.0)) * 10.0
 		else:
-			if sprite.animation != "idle":
-				sprite.play("idle")
+			if sprite.animation != rest_anim:
+				sprite.play(rest_anim)
 			sprite.rotation = lerpf(sprite.rotation, 0.0, 0.2)
 			_pivot.position.y = lerpf(_pivot.position.y, 0.0, 0.2)
 	else:
@@ -103,7 +104,7 @@ func _animate(dir: float, on_floor: bool) -> void:
 ## The weak hop uses the little jump; once the story has unlocked the big jump,
 ## Blobb stretches out like the flying Blobb in the drawing.
 func _jump_anim() -> String:
-	if jump_velocity != WEAK_JUMP and sprite.sprite_frames.has_animation("superjump"):
+	if jump_velocity <= STRONG_JUMP and sprite.sprite_frames.has_animation("superjump"):
 		return "superjump"
 	return "jump"
 

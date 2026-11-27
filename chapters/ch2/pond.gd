@@ -36,9 +36,16 @@ const SPRINGS := [27, 50]
 const REEDS := [10, 14, 24, 29, 38, 53, 63, 114, 116]
 const WHIRL_COL := 72
 ## whirlpools: [col, centre y in px, size (1 = the big one under the log jam)]. After the big one,
-## a short passage of smaller ones, high and low in turn: under one, over the next.
-const WHIRLS := [[WHIRL_COL, 15 * TILE - 70, 1.0], [81, 6 * TILE, 0.8], [87, 12 * TILE, 0.8],
-	[93, 6 * TILE, 0.8], [99, 12 * TILE, 0.8], [105, 6 * TILE, 0.8], [111, 12 * TILE, 0.8]]
+## a passage of smaller ones, alone or in pairs at one column, so the way through changes from
+## column to column (over, under, between two): no single depth gets through it straight.
+## Keep them about 4 columns from CHECKPOINTS, so Blobb never comes back inside a pull.
+const WHIRLS := [[WHIRL_COL, 15 * TILE - 70, 1.0],
+	[83, 500, 0.8],
+	[86, 270, 0.7], [86, 820, 0.7],
+	[94, 460, 0.9], [94, 860, 0.6],
+	[98, 300, 0.8], [98, 620, 0.8],
+	[107, 300, 0.6], [107, 700, 0.8],
+	[111, 420, 0.8]]
 const BUBBLE_COL := 27
 const STUMP_COL := 41
 
@@ -190,13 +197,35 @@ func _physics_process(_delta: float) -> void:
 	_animate_streaks()
 
 
-## Test bot: in the whirlpool passage, swim under a high whirlpool and over a low one.
+## Test bot: in the whirlpool passage, pick a depth that's clear at the next column of whirlpools,
+## and if it can, at the one after too, without swimming further up or down than it needs to.
 func _steer_bot(p: Vector2) -> void:
-	player.bot_y = 820.0
+	var cols: Array[float] = []
 	for w in _whirls:
-		if w.z < 1.0 and w.x > p.x - 120.0:
-			player.bot_y = 850.0 if w.y < 500.0 else 330.0
-			return
+		if w.z < 1.0 and w.x > p.x - 120.0 and not cols.has(w.x):
+			cols.append(w.x)
+	if cols.is_empty():
+		player.bot_y = 820.0
+		return
+	cols.sort()
+	var best := -INF
+	var target := player.bot_y
+	for y in range(260, 900, 10):  # bot_y is the body position; the pull centre is 54 px higher
+		var score := minf(_whirl_clear(cols[0], y - 54.0), 110.0) - 0.1 * absf(y - target)
+		if cols.size() > 1:
+			score += 0.7 * minf(_whirl_clear(cols[1], y - 54.0), 110.0)
+		if score > best:
+			best = score
+			player.bot_y = y
+
+
+## How far depth `y` stays outside the kill circle of every whirlpool at column x (negative = inside).
+func _whirl_clear(x: float, y: float) -> float:
+	var clear := INF
+	for w in _whirls:
+		if absf(w.x - x) < 1.0:
+			clear = minf(clear, absf(y - w.y) - 75.0 * w.z)
+	return clear
 
 
 func _animate_streaks() -> void:

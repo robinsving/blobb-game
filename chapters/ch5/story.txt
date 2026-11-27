@@ -77,8 +77,8 @@ Y: They're still on. Down in the town, far away.
   sv: De lyser fortfarande. Nere i stan, långt bort.
 O: Then we bring them up here. Higher than the mountain.
   sv: Då tar vi upp dem hit. Högre än berget.
-Y: My half: all the way up. Into the sky.
-  sv: Min halva: hela vägen upp. Upp i himlen.
+Y: OK. All the way up. Into the sky.
+  sv: OK. Hela vägen upp. Upp i himlen.
   @stars
 O: ...Like stars. From down here you can't tell them apart.
   sv: ...Som stjärnor. Härifrån går de inte att skilja åt.
@@ -96,19 +96,6 @@ O: ...An uneven one.
   sv: ...Lite ojämnt.
 Y: Then stand on it and wait for the beat.
   sv: Då ställer man sig där och väntar på slaget.
-
-
-# TRIGGER: a patch of moss on a ledge (the same glowing moss as ch4).
-=== moss (ambient) ===
-O: Once... in the days when...
-  sv: En gång... på den tiden när...
-@pause 2.0
-Y: ...when the moss was still young. I know it now.
-  sv: ...när mossan fortfarande var ung. Jag kan den nu.
-O: You do it better.
-  sv: Du gör det bättre.
-Y: I don't. I just remembered it.
-  sv: Nej då. Jag kom bara ihåg den.
 
 
 # TRIGGER: higher up the foot. O's first joke: the ch1 colour mix-up,

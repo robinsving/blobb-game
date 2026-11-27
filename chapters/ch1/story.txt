@@ -95,8 +95,8 @@ Y: He's stuck.
   sv: Han sitter fast.
 O: Blobb's legs were short. Jumping was not among his talents.
   sv: Blobbs ben var korta. Att hoppa var inte direkt hans starka sida.
-Y: Wrong half. In my half, Blobb jumps higher than trees.
-  sv: Fel halva. I min halva hoppar Blobb högre än träd.
+Y: Not in my half. In mine, Blobb jumps higher than trees.
+  sv: Inte i min halva. Där hoppar Blobb högre än träd.
   @jump_unlock
 O: ...Higher than trees. Well. Your half is louder than mine.
   sv: ...Högre än träd. Jaha. Din halva hörs mer än min.

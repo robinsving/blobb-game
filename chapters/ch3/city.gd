@@ -2,7 +2,7 @@ extends Node2D
 ## Chapter 3, part 1: the town at night, side view.
 ## Flow: poster (title page) -> street at dusk -> "I brought the night" -> Y switches the lamps on ->
 ## gold Blobb under the lamps ("Wasn't he green?") -> the banana sweeping -> the dash over the
-## canal (retells) -> sleeping pigeons -> the drainpipe up to the roofs (chapters/ch3/roofs.tscn).
+## canals (retells) -> sleeping pigeons -> the drainpipe up to the roofs (chapters/ch3/roofs.tscn).
 ## Dialogue: chapters/ch3/story.txt. Art: assets/gen/ch3/ (everything has a drawn fallback).
 
 const TILE := 64
@@ -12,19 +12,19 @@ const NEXT_SCENE := "res://chapters/ch3/roofs.tscn"
 const ART := "res://assets/gen/ch3/"
 const STREET_ROW := 13
 
-## [x0, x1, top_row] solid ground down to the bottom row. The gap 47..53 is the canal: too wide for
-## a normal jump (~365 px), so the dash (1.7x speed) is how Blobb gets over.
-const GROUND := [[0, 46, 13], [54, 95, 13]]
+## [x0, x1, top_row] solid ground down to the bottom row. The gaps between are the canals (CANALS):
+## each too wide for a normal jump (~365 px), so the dash (1.7x speed) is how Blobb gets over.
+const GROUND := [[0, 46, 13], [54, 59, 13], [67, 72, 13], [80, 95, 13]]
 ## [x0, x1, row] doorsteps and a bench to hop on
-const STEPS := [[21, 23, 12], [37, 38, 12], [58, 60, 12], [76, 77, 12]]
-const LAMPS := [6, 14, 22, 30, 38, 45, 54, 62, 70, 78, 86]
-const CHECKPOINTS := [4, 18, 36, 56, 72]
-const TRIGGERS := {12: "glow", 28: "sweeper", 41: "dash", 66: "pigeons", 86: "climb"}
-const CANAL := [47, 53]
+const STEPS := [[21, 23, 12], [37, 38, 12], [83, 84, 12]]
+const LAMPS := [6, 14, 22, 30, 38, 45, 56, 70, 82, 88]
+const CHECKPOINTS := [4, 18, 36, 56, 69, 82]
+const TRIGGERS := {12: "glow", 28: "sweeper", 41: "dash", 82: "pigeons", 87: "climb"}
+const CANALS := [[47, 53], [60, 66], [73, 79]]  # [x0, x1] canal water, one per gap in GROUND
 const SWEEP_FROM := 27
 const SWEEP_TO := 36
-const PIGEON_COL := 66
-const PIPE_COL := 90
+const PIGEON_COL := 84
+const PIPE_COL := 92
 const NIGHT_TINT := Color(0.55, 0.66, 1.0)
 const GOLD := BlobbSprite.GOLD
 
@@ -253,8 +253,8 @@ func fx_climb() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _dashing and player.is_on_floor() and player.position.x > (CANAL[1] + 2) * TILE:
-		_dashing = false  # over the canal: back to his usual self
+	if _dashing and player.is_on_floor() and player.position.x > (CANALS[-1][1] + 2) * TILE:
+		_dashing = false  # over the last canal: back to his usual self
 		_set_dash(false)
 		Game.sfx("pop", -8.0)
 	_update_sweeper(delta)
@@ -413,13 +413,14 @@ func _draw_houses(n: Node2D) -> void:
 func _draw_street(n: Node2D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 21
-	# canal water between the two halves of the street
-	var cx0 := CANAL[0] * TILE
-	var cx1 := (CANAL[1] + 1) * TILE
-	n.draw_rect(Rect2(cx0, (STREET_ROW + 1.5) * TILE, cx1 - cx0, ROWS * TILE), Color(0.06, 0.1, 0.2))
-	for i in 8:
-		var y := (STREET_ROW + 1.8) * TILE + i * 22.0
-		n.draw_line(Vector2(cx0 + rng.randf_range(10, 60), y), Vector2(cx1 - rng.randf_range(10, 60), y), Color(1.0, 0.8, 0.45, 0.25), 3.0)
+	# canal water in the gaps of the street
+	for c in CANALS:
+		var cx0: float = c[0] * TILE
+		var cx1: float = (c[1] + 1) * TILE
+		n.draw_rect(Rect2(cx0, (STREET_ROW + 1.5) * TILE, cx1 - cx0, ROWS * TILE), Color(0.06, 0.1, 0.2))
+		for i in 8:
+			var y := (STREET_ROW + 1.8) * TILE + i * 22.0
+			n.draw_line(Vector2(cx0 + rng.randf_range(10, 60), y), Vector2(cx1 - rng.randf_range(10, 60), y), Color(1.0, 0.8, 0.45, 0.25), 3.0)
 	var pave := _pave
 	for g in GROUND + STEPS:
 		var r := Rect2(g[0] * TILE, g[2] * TILE, (g[1] - g[0] + 1) * TILE, ((ROWS - 1) - g[2] + 1) * TILE if g in GROUND else TILE)

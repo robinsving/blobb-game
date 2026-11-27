@@ -52,12 +52,25 @@ class Room:
             out.append((p, arrive, d)); p = (p[0] + d[0], p[1] + d[1])
         return out
 
+    def cut_traces(self, spouts, boards):
+        # all streams grow together; one stops where it runs into another's water (A before B on a tie)
+        traces = {l: self.trace(l, boards) for l in sorted(self.spouts) if spouts[l] != OFF}
+        owner, cut, alive, k = {}, {}, list(traces), 0
+        while alive:
+            for l in list(alive):
+                t = traces[l]
+                if k >= len(t): alive.remove(l); continue
+                cell = t[k][0]
+                if cell in owner and owner[cell] != l: alive.remove(l); continue
+                owner[cell] = l; cut[l] = k + 1
+            k += 1
+        return {l: traces[l][:cut.get(l, 0)] for l in traces}
+
     def streams(self, spouts, boards):
         flow = {}
-        for l in sorted(self.spouts):
+        for l, cells in sorted(self.cut_traces(spouts, boards).items()):
             st = spouts[l]
-            if st == OFF: continue
-            for p, arrive, dep in self.trace(l, boards):
+            for p, arrive, dep in cells:
                 if p in flow: continue
                 flow[p] = dep if st == ON else (-arrive[0], -arrive[1])
         return flow
@@ -70,6 +83,7 @@ class Room:
             seen.add(duck)
             d = flow.get(duck, (0, -1)); n = (duck[0] + d[0], duck[1] + d[1])
             if self.solid(n): return ('goal' if duck == self.goal else 'rest'), duck
+            if duck in flow and flow.get(n) == (-d[0], -d[1]): return 'rest', duck  # head-on: stays
             duck = n
         return 'loop', duck
 

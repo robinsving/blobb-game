@@ -240,8 +240,8 @@ func _check_stuck() -> bool:
 
 func _stuck_restart() -> void:
 	_busy = true
-	Narrator.hint(Game.t("hint_duck_stuck"), 4.0)
-	await get_tree().create_timer(1.6).timeout
+	_restart_told = true  # "stuck" already says it: no "restart" lines after it
+	await story.play("stuck", self)
 	_busy = false
 	_restart()
 
@@ -610,13 +610,14 @@ func _refresh_streams() -> void:
 	_flow = room.streams()
 	_paths.clear()
 	_owner.clear()
+	var cut := room.cut_traces()  # each stream only as far as it gets before running into another
 	var letters := room.spouts.keys()
 	letters.sort()
 	for l in letters:
 		var st: int = room.spouts[l]["state"]
 		if st == FlowRoom.OFF:
 			continue
-		var steps := room.trace(l)
+		var steps: Array = cut.get(l, [])
 		if steps.is_empty():
 			continue
 		var d0: Vector2i = room.spouts[l]["dir"]
@@ -641,8 +642,8 @@ func _scroll_streams(_delta: float) -> void:
 
 
 ## Each running stream is one ribbon of water from the spout to where it hits rock, with arrows
-## sliding along it the way the water (and so the duck) moves. Where two streams cross, the
-## arrows show whichever stream wins that cell.
+## sliding along it the way the water (and so the duck) moves. A stream ends where it runs into
+## another one (FlowRoom.cut_traces()), so two head-on meet halfway.
 func _draw_streams(n: Node2D) -> void:
 	for path in _paths:
 		var pts: PackedVector2Array = path["pts"]

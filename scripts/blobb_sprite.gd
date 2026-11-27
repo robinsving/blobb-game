@@ -22,6 +22,8 @@ const STRIPS := {
 	# (a 4th entry true: played forward then back, so a clip that doesn't loop cleanly has no seam)
 	"grumpy": ["res://assets/sprites/blobb_grumpy.png", 24.0, true, true],
 	"dash": ["res://assets/sprites/blobb_dash.png", 32.0, true, true],
+	# ch5's start: still straining from the climb, eyes squeezed shut (stretch and sag; loops)
+	"climb": ["res://assets/sprites/blobb_climb.png", 16.0, true],
 }
 ## Forms taken straight from the child's drawing (tools/cut_drawing.py). While a form is
 ## shown, the animated strips are hidden and the drawn figure breathes gently instead

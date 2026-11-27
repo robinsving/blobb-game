@@ -71,11 +71,7 @@ func _ready() -> void:
 		_solid(h)
 	_solid([-64, 0, -400])
 	_solid([W, W + 64, -400])
-	_rope = Line2D.new()
-	_rope.width = 34.0
-	_rope.default_color = Color(0.36, 0.62, 0.22)
-	_rope.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_rope.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_rope = Line2D.new()  # Blobb's stretched arm (ClimbRig dresses it in his own fur)
 	_rope.z_index = 1
 	add_child(_rope)
 	player = PlayerSide.new()

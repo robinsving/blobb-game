@@ -23,7 +23,7 @@ const ENTRIES := [
 	["Kapitel 3", [
 		["Stan", "res://chapters/ch3/city.tscn", -1],
 		["Stan: kanalen", "res://chapters/ch3/city.tscn", 39],
-		["Stan: stupröret", "res://chapters/ch3/city.tscn", 84],
+		["Stan: stupröret", "res://chapters/ch3/city.tscn", 86],
 		["Taken: rum 1", "res://chapters/ch3/roofs.tscn", 1],
 		["Taken: rum 2", "res://chapters/ch3/roofs.tscn", 2],
 		["Taken: rum 3", "res://chapters/ch3/roofs.tscn", 3],

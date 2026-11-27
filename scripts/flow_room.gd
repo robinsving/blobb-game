@@ -15,7 +15,8 @@ extends RefCounted
 ##          wheel opens/shuts it; a board: its lever flips it)
 ##
 ## Duck rules, one tick at a time: in a stream, move one cell along it (if the next cell isn't solid);
-## otherwise float up one cell (if it can). Where two streams cross, the first spout (A before B) wins.
+## otherwise float up one cell (if it can). Streams grow from their spouts together and stop where they
+## run into another stream's water (cut_traces()); where two meet head-on the duck stays between them.
 ## Story rule (ch2 "backwards"): once reverse_allowed, a spout's wheel cycles off -> on -> backwards,
 ## and a backwards spout pulls water (and the duck) along its stream back toward itself.
 
@@ -120,29 +121,65 @@ func trace(letter: String) -> Array:
 	return out
 
 
-## Every wet cell -> the direction the water moves there.
-func streams() -> Dictionary:
-	var flow := {}
+## Every running spout -> the part of its trace that is really its water: all streams grow from
+## their spouts at the same time, one cell per step, and a stream ends where it runs into water
+## that is already another stream's (two head-on meet halfway; at a crossing, the one that got
+## there first goes on). On the same step, the first spout (A before B) gets the cell.
+func cut_traces() -> Dictionary:
+	var traces := {}
 	var letters := spouts.keys()
 	letters.sort()
 	for l in letters:
-		var state: int = spouts[l]["state"]
-		if state == OFF:
-			continue
-		for cell in trace(l):
-			if flow.has(cell[0]):
+		if spouts[l]["state"] != OFF:
+			traces[l] = trace(l)
+	var owner := {}
+	var cut := {}
+	var alive := traces.keys()
+	var k := 0
+	while not alive.is_empty():
+		for l in alive.duplicate():
+			var t: Array = traces[l]
+			if k >= t.size():
+				alive.erase(l)
 				continue
+			var cell: Vector2i = t[k][0]
+			if owner.has(cell) and owner[cell] != l:
+				alive.erase(l)
+				continue
+			owner[cell] = l
+			cut[l] = k + 1
+		k += 1
+	var out := {}
+	for l in traces:
+		out[l] = (traces[l] as Array).slice(0, cut.get(l, 0))
+	return out
+
+
+## Every wet cell -> the direction the water moves there.
+func streams() -> Dictionary:
+	var flow := {}
+	var cut := cut_traces()
+	var letters := cut.keys()
+	letters.sort()
+	for l in letters:
+		var state: int = spouts[l]["state"]
+		for cell in cut[l]:
+			if flow.has(cell[0]):
+				continue  # its own stream crossing itself: the first pass wins
 			# backwards: the water runs the other way along the same path, toward the spout
 			flow[cell[0]] = cell[2] if state == ON else -cell[1]
 	return flow
 
 
-## One tick for the duck. Returns true if it moved.
+## One tick for the duck. Returns true if it moved. Where two streams meet head-on it stays put.
 func step(flow: Dictionary) -> bool:
 	if duck == goal:
 		return false
-	var next: Vector2i = duck + (flow[duck] if flow.has(duck) else Vector2i.UP)
+	var d: Vector2i = flow[duck] if flow.has(duck) else Vector2i.UP
+	var next: Vector2i = duck + d
 	if solid(next):
+		return false
+	if flow.has(duck) and flow.has(next) and flow[next] == -d:
 		return false
 	duck = next
 	return true

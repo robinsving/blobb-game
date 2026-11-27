@@ -6,6 +6,7 @@ extends Node
 ##   --fast                                   narrator auto-advances quickly (for testing)
 ##   --lang=sv                                force language
 ##   --shots=DIR                              save a screenshot every 2s into DIR (for visual checks)
+##   --shot-every=SECS                        ...every SECS instead
 ##   --quit-after-secs=N                      quit after N seconds
 ##   --warp=N                                 (forest, pond, city) skip the intro and start at tile column N;
 ##                                            (chase) start at beat N
@@ -74,12 +75,11 @@ const UI := {
 	"hint_swim": {"en": "{arrows} to swim", "sv": "{arrows} för att simma"},
 	"hint_mill": {"en": "{arrows} to swim · {jump} at a wheel or lever · {restart} start again", "sv": "{arrows} för att simma · {jump} vid ett hjul eller en spak · {restart} börja om"},
 	"hint_skip": {"en": "{skip} hurries the text along", "sv": "{skip} skyndar på texten"},
-	"hint_duck_stuck": {"en": "The duck is stuck. From the top!", "sv": "Ankan har fastnat. Från början!"},
 	"hint_backwards": {"en": "A wheel now goes: off → on → backwards", "sv": "Ett hjul går nu: av → på → baklänges"},
 	"chapter_3_btn": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3": {"en": "Chapter 3", "sv": "Kapitel 3"},
 	"chapter_3_name": {"en": "Lights", "sv": "Ljus"},
-	"hint_dash": {"en": "{jump} to jump the canal", "sv": "{jump} för att hoppa över kanalen"},
+	"hint_dash": {"en": "{jump} to jump the canals", "sv": "{jump} för att hoppa över kanalerna"},
 	"hint_roofs": {"en": "{use} at a crank turns its lamp · {restart} start again", "sv": "{use} vid en vev vrider lampan · {restart} börja om"},
 	"hint_chase": {"en": "← → change lanes · {jump} jump on the beat", "sv": "← → byt fil · {jump} hoppa i takt"},
 	"chapter_4_btn": {"en": "Chapter 4", "sv": "Kapitel 4"},
@@ -102,8 +102,10 @@ var _fade_layer: CanvasLayer
 var _fade: ColorRect
 var _music: AudioStreamPlayer
 var _music_path := ""
+var _quitting := false  # quit() has begun: no new sounds
 var _pause_layer: CanvasLayer
 var _shot_dir := ""
+var _shot_every := 2.0  # --shot-every=SECS
 var _shot_timer := 0.0
 var _shot_n := 0
 var _transitioning := false
@@ -168,6 +170,8 @@ func _parse_args() -> void:
 		elif a.begins_with("--shots="):
 			_shot_dir = a.get_slice("=", 1)
 			DirAccess.make_dir_recursive_absolute(_shot_dir)
+		elif a.begins_with("--shot-every="):
+			_shot_every = maxf(0.05, a.get_slice("=", 1).to_float())
 		elif a.begins_with("--quit-after-secs="):
 			var secs := float(a.get_slice("=", 1))
 			get_tree().create_timer(secs, true, false, true).timeout.connect(quit)
@@ -190,7 +194,7 @@ func _start_session() -> void:
 func _process(delta: float) -> void:
 	if _shot_dir != "":
 		_shot_timer += delta
-		if _shot_timer >= 2.0:
+		if _shot_timer >= _shot_every:
 			_shot_timer = 0.0
 			_shot_n += 1
 			var img := get_viewport().get_texture().get_image()
@@ -259,7 +263,7 @@ func cycle_locale() -> void:
 
 func sfx(sound: String, volume_db := 0.0, pitch := 1.0) -> void:
 	var s: AudioStream = _sfx.get(sound)
-	if s == null:
+	if s == null or _quitting:  # a sound started while quitting would still be playing at exit
 		return
 	var p := AudioStreamPlayer.new()
 	p.stream = s
@@ -273,6 +277,9 @@ func sfx(sound: String, volume_db := 0.0, pitch := 1.0) -> void:
 ## Quits cleanly: frees the level (and the coroutines waiting in it) and lets go of the music
 ## a couple of frames before the engine shuts down, so nothing is reported leaked at exit.
 func quit() -> void:
+	if _quitting:
+		return
+	_quitting = true
 	if not testing:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SESSION_PATH))  # a clean exit
 	Narrator.clear()
@@ -283,6 +290,10 @@ func quit() -> void:
 		scene.queue_free()
 	# the audio thread drops stopped playbacks on its next mix; give it a moment
 	await get_tree().create_timer(0.3, true, false, true).timeout
+	for p: Node in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
+		(p as AudioStreamPlayer).stop()  # anything that slipped in meanwhile
+		p.queue_free()
+	await get_tree().create_timer(0.1, true, false, true).timeout
 	get_tree().quit()
 
 

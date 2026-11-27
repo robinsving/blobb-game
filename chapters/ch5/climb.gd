@@ -23,13 +23,15 @@ const TOP := 700.0             # camera limit
 const EVEN := 0.95             # seconds between beats once the beat is even
 const SLIGHT := Vector2(0.8, 1.35)  # at the foot: EVEN times a random factor in this range, a little
                                # uneven, as ch4 ended; it evens out as he climbs to "steady"
-const PAN := 900.0             # room above the top for the look up (camera limit, the walls)
-const LOOK := 380.0            # at the summit the camera looks up this far: Blobb stays at the bottom
+const LOOK := 1900.0           # at the summit the camera sweeps up this far, past Blobb, into the sky
 const SKY_RISE := 700.0        # foot to top, the night picture (far ranges) sinks this far: he's above it
-const SKY_PAN := 300.0         # and this much more for the look up (the sky moves less than the mountain)
+const SKY_PAN := 1500.0        # and this much more for the look up (the sky moves less than the mountain)
 ## Star layers [parallax factor, count, size]: the far ones drift least. More stars come out the
-## higher he gets (each star has its own threshold), so the top is the fullest sky.
-const STAR_LAYERS := [[0.55, 520, 1.3], [0.8, 380, 1.8], [1.0, 160, 2.5]]
+## higher he gets (each star has its own threshold), so the top, and the sky above it that the
+## look up sweeps into, is the fullest sky. The first layer is a dust of tiny, faint ones.
+const STAR_LAYERS := [[0.4, 1600, 0.9], [0.55, 1100, 1.3], [0.8, 800, 1.8], [1.0, 340, 2.5]]
+const MOON_AT := Vector2(700, 430)   # where the moon and the bright star end up on screen
+const STAR_AT := Vector2(1260, 340)  # (below the narrator lines)
 const MILKY_F := 0.85          # the milky way's layer
 const FALL := 700.0            # this far below the last safe ledge is a fall (a retell)
 
@@ -60,9 +62,8 @@ const HOLDS := [
 ]
 ## Story beats by height: the scene plays once Blobb's feet are at or above this y.
 ## ("stars" isn't here: it follows "steady" on the same ledge, before the first star hold; see _beat)
-const TRIGGERS := {6625: "heartbeat", 6085: "moss", 5345: "colour", 4625: "rule", 3155: "steady",
+const TRIGGERS := {6625: "heartbeat", 5345: "colour", 4625: "rule", 3155: "steady",
 	2205: "pigeons", 1405: "question"}
-const MOSS := Vector2(1100, 6080)
 const SUMMIT_X := 700.0
 const WARPS := [Vector2(200, 7000), Vector2(1400, 4620), Vector2(1550, 3150), Vector2(1250, 1400), Vector2(450, 1050)]
 ## Where the drawing of Blobb hangs on the wall in the room at the end (landscape: the photo in
@@ -92,6 +93,7 @@ var _up := 0.0                 # 0..1: the look up into the sky at the summit
 var _moon := 0.0               # 0..1: the moon and the one bright star (O's and Y's signs), @moon
 var _stars: Array = []         # per layer: Array of Vector4(x, y, threshold, twinkle phase)
 var _milky: Array = []         # Vector4(x, y, radius, hue) soft glows, and _milky_dust stars
+var _nebula: Array[Vector4] = []  # big faint coloured glows high up (x, y, radius, hue 0..1)
 var _milky_dust: Array = []
 var _shoot := -1.0             # when the shooting star set off (_t), or -1
 var _sky_top: Node2D
@@ -139,6 +141,18 @@ func _build_world() -> void:
 	_sky_top = Node2D.new()
 	_sky_top.draw.connect(_draw_sky_top)
 	sky_layer.add_child(_sky_top)
+	# the painted moon and bright star (on black: drawn additively, so the black disappears)
+	for n in [["moon", "moon.png", 340.0], ["star", "star_bright.png", 260.0]]:
+		if ResourceLoader.exists(ART + n[1]):
+			var sp := Sprite2D.new()
+			sp.texture = load(ART + n[1])
+			sp.scale = Vector2.ONE * (n[2] / sp.texture.get_width())
+			var mat := CanvasItemMaterial.new()
+			mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			sp.material = mat
+			sp.modulate.a = 0.0
+			sky_layer.add_child(sp)
+			_sky_sprites[n[0]] = sp
 	_make_stars()
 	_world = Node2D.new()
 	_world.draw.connect(_draw_world)
@@ -149,11 +163,7 @@ func _build_world() -> void:
 		_solid(h, true)
 	_solid([-64, 0, -400], false)
 	_solid([W, W + 64, -400], false)
-	_rope = Line2D.new()
-	_rope.width = 34.0
-	_rope.default_color = Color(0.36, 0.62, 0.22)
-	_rope.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_rope.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_rope = Line2D.new()  # Blobb's stretched arm (ClimbRig dresses it in his own fur)
 	_rope.z_index = 1
 	_rope.visible = false
 	add_child(_rope)
@@ -225,8 +235,11 @@ func _intro() -> void:
 	_lit = 0.0
 	_cover.modulate.a = 1.0
 	fx.tint(DARK, 0.3, 0.0)  # Blobb a little dimmed: he's in the dark too
+	if player.sprite.sprite_frames.has_animation("climb"):
+		player.rest_anim = "climb"  # still straining from ch4's climb, while O finds the words
 	await ChapterCard.title(self, 5, Color(0.85, 0.85, 0.95), Color.BLACK)
 	await story.play("intro", self)
+	player.rest_anim = "idle"
 	Game.control_locked = false
 	Narrator.hint(Game.t("hint_move"), 6.0)
 
@@ -329,13 +342,13 @@ func _summit() -> void:
 	Game.go("res://scenes/title.tscn", night, 2.0)
 
 
-## A slow look up from the summit into the sky. Blobb stays in view at the bottom.
+## A slow sweep up from the summit, past Blobb and the mountain, into more and more sky.
 func _look_up() -> void:
 	var center := camera.get_screen_center_position()
-	camera.limit_top = int(TOP - PAN - 1000.0)
+	camera.limit_top = int(TOP - LOOK - 1500.0)
 	camera.offset.y = center.y - player.global_position.y  # carry on from where the view is
 	camera.reset_smoothing()
-	var dur := 2.0 if Game.fast else 9.0
+	var dur := 2.5 if Game.fast else 15.0
 	var tw := create_tween().set_parallel()
 	tw.tween_property(camera, "offset:y", camera.offset.y - LOOK, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(self, "_up", 1.0, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -605,17 +618,19 @@ func _make_stars() -> void:
 			arr.append(Vector4(rng.randf() * 1920.0, rng.randf_range(-reach * l[0] - 80.0, 560.0), rng.randf(), rng.randf() * TAU))
 		_stars.append(arr)
 	# the milky way: a soft diagonal band of glows with dust of tiny stars, high up
-	for i in 46:
-		var x := -200.0 + i * 52.0
+	for i in 70:
+		var x := -200.0 + i * 34.0
 		var y := _milky_y(x) + rng.randf_range(-40.0, 40.0)
 		_milky.append(Vector4(x, y, rng.randf_range(110.0, 220.0), rng.randf()))
-	for i in 1100:
+	for i in 3200:
 		var x := rng.randf() * 1920.0
-		_milky_dust.append(Vector4(x, _milky_y(x) + rng.randfn(0.0, 70.0), rng.randf_range(0.35, 1.0), rng.randf() * TAU))
+		_milky_dust.append(Vector4(x, _milky_y(x) + rng.randfn(0.0, 95.0), rng.randf_range(0.35, 1.0), rng.randf() * TAU))
+	for i in 14:  # faint clouds of colour, in the milky way's layer, over the sky the sweep reveals
+		_nebula.append(Vector4(rng.randf_range(-100.0, 2020.0), rng.randf_range(-reach * MILKY_F - 200.0, -300.0), rng.randf_range(260.0, 520.0), rng.randf()))
 
 
 func _milky_y(x: float) -> float:
-	return -360.0 - (x - 960.0) * 0.28 + sin(x * 0.004) * 40.0  # in its layer (MILKY_F)
+	return -1150.0 - (x - 960.0) * 0.28 + sin(x * 0.004) * 40.0  # in its layer (MILKY_F): the sweep up reveals it
 
 
 func _update_sky() -> void:
@@ -624,6 +639,14 @@ func _update_sky() -> void:
 		_sky_sprites["night"].modulate.a = lerpf(0.4, 1.0, _lit)
 		_sky_sprites["night"].position.y = shift
 	_sky.position.y = shift
+	var reach := SKY_RISE + SKY_PAN
+	if _sky_sprites.has("moon"):
+		_sky_sprites["moon"].position = MOON_AT + Vector2(0, shift - reach)
+		_sky_sprites["moon"].modulate = Color(1, 1, 1, _moon)
+	if _sky_sprites.has("star"):
+		_sky_sprites["star"].position = STAR_AT + Vector2(0, shift - reach)
+		var breathe := 0.85 + 0.15 * sin(_t * 1.3)
+		_sky_sprites["star"].modulate = Color(breathe, breathe, breathe, _moon)
 	_sky.queue_redraw()
 	_sky_top.queue_redraw()
 
@@ -658,18 +681,23 @@ func _draw_sky_top() -> void:
 	# the milky way, high up: it comes out over the last part of the climb
 	var mw := smoothstep(0.55, 1.0, dens)
 	if mw > 0.0:
+		for g in _nebula:
+			var at := Vector2(g.x, g.y + shift * MILKY_F)
+			if at.y > -g.z and at.y < horizon + g.z:
+				var col := Color(0.35, 0.3, 0.75).lerp(Color(0.25, 0.55, 0.8), g.w).lerp(Color(0.7, 0.35, 0.6), maxf(0.0, g.w - 0.75) * 3.0)
+				_halo(at, g.z, Color(col, 0.11 * mw))
 		for g in _milky:
 			var at := Vector2(g.x, g.y + shift * MILKY_F)
 			if at.y > -g.z and at.y < horizon:
 				var col := Color(0.55, 0.45, 0.85).lerp(Color(0.4, 0.6, 0.95), g.w)
-				_halo(at, g.z, Color(col, 0.17 * mw))
+				_halo(at, g.z, Color(col, 0.26 * mw))
 		for d in _milky_dust:
 			var at := Vector2(d.x, d.y + shift * MILKY_F)
 			if at.y < -2.0 or at.y > horizon:
 				continue
 			var a := clampf((mw - d.z * 0.6) / 0.3, 0.0, 1.0)
 			if a > 0.0:
-				_sky_top.draw_rect(Rect2(at, Vector2(1.6, 1.6)), Color(0.95, 0.93, 1.0, 0.7 * a))
+				_sky_top.draw_rect(Rect2(at, Vector2(1.8, 1.8)), Color(0.95, 0.93, 1.0, 0.8 * a))
 	for li in STAR_LAYERS.size():
 		var f: float = STAR_LAYERS[li][0]
 		var size: float = STAR_LAYERS[li][2]
@@ -696,17 +724,20 @@ func _draw_sky_top() -> void:
 			_sky_top.draw_line(tail, head, Color(1, 1, 0.95, 0.0), 1.0)
 			_sky_top.draw_polygon(PackedVector2Array([tail, head + Vector2(0, -1.5), head + Vector2(0, 1.5)]),
 				PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 0.95, 0.9 * fade), Color(1, 1, 0.95, 0.9 * fade)]))
-	# the moon (warm, like O's) and the star (cool, like Y's), side by side, when they come out
+	# the moon (warm, like O's) and the star (cool, like Y's), side by side, when they come out.
+	# The painted ones are sprites (additive, see _update_sky); without them, the icon shapes.
 	if _moon > 0.0:
 		var reach := SKY_RISE + SKY_PAN
-		var moon := Vector2(760, 250.0 - reach + shift)
-		var star := Vector2(1180, 330.0 - reach + shift)  # below the narrator lines
+		var moon := MOON_AT + Vector2(0, shift - reach)
+		var star := STAR_AT + Vector2(0, shift - reach)
 		var breathe := 0.85 + 0.15 * sin(_t * 1.3)
-		_halo(moon, 230.0, Color(1.0, 0.92, 0.78, 0.35 * _moon))
-		_halo(star, 200.0, Color(0.78, 0.92, 1.0, 0.45 * breathe * _moon))
-		_shape(NarratorIcon.moon_points(64.0), moon, Color(1.0, 0.95, 0.84, 0.95 * _moon))
-		_shape(NarratorIcon.star_points(34.0), star, Color(0.9, 0.97, 1.0, _moon))
-		_sky_top.draw_circle(star, 12.0, Color(1, 1, 1, 0.9 * breathe * _moon))
+		_halo(moon, 330.0, Color(1.0, 0.92, 0.78, 0.3 * _moon))
+		_halo(star, 260.0, Color(0.78, 0.92, 1.0, 0.4 * breathe * _moon))
+		if not _sky_sprites.has("moon"):
+			_shape(NarratorIcon.moon_points(90.0), moon, Color(1.0, 0.95, 0.84, 0.95 * _moon))
+		if not _sky_sprites.has("star"):
+			_shape(NarratorIcon.star_points(48.0), star, Color(0.9, 0.97, 1.0, _moon))
+			_sky_top.draw_circle(star, 16.0, Color(1, 1, 1, 0.9 * breathe * _moon))
 
 
 ## A smooth vertical gradient across the screen (vertex colours, so no bands).
@@ -773,26 +804,37 @@ func _draw_world() -> void:
 		var src := Rect2(1640, 0, 280, tex.get_height())
 		var w := 220.0
 		var h := tex.get_height() * w / src.size.x
-		var y := TOP - 400.0 - PAN
-		while y < GROUND + 600.0:
-			_world.draw_texture_rect_region(tex, Rect2(W - w, y, w, h), src, mood)
-			_world.draw_set_transform(Vector2(w, 0), 0.0, Vector2(-1, 1))  # mirrored for the left wall
-			_world.draw_texture_rect_region(tex, Rect2(0, y, w, h), src, mood)
+		var y := TOP - 600.0
+		# the top of the walls fades into the sky just above the summit view, so the sweep up
+		# leaves them behind (drawn in strips)
+		const FADE := 600.0
+		const STRIP := 20.0
+		var k := src.size.x / w  # source pixels per world pixel
+		for i in int(FADE / STRIP):
+			var c := Color(mood, smoothstep(0.0, 1.0, (i + 0.5) * STRIP / FADE))
+			var s_rect := Rect2(src.position.x, i * STRIP * k, src.size.x, STRIP * k)
+			_world.draw_texture_rect_region(tex, Rect2(W - w, y + i * STRIP, w, STRIP + 0.5), s_rect, c)
+			_world.draw_set_transform(Vector2(w, 0), 0.0, Vector2(-1, 1))
+			_world.draw_texture_rect_region(tex, Rect2(0, y + i * STRIP, w, STRIP + 0.5), s_rect, c)
 			_world.draw_set_transform(Vector2.ZERO)
+		var first := true
+		while y < GROUND + 600.0:
+			var skip := FADE if first else 0.0  # the faded strips already drew the first tile's top
+			var part := Rect2(src.position.x, skip * k, src.size.x, src.size.y - skip * k)
+			_world.draw_texture_rect_region(tex, Rect2(W - w, y + skip, w, h - skip), part, mood)
+			_world.draw_set_transform(Vector2(w, 0), 0.0, Vector2(-1, 1))  # mirrored for the left wall
+			_world.draw_texture_rect_region(tex, Rect2(0, y + skip, w, h - skip), part, mood)
+			_world.draw_set_transform(Vector2.ZERO)
+			first = false
 			y += h
 	else:
 		var rock := Color(0.16, 0.15, 0.24).lerp(Color(0.32, 0.3, 0.42), _sky_mix())
-		_world.draw_rect(Rect2(-40, TOP - 400 - PAN, 260, GROUND - TOP + 800 + PAN), rock.darkened(0.15))
-		_world.draw_rect(Rect2(W - 220, TOP - 400 - PAN, 260, GROUND - TOP + 800 + PAN), rock.darkened(0.15))
+		_world.draw_rect(Rect2(-40, TOP - 600, 260, GROUND - TOP + 1200), rock.darkened(0.15))
+		_world.draw_rect(Rect2(W - 220, TOP - 600, 260, GROUND - TOP + 1200), rock.darkened(0.15))
 	for i in LEDGES.size():
 		_draw_ledge(LEDGES[i], i == 0, -1)
 	for i in HEARTS.size():
 		_draw_ledge(HEARTS[i], false, i)
-	# the moss (the same glowing moss as ch4)
-	for k in 7:
-		var p := MOSS + Vector2(-90 + k * 30, -6 - (k % 3) * 4)
-		_world.draw_circle(p, 18.0 + (k % 2) * 6.0, Color(0.45, 0.75, 0.35, 0.9))
-	_world.draw_circle(MOSS + Vector2(0, -10), 120.0, Color(0.6, 1.0, 0.5, 0.06 + sin(_t * 1.5) * 0.02))
 	for i in HOLDS.size():
 		_draw_hold(i)
 

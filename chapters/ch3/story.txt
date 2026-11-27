@@ -88,17 +88,19 @@ Y: Hey! Sweep round him!
   sv: Hallå! Sopa runt honom!
 
 
-# TRIGGER: the open stretch before the canal (column 46).
+# TRIGGER: the open stretch before the canals (column 41).
 === dash ===
-Y: Then Blobb ran. So fast he went all blurry.
-  sv: Då sprang Blobb. Så fort att han blev alldeles suddig.
+Y: And then Blobb wanted to run and jump. So fast he went all blurry.
+  sv: Och då ville Blobb springa och hoppa. Så fort att han blev alldeles suddig.
   @dash
+O: Lucky Blobb could super-jump, because the canals were too wide. Sometimes you need a super jump.
+  sv: Tur att Blobb kunde superhoppa, för kanalerna var för breda. Ibland behövs ett superhopp.
 O: A green streak, all down the high street.
   sv: En grön strimma, hela vägen längs storgatan.
-# (hint appears: run and jump the canal)
+# (hint appears: run and jump the canals)
 
 
-# TRIGGER: the pigeons on the shop sign (column 66).
+# TRIGGER: the pigeons on the shop sign (column 82).
 === pigeons (ambient) ===
 Y: Pigeons. Asleep.
   sv: Duvor. De sover.
@@ -137,7 +139,7 @@ O: They bounce. I'll try to keep that in mind.
   sv: De studsar. Det ska jag försöka komma ihåg.
 
 
-# TRIGGER: the drainpipe at the end of the street (column 84). Then up to the roofs.
+# TRIGGER: the drainpipe at the end of the street (column 87). Then up to the roofs.
 === climb ===
 O: At the end of the street, an old drainpipe went all the way up to the roofs.
   sv: I slutet av gatan gick ett gammalt stuprör hela vägen upp till taken.
@@ -240,6 +242,9 @@ Y: You're doing the quiet thing again.
 === chase_4 (ambient) ===
 Y: Say the birds are slow. Say it.
   sv: Säg att fåglarna är långsamma. Säg det.
+@pause 1.6
+Y: Say something.
+  sv: Säg någonting.
 
 === chase_5 (ambient) ===
 Y: What's that noise?
