@@ -93,4 +93,5 @@ the tokens used.
 
 The drawing of Blobb belongs to the child who made it. Fonts (Lora, Patrick Hand under the
 SIL Open Font License; a FreeSans subset under the GPL with the font exception), Godot and
-other third-party parts are listed with their licences in [LICENSES.txt](LICENSES.txt).
+other third-party parts are listed with their licences in [LICENSES.txt](LICENSES.txt);
+Godot's own third-party components are in [licenses/godot-thirdparty.txt](licenses/godot-thirdparty.txt).
