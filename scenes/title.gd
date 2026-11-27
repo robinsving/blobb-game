@@ -86,7 +86,8 @@ func _ready() -> void:
 	_lang = _button(box, "language", func():
 		Game.cycle_locale()
 		_refresh())
-	_quit = _button(box, "quit", func(): Game.quit())
+	if not OS.has_feature("web"):  # a browser tab can't quit itself
+		_quit = _button(box, "quit", func(): Game.quit())
 	for b in _buttons():
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_color_override("font_color", Color(0.3, 0.24, 0.18))

@@ -60,7 +60,8 @@ def main():
 		r, x = ref[..., ch][rm], strip[..., ch][sm]
 		strip[..., ch] = np.clip(strip[..., ch] - x.mean() + r.mean(), 0, 1)  # shift only: keeps the clip's crayon contrast
 	out = 'assets/sprites/blobb_%s.png' % name
-	Image.fromarray((strip * 255).astype(np.uint8), 'RGBA').save(out)
+	from grid_strip import to_grid  # (wide strips become grids: WebGL texture size limits)
+	to_grid(Image.fromarray((strip * 255).astype(np.uint8), 'RGBA')).save(out)
 	print(out, len(frames), 'frames')
 	if len(args) > 1:
 		n = min(len(frames), 8)

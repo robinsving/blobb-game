@@ -16,6 +16,10 @@ Fonts
 Lora: Copyright 2011 The Lora Project Authors, with Reserved Font Name "Lora".
 Patrick Hand: Copyright (c) 2010-2012 Patrick Wagesreiter.
 Both are licensed under the SIL Open Font License, Version 1.1 (full text below).
+FreeSans (GNU FreeFont), a subset with only the arrows and controller-button letters
+(assets/fonts/FreeSans-symbols.ttf): Copyright 2002-2012 GNU FreeFont contributors.
+Licensed under the GNU GPL v3 or later with the font exception: embedding the font in a
+document or program does not by itself make that work GPL. https://www.gnu.org/software/freefont/
 
 
 Godot Engine

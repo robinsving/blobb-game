@@ -76,7 +76,7 @@ const SUMMIT_X := 700.0
 const WARPS := [Vector2(200, 9400), Vector2(1400, 4620), Vector2(1550, 3150), Vector2(1250, 1400), Vector2(450, 1050)]
 ## Where the drawing of Blobb hangs on the wall in the room at the end (landscape: the photo in
 ## assets/drawing.jpeg is portrait, so it's turned a quarter to the left).
-const PAPER := Rect2(50, 300, 330, 186)
+const PAPER := Rect2(1545, 330, 300, 169)  # on the wall right of the window, in the moonbeam
 const ROOM_MOON := Vector2(760, 262)  # in the window's upper panes (below the narrator lines)
 const ROOM_STAR := Vector2(1170, 290)
 
@@ -110,6 +110,7 @@ var _sky_top: Node2D
 var _pigeons: Array[Sprite2D] = []
 var _pigeons_on := false
 var _room: CanvasLayer
+var _viewer: CanvasLayer  # the drawing of Blobb, full screen ({use} in the room)
 var _cover: ColorRect  # the start: all black but Blobb, until O tells the mountain back (@mountain)
 var _bot_i := 0
 var _bot_wait := 0.0
@@ -347,6 +348,17 @@ func _summit() -> void:
 	_show_room()
 	await get_tree().create_timer(1.0 if Game.fast else 4.5).timeout
 	await story.play("room", self)
+	if not (Game.autoplay or Game.fast):
+		# the room stays until the player is done: {use} shows the drawing full screen
+		Narrator.hint(Game.t("hint_drawing"), 3600.0)
+		var closed_now := false  # the press that closes the drawing doesn't also end the game
+		while not (Input.is_action_just_pressed("advance") and not _viewer and not closed_now):
+			var open := _viewer != null
+			await get_tree().process_frame
+			closed_now = open and not _viewer
+		Narrator.hint_off()
+	if _viewer:
+		_toggle_drawing()
 	var night := Color(0.04, 0.05, 0.12)
 	await ChapterCard.closing(self, "the_end", Color(0.85, 0.87, 0.97), night, 2.5, 5.0)
 	Game.go("res://scenes/title.tscn", night, 2.0)
@@ -395,6 +407,45 @@ func fx_moon() -> void:
 
 # ================================================================ the room and the end
 
+## The drawing of Blobb (assets/drawing.jpeg) full screen over the room, or back again.
+func _toggle_drawing() -> void:
+	if _viewer:
+		var old := _viewer
+		_viewer = null
+		var tw := create_tween()
+		tw.tween_property(old.get_child(0), "modulate:a", 0.0, 0.3)
+		tw.tween_callback(old.queue_free)
+		return
+	if not ResourceLoader.exists("res://assets/drawing.jpeg"):
+		return
+	_viewer = CanvasLayer.new()
+	_viewer.layer = 70  # over the room and the narrator
+	add_child(_viewer)
+	var root := ColorRect.new()
+	root.color = Color(0.02, 0.02, 0.05, 0.94)
+	root.size = Vector2(1920, 1080)
+	root.modulate.a = 0.0
+	_viewer.add_child(root)
+	var art := TextureRect.new()
+	var photo := AtlasTexture.new()
+	photo.atlas = load("res://assets/drawing.jpeg")
+	photo.region = Rect2(Vector2(photo.atlas.get_size()) * 0.05, Vector2(photo.atlas.get_size()) * 0.9)
+	art.texture = photo
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.size = Vector2(1000, 1800)  # turned a quarter to the left: 1800 wide, 1000 high
+	art.pivot_offset = art.size * 0.5
+	art.position = Vector2(960, 540) - art.size * 0.5
+	art.rotation = -PI * 0.5
+	root.add_child(art)
+	create_tween().tween_property(root, "modulate:a", 1.0, 0.3)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _room and (event.is_action_pressed("use") or (_viewer and event.is_action_pressed("advance"))):
+		_toggle_drawing()  # {use} opens and closes it; {advance} closes it too
+
+
 ## The real room at night: two people, the moon and the star in the window, and the drawing of
 ## Blobb on the wall.
 func _show_room() -> void:
@@ -436,7 +487,7 @@ func _show_room() -> void:
 		art.pivot_offset = art.size * 0.5
 		art.position = PAPER.get_center() - art.size * 0.5
 		art.rotation = -PI * 0.5
-		art.modulate = Color(0.78, 0.82, 0.95)  # in the moonlight
+		art.modulate = Color(0.66, 0.7, 0.84)  # in the moonlight
 		root.add_child(art)
 	create_tween().tween_property(root, "modulate:a", 1.0, 1.0 if Game.fast else 4.0)
 
@@ -497,7 +548,7 @@ func _draw_room_rest(c: Control) -> void:
 	c.draw_colored_polygon(PackedVector2Array([Vector2(500, 90), Vector2(640, 90), Vector2(600, 400), Vector2(630, 760), Vector2(480, 760)]), far)
 	c.draw_colored_polygon(PackedVector2Array([Vector2(1280, 90), Vector2(1420, 90), Vector2(1440, 760), Vector2(1300, 760), Vector2(1320, 400)]), far)
 	# the moonlight: a faint beam across the wall (onto the drawing) and the floor
-	c.draw_colored_polygon(PackedVector2Array([Vector2(560, 200), Vector2(560, 560), Vector2(90, 660), Vector2(90, 170)]), Color(0.7, 0.8, 1.0, 0.07))
+	c.draw_colored_polygon(PackedVector2Array([Vector2(1360, 200), Vector2(1360, 560), Vector2(1960, 680), Vector2(1960, 150)]), Color(0.7, 0.8, 1.0, 0.07))
 	c.draw_rect(Rect2(0, 860, 1920, 220), Color(0.07, 0.07, 0.11))
 	c.draw_colored_polygon(PackedVector2Array([Vector2(640, 860), Vector2(1300, 860), Vector2(1560, 1080), Vector2(420, 1080)]), Color(0.7, 0.8, 1.0, 0.08))
 	# the monitor on its stand, a cable to the bed
@@ -533,7 +584,7 @@ func _draw_room_rest(c: Control) -> void:
 	c.draw_colored_polygon(PackedVector2Array([Vector2(936, 822), Vector2(966, 822), Vector2(950, 900), Vector2(924, 900)]), near)
 	c.draw_colored_polygon(PackedVector2Array([Vector2(972, 822), Vector2(996, 822), Vector2(984, 900), Vector2(960, 900)]), near)
 	# the paper with the drawing, taped up in the beam of light (the drawing itself is a TextureRect)
-	c.draw_rect(PAPER.grow(10.0), Color(0.72, 0.74, 0.82))  # the paper, in moonlight
+	c.draw_rect(PAPER.grow(10.0), Color(0.58, 0.6, 0.7))  # the paper, in moonlight
 	c.draw_rect(Rect2(PAPER.position + Vector2(PAPER.size.x * 0.5 - 30, -18), Vector2(60, 18)), Color(0.66, 0.68, 0.74, 0.8))
 
 

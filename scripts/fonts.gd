@@ -3,6 +3,22 @@ class_name Fonts
 
 static var _hand: Font
 static var _serif: Font
+static var _symbols: Font
+
+
+## Arrows and controller letters (← → Ⓐ Ⓧ ▾ ...) that Patrick Hand and Lora don't have. On the
+## desktop the system would fill them in, but a browser (the web export) has no system fonts.
+static func symbols() -> Font:
+	if _symbols == null:
+		_symbols = load("res://assets/fonts/FreeSans-symbols.ttf")
+	return _symbols
+
+
+## Gives every font (and the default theme font) the symbols as a fallback. Called once at start.
+static func add_fallbacks() -> void:
+	for f: Font in [hand(), serif(), ThemeDB.fallback_font]:
+		if f and not f.fallbacks.has(symbols()):
+			f.fallbacks = f.fallbacks + [symbols()]
 
 
 ## Hand-written font (younger narrator, titles).

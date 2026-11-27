@@ -63,6 +63,7 @@ const UI := {
 	"hint_move": {"en": "← → to move", "sv": "← → för att gå"},
 	"hint_jump": {"en": "{jump} to jump", "sv": "{jump} för att hoppa"},
 	"hint_advance": {"en": "{advance} for the next line", "sv": "{advance} för nästa rad"},
+	"hint_drawing": {"en": "{use} to look at the drawing · {advance} to finish", "sv": "{use} för att titta på teckningen · {advance} för att avsluta"},
 	"hint_push": {"en": "{arrows} to move · {undo} undo · {restart} start again", "sv": "{arrows} för att gå · {undo} ångra · {restart} börja om"},
 	"chapter_1": {"en": "Chapter 1", "sv": "Kapitel 1"},
 	"chapter_1_name": {"en": "The Other Side of the Forest", "sv": "Andra sidan skogen"},
@@ -124,6 +125,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().auto_accept_quit = false  # closing the window goes through quit()
 	_setup_input()
+	Fonts.add_fallbacks()  # arrows and controller letters, also in a browser (no system fonts)
 	_load()
 	_parse_args()
 	_start_session()
@@ -183,6 +185,8 @@ func _goto_on_start(path: String) -> void:
 
 ## Notes whether the last run crashed, then marks this one as running (until quit()).
 func _start_session() -> void:
+	if OS.has_feature("web"):
+		return  # in a browser closing the tab is the normal way out, not a crash
 	crashed_last_time = FileAccess.file_exists(SESSION_PATH)
 	if testing:
 		return
