@@ -128,9 +128,15 @@ func _reach_top() -> void:
 	_climbing = false
 	Game.control_locked = true
 	Game.unlock_chapter(5)
-	# Nobody speaks. He walks on into the cave mouth, the slower, almost even beep with him, and
-	# the dark closes round him until only he is left: the black chapter 5 starts in.
+	# Y's last line (step_5, by the cave) first; then he walks on into the cave mouth, the slower,
+	# almost even beep with him, and the dark closes round him until only he is left: the black
+	# chapter 5 starts in.
 	player.frozen = true
+	player.velocity = Vector2.ZERO
+	player.sprite.play("idle")
+	await get_tree().process_frame
+	while Narrator.busy:
+		await get_tree().process_frame
 	player.sprite.face(1.0)
 	player.sprite.play("run")
 	var walk := absf(CAVE_X - player.position.x) / (PlayerSide.SPEED * 0.5)
@@ -261,6 +267,10 @@ func _clamber(ledge: Array) -> void:
 	await tw.finished
 	player.frozen = false
 	_clambering = false
+	var step := "step_%d" % (LEDGES.find(ledge) + 1)
+	if _heard and not _fired.has(step):
+		_fired[step] = true
+		story.play(step, self)  # a line for each ledge he gets up onto
 	if not _heard and not _fired.has("foot"):
 		_fired["foot"] = true
 		_beat("foot")  # he tried, and couldn't: "Blobb can't manage without you."

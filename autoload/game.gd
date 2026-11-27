@@ -292,7 +292,8 @@ func quit() -> void:
 	await get_tree().create_timer(0.3, true, false, true).timeout
 	for p: Node in get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
 		(p as AudioStreamPlayer).stop()  # anything that slipped in meanwhile
-		p.queue_free()
+		if p != _music:  # the music player stays: a fade (music()) may still be tweening it
+			p.queue_free()
 	await get_tree().create_timer(0.1, true, false, true).timeout
 	get_tree().quit()
 
@@ -303,13 +304,16 @@ func _notification(what: int) -> void:
 
 
 func music(path: String, volume_db := -14.0, fade := 1.5) -> void:
-	if path == _music_path:
+	if path == _music_path or _quitting:
 		return
 	_music_path = path
 	var tw := create_tween()
 	if _music.playing:
 		tw.tween_property(_music, "volume_db", -60.0, fade * 0.5)
 	tw.tween_callback(func():
+		if _quitting:
+			_music.stop()
+			return
 		if path == "" or not ResourceLoader.exists(path):
 			_music.stop()
 			return

@@ -27,10 +27,10 @@ const LEDGES := [
 ## Heartbeat ledges: [x0, x1, top]
 const HEARTS := [
 	[300, 500, 2940],
-	[900, 1080, 2650],
-	[1500, 1680, 2100],
-	[330, 480, 1600],
-	[1150, 1300, 1150],
+	[800, 1080, 2650],   # (edge to edge with the plain ledge beside it: no gap to wedge in)
+	[1400, 1680, 2100],
+	[300, 480, 1600],
+	[1100, 1300, 1150],
 ]
 ## Holds: centres
 const HOLDS := [

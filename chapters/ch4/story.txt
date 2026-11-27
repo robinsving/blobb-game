@@ -115,8 +115,28 @@ Y: Blobb can't manage without you.
 Y: Everything's easier when you're with us.
   sv: Allting blir enklare när du är med.
 
-# At the top of the short climb nobody speaks: a few seconds of the slow,
-# even beep (the answer), then straight on into chapter 5. No scene needed.
+# One line per ledge, as Blobb gets up onto it (dream.gd _clamber: step_1 .. step_5).
+# Still only Y. Short; the beep steadies under them. The last one is on the top
+# ledge, by the cave: then he walks into the dark that chapter 5 starts in.
+=== step_1 (ambient) ===
+Y: One step at a time. That's what you always say.
+  sv: Ett steg i taget. Det brukar du säga.
+
+=== step_2 (ambient) ===
+Y: He's heavy. But he can do it.
+  sv: Han är tung. Men han orkar.
+
+=== step_3 (ambient) ===
+Y: I'll take my half. You take yours.
+  sv: Jag tar min halva. Du tar din.
+
+=== step_4 (ambient) ===
+Y: Don't look down. It's only mist down there.
+  sv: Titta inte ner. Det är bara dimma där nere.
+
+=== step_5 (ambient) ===
+Y: It's dark in there. But you'll find the way.
+  sv: Där inne är det mörkt. Men du hittar.
 
 
 # =====================================================================

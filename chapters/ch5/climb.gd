@@ -18,7 +18,7 @@ extends Node2D
 const ART := "res://assets/gen/ch5/"
 const W := 1920.0
 const DARK := Color(0.02, 0.03, 0.08)  # the night before the narrators tell it back
-const GROUND := 7000.0
+const GROUND := 9400.0
 const TOP := 700.0             # camera limit
 const EVEN := 0.95             # seconds between beats once the beat is even
 const SLIGHT := Vector2(0.8, 1.35)  # at the foot: EVEN times a random factor in this range, a little
@@ -36,11 +36,17 @@ const MILKY_F := 0.85          # the milky way's layer
 const FALL := 700.0            # this far below the last safe ledge is a fall (a retell)
 
 ## Plain ledges [x0, x1, top], bottom to top. The first is the ground; the last is the summit.
+## Three stairs of plain hops (200 px a step, zigzag) at the foot give O's first, slow lines
+## time to be told before the next beat.
 const LEDGES := [
-	[0, 1920, 7000],
+	[0, 1920, 9400],
 	# the foot (night)
-	[700, 1000, 6820], [1150, 1450, 6620], [800, 1650, 6080], [450, 700, 5880],
-	[100, 600, 5340], [750, 1000, 5160], [1150, 1700, 4620],
+	[250, 550, 9200], [650, 950, 9000], [250, 550, 8800], [400, 650, 8600],  # stairs
+	[700, 1000, 8420], [1150, 1450, 8220], [800, 1650, 7680],
+	[450, 750, 7480], [900, 1200, 7280], [450, 750, 7080], [900, 1200, 6880],  # stairs
+	[450, 700, 6680], [100, 600, 6140],
+	[700, 1000, 5940], [250, 550, 5740], [700, 1000, 5540], [300, 600, 5340],  # stairs
+	[750, 1000, 5160], [1150, 1700, 4620],
 	# the middle (blue hour): O's rule, then roots
 	[450, 800, 4320], [100, 500, 3770], [1600, 1900, 3700], [1300, 1800, 3150],
 	# the high stretch (the last stars)
@@ -48,10 +54,12 @@ const LEDGES := [
 	[700, 950, 1220], [200, 700, 1050],
 ]
 ## Heartbeat ledges [x0, x1, top]; each launches Blobb up to the ledge above it.
+## Where one sits beside a plain ledge at the same height they meet edge to edge: Blobb's round
+## bottom (a 100 px wide capsule) wedges itself into any narrower gap between two one-way ledges.
 const HEARTS := [
-	[1550, 1750, 6620], [150, 400, 5880], [1100, 1300, 5160],
-	[150, 400, 4320], [1400, 1580, 3700],
-	[500, 680, 2750], [1350, 1550, 1950],
+	[1450, 1750, 8220], [150, 450, 6680], [1000, 1300, 5160],
+	[150, 450, 4320], [1400, 1600, 3700],
+	[450, 680, 2750], [1350, 1600, 1950],
 ]
 ## Holds: [x, y, "root" | "star"]. They only work after O's rule.
 const HOLDS := [
@@ -62,13 +70,15 @@ const HOLDS := [
 ]
 ## Story beats by height: the scene plays once Blobb's feet are at or above this y.
 ## ("stars" isn't here: it follows "steady" on the same ledge, before the first star hold; see _beat)
-const TRIGGERS := {6625: "heartbeat", 5345: "colour", 4625: "rule", 3155: "steady",
+const TRIGGERS := {8225: "heartbeat", 6145: "colour", 4625: "rule", 3155: "steady",
 	2205: "pigeons", 1405: "question"}
 const SUMMIT_X := 700.0
-const WARPS := [Vector2(200, 7000), Vector2(1400, 4620), Vector2(1550, 3150), Vector2(1250, 1400), Vector2(450, 1050)]
+const WARPS := [Vector2(200, 9400), Vector2(1400, 4620), Vector2(1550, 3150), Vector2(1250, 1400), Vector2(450, 1050)]
 ## Where the drawing of Blobb hangs on the wall in the room at the end (landscape: the photo in
 ## assets/drawing.jpeg is portrait, so it's turned a quarter to the left).
 const PAPER := Rect2(50, 300, 330, 186)
+const ROOM_MOON := Vector2(760, 262)  # in the window's upper panes (below the narrator lines)
+const ROOM_STAR := Vector2(1170, 290)
 
 var player: PlayerSide
 var fx: StyleFX
@@ -399,6 +409,21 @@ func _show_room() -> void:
 	drawn.size = Vector2(1920, 1080)
 	drawn.draw.connect(_draw_room.bind(drawn))
 	root.add_child(drawn)
+	# the same painted moon and bright star as on the summit, in the window's upper panes
+	for n in [["moon.png", ROOM_MOON, 230.0], ["star_bright.png", ROOM_STAR, 170.0]]:
+		if ResourceLoader.exists(ART + n[0]):
+			var sp := Sprite2D.new()
+			sp.texture = load(ART + n[0])
+			sp.scale = Vector2.ONE * (n[2] / sp.texture.get_width())
+			sp.position = n[1]
+			var mat := CanvasItemMaterial.new()
+			mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			sp.material = mat
+			root.add_child(sp)
+	var front := Control.new()  # the frame, curtains, bed and people, in front of the moon and star
+	front.size = Vector2(1920, 1080)
+	front.draw.connect(_draw_room_rest.bind(front))
+	root.add_child(front)
 	if ResourceLoader.exists("res://assets/drawing.jpeg"):
 		var art := TextureRect.new()
 		var photo := AtlasTexture.new()  # trimmed a little, so no table shows round the paper
@@ -420,13 +445,16 @@ func _show_room() -> void:
 ## and the bright star in its panes): the hospital bed with O propped up, the monitor beside it, Y
 ## on a chair leaning on the bed, their hands meeting on the blanket. The drawing of Blobb on the
 ## wall catches the moonlight.
+const ROOM_WALL := Color(0.1, 0.1, 0.16)
+const ROOM_WIN := Rect2(560, 120, 800, 580)
+
+
+## The back of the room: the wall and the night in the window (the moon and star go over this).
 func _draw_room(c: Control) -> void:
-	var wall := Color(0.1, 0.1, 0.16)
-	var far := Color(0.06, 0.06, 0.1)    # the machine and the bed (a little behind)
-	var near := Color(0.02, 0.02, 0.04)  # Y, nearest
+	var wall := ROOM_WALL
 	c.draw_rect(Rect2(0, 0, 1920, 1080), wall)
 	# the window: the night sky over the mountains, stars, the moon and the star
-	var win := Rect2(560, 120, 800, 580)
+	var win := ROOM_WIN
 	var top := Color(0.02, 0.03, 0.1)
 	var low := Color(0.12, 0.14, 0.3)
 	for i in 29:
@@ -435,8 +463,12 @@ func _draw_room(c: Control) -> void:
 	rng.seed = 7
 	for i in 90:
 		c.draw_circle(Vector2(rng.randf_range(win.position.x, win.end.x), rng.randf_range(win.position.y, 560.0)), rng.randf_range(0.8, 2.0), Color(1, 1, 0.94, rng.randf_range(0.3, 0.9)))
-	var moon := Vector2(760, 260)
-	var star := Vector2(1190, 330)  # below the narrator lines
+	if not (ResourceLoader.exists(ART + "moon.png") and ResourceLoader.exists(ART + "star_bright.png")):
+		_room_icons(c, ROOM_MOON, ROOM_STAR)  # else the painted ones, as sprites over this
+
+
+## The narrators' icon shapes as moon and star, when the paintings are missing.
+func _room_icons(c: Control, moon: Vector2, star: Vector2) -> void:
 	for k in 4:
 		c.draw_circle(moon, 54.0 + k * 26.0, Color(1.0, 0.92, 0.78, 0.07))
 		c.draw_circle(star, 22.0 + k * 20.0, Color(0.78, 0.92, 1.0, 0.07))
@@ -448,6 +480,14 @@ func _draw_room(c: Control) -> void:
 	for i in pts.size():
 		pts[i] += star
 	c.draw_colored_polygon(pts, Color(0.9, 0.97, 1.0))
+
+
+## The front of the room: the window frame, curtains, bed, monitor and the two of them.
+func _draw_room_rest(c: Control) -> void:
+	var wall := ROOM_WALL
+	var win := ROOM_WIN
+	var far := Color(0.06, 0.06, 0.1)    # the machine and the bed (a little behind)
+	var near := Color(0.02, 0.02, 0.04)  # Y, nearest
 	c.draw_colored_polygon(PackedVector2Array([Vector2(560, 700), Vector2(560, 640), Vector2(700, 600), Vector2(820, 640),
 		Vector2(960, 556), Vector2(1100, 628), Vector2(1250, 592), Vector2(1360, 640), Vector2(1360, 700)]), Color(0.1, 0.11, 0.22))
 	# frame, cross bars and curtains
@@ -533,7 +573,7 @@ func _process(delta: float) -> void:
 func unevenness() -> float:
 	if _done:
 		return 0.0
-	return clampf((player.position.y - 3150.0) / (6600.0 - 3150.0), 0.0, 1.0)
+	return clampf((player.position.y - 3150.0) / (8200.0 - 3150.0), 0.0, 1.0)
 
 
 func _next_interval() -> float:
@@ -595,7 +635,7 @@ func _sky_mix() -> float:
 	if not camera:
 		return 0.0
 	var y := camera.get_screen_center_position().y - camera.offset.y
-	return clampf((6800.0 - y) / (6800.0 - 1100.0), 0.0, 1.0)
+	return clampf((8400.0 - y) / (8400.0 - 1100.0), 0.0, 1.0)
 
 
 ## How far the sky has moved down the screen: the climb, then the look up.
