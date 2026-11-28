@@ -67,7 +67,7 @@ O: Like a very determined crab.
 Y: Wait. Fuzz holds bubbles. Everybody knows that.
   sv: Vänta. Ludd är fullt av bubblor. Det vet ju alla.
 O: Does it?
-  sv: Gör det?
+  sv: Är det?
 Y: Loads. Blobb's full of bubbles now. He floats.
   sv: Massor. Blobb är full av bubblor nu. Han flyter.
   @swim_unlock
@@ -194,7 +194,7 @@ O: No. But water can. The wheels open the spouts, and the levers turn the boards
   sv: Nej. Men vattnet kommer igenom. Hjulen sätter på vattnet, och spakarna vänder brädorna.
 Y: So Blobb moves the water, and the water moves the duck.
   sv: Så Blobb flyttar vattnet, och vattnet flyttar ankan.
-# (hint appears: swim to a wheel or lever, Space to use it, R to start the room again)
+# (hint appears: swim to a wheel or lever, E to use it, R to start the room again)
 
 
 # TRIGGER: room 1 is solved. The duck pops up out of the water.
@@ -271,8 +271,9 @@ O: From the top.
 O: Through the hatch was the shallow end, where the sun had warmed the water all day.
   sv: På andra sidan luckan låg den grunda delen, där solen hade värmt vattnet hela dagen.
   @float_back
-O: Blobb floated on his back. The duck floated beside him, still cross.
-  sv: Blobb flöt på rygg. Ankan flöt bredvid honom, fortfarande arg.
+O: Blobb floated on his back, and the warm water made him green again. The duck floated beside him, still cross.
+  sv: Blobb flöt på rygg, och det varma vattnet gjorde honom grön igen. Ankan flöt bredvid honom, fortfarande arg.
+  @blobb_green
 Y: Let's leave them there a while. In the warm bit.
   sv: Vi låter dem vara där en stund. I det varma.
 @pause 1.8
@@ -305,6 +306,7 @@ O: You bring the lights. I'll bring the night.
 #  @sink               Blobb gets heavy and sinks (walks along the bottom)
 #  @swim_unlock        Blobb can swim in every direction
 #  @blobb_blue         Blobb turns blue in the cold water
+#  @blobb_green        ...and green again in the warm shallow end (the ending)
 #  @whistle            the warden banana blows its whistle
 #  @gurgle             something gurgles in the mill channel
 #  @duck_bonk          the duck lands on the banana's head

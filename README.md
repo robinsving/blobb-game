@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/blobb_jump.gif" alt="Blobb, a fuzzy green crayon creature, crouches, jumps and lands" width="300">
+  <img src="docs/media/blobb_idle_ingame.gif" alt="Blobb, a fuzzy green crayon creature, standing and blinking" width="300">
 </p>
 
 # Blobb

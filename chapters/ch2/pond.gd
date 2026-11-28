@@ -117,14 +117,43 @@ func _beat(scene: String) -> void:
 			Game.go(NEXT_SCENE, Color(0.05, 0.12, 0.1), 0.9)
 
 
-func _fail() -> void:
+func _fail(whirl := Vector2.INF) -> void:
 	if _retelling:
 		return
 	_retelling = true
+	if whirl != Vector2.INF:
+		await _swirl(whirl)
 	player.teleport(_checkpoint)
-	if await Retell.tell(self, story, fx, player, _checkpoint, _fail_count):
+	if await Retell.tell(self, story, fx, player, _checkpoint, _fail_count, true):
 		_fail_count += 1
 	_retelling = false
+
+
+## The whirlpool takes him: round and round, spinning, smaller and smaller, into its middle.
+## Only Blobb turns (no screen motion). He's put back to his normal size before the retell.
+func _swirl(centre: Vector2) -> void:
+	Game.control_locked = true
+	player.set_physics_process(false)
+	player.velocity = Vector2.ZERO
+	Game.sfx("gurgle", -6.0, 1.2)
+	var body_off := Vector2(0, -54)  # the pull centre is 54 px above his feet
+	var start := player.global_position + body_off - centre
+	var r0 := start.length()
+	var a0 := start.angle()
+	var dur := 0.6 if Game.fast else 1.3
+	var base := player.sprite.scale
+	var spin := func(t: float) -> void:
+		var r := r0 * (1.0 - t)
+		var a := a0 + t * TAU * 1.75
+		player.global_position = centre + Vector2(cos(a), sin(a)) * r - body_off
+		player.sprite.rotation = t * TAU * 3.0
+		player.sprite.scale = base * lerpf(1.0, 0.15, t * t)
+		player.sprite.modulate.a = 1.0 - smoothstep(0.7, 1.0, t)
+	await create_tween().tween_method(spin, 0.0, 1.0, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN).finished
+	player.sprite.rotation = 0.0
+	player.sprite.scale = base
+	player.sprite.modulate.a = 1.0
+	player.set_physics_process(true)
 
 
 # ================================================================ story effects (@name in story.txt)
@@ -190,7 +219,7 @@ func _physics_process(_delta: float) -> void:
 			var k := 1.0 - d / reach
 			push += to_whirl.normalized() * 230.0 * k + to_whirl.normalized().orthogonal() * 120.0 * k
 			if d < 75.0 * w.z and not _retelling:
-				_fail()
+				_fail(Vector2(w.x, w.y))
 	player.flow = push
 	if Game.autoplay:
 		_steer_bot(p)

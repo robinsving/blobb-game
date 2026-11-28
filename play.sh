@@ -14,7 +14,7 @@ case "$1" in
 Starta Blobb direkt i en scen:   ./play.sh SCEN [VAR] [--fast]
 
   forest     skogen          VAR = kolumn (17 hoppet, 62 bananen, 98 kvällen)
-  clearing   gläntan         VAR = rum 1-2
+  clearing   gläntan         VAR = rum 1-3 (3 = bananen)
   pond       dammen          VAR = kolumn (43 fiskarna, 64 virveln)
   mill       kvarnen         VAR = rum 1-3
   city       stan            VAR = kolumn (39 kanalen, 84 stupröret)

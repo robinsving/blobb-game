@@ -22,6 +22,7 @@ const STRIPS := {
 	# animated forms (tools/key_form.py): when one exists, set_form() plays it instead of the drawing
 	# (a 4th entry true: played forward then back, so a clip that doesn't loop cleanly has no seam)
 	"grumpy": ["res://assets/sprites/blobb_grumpy.png", 24.0, true, true],
+	"calm": ["res://assets/sprites/blobb_calm.png", 24.0, false],  # spiky back to ordinary (_calm_down)
 	"dash": ["res://assets/sprites/blobb_dash.png", 32.0, true, true],
 	# ch5's start: still straining from the climb, eyes squeezed shut (stretch and sag; loops)
 	"climb": ["res://assets/sprites/blobb_climb.png", 16.0, true],
@@ -51,6 +52,7 @@ var _tint_tween: Tween
 var _drawn: Sprite2D
 var _anim: AnimatedSprite2D  # an animated form (a strip in STRIPS with the form's name)
 var _bristles := 0  # counts bristle() calls, so only the latest one turns him back
+var _outro: Tween  # an animated form fading back into the normal Blobb (set_form("normal"))
 var _t := 0.0
 
 
@@ -103,7 +105,16 @@ func set_form(new_form: String) -> void:
 	if new_form != "normal" and not (FORMS.has(new_form) and ResourceLoader.exists(FORMS[new_form])):
 		push_warning("BlobbSprite.set_form: no form " + new_form)
 		return
+	var old := form
 	form = new_form
+	if _outro and _outro.is_valid():
+		_outro.kill()
+		_reset_anim()
+	if new_form == "grumpy" and is_inside_tree():
+		Game.sfx("bristle", -5.0, randf_range(0.95, 1.08))  # the spikes shoot out
+	if new_form == "normal" and old == "grumpy" and _anim and _anim.visible:
+		_calm_down()
+		return
 	if _drawn:
 		_drawn.visible = false
 	if _anim:
@@ -142,6 +153,44 @@ func set_form(new_form: String) -> void:
 		tw.tween_property(_drawn, "scale", Vector2(k, k), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## Back from the spiky form: the spikes sink in (the prickly Blobb squashes down and fades) while the
+## normal Blobb fills out in his place, with a little shake as he settles, and a soft "pfff".
+func _calm_down() -> void:
+	if is_inside_tree():
+		Game.sfx("unbristle", -6.0, randf_range(0.95, 1.05))
+	_anim.position = Vector2.ZERO
+	_anim.rotation = 0.0
+	self_modulate.a = 0.0
+	if sprite_frames.has_animation("calm"):  # the drawn way back: spikes sink in, the face calms
+		_anim.play("calm")
+		_outro = create_tween()
+		_outro.tween_interval(sprite_frames.get_frame_count("calm") / sprite_frames.get_animation_speed("calm"))
+		_outro.tween_callback(_reset_anim)
+		return
+	var turn := -1.0 if facing_left else 1.0
+	_outro = create_tween().set_parallel()
+	_outro.tween_property(_anim, "scale", Vector2(1.12, 0.78), 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_outro.tween_property(_anim, "position", Vector2(0, 30), 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_outro.tween_property(_anim, "modulate:a", 0.0, 0.35)
+	_outro.tween_property(self, "self_modulate:a", 1.0, 0.3).set_delay(0.08)
+	_outro.tween_property(self, "rotation", 0.07 * turn, 0.09).set_delay(0.3)
+	_outro.chain().tween_property(self, "rotation", -0.05 * turn, 0.1)
+	_outro.chain().tween_property(self, "rotation", 0.0, 0.12)
+	_outro.chain().tween_callback(_reset_anim)
+
+
+func _reset_anim() -> void:
+	rotation = 0.0
+	if _anim:
+		if form == "normal":
+			_anim.visible = false
+		_anim.modulate.a = 1.0
+		_anim.scale = Vector2.ONE
+		_anim.position = Vector2.ZERO
+	if form == "normal":
+		self_modulate.a = 1.0
+
+
 ## A knock makes him prickly for a moment (the grumpy form), then he's himself again. Spikes are
 ## his stubbornness, never a weapon: whatever knocked him (a fish, the banana) is not hurt.
 func bristle(secs := 1.2) -> void:
@@ -178,7 +227,7 @@ func _process(delta: float) -> void:
 		var k: float = _drawn.get_meta("k")
 		if _t > 0.4:  # after the pop: breathe
 			_drawn.scale = Vector2(k, k * (1.0 + sin(_t * 3.0) * 0.025))
-	elif _anim and _anim.visible:
+	elif _anim and _anim.visible and not (_outro and _outro.is_running()):
 		_t += delta
 		if _t > 0.4:  # after the pop
 			_live(_anim)

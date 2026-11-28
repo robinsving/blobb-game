@@ -22,6 +22,11 @@ const SWIM := 380.0
 const SWIM_ACCEL := 1500.0
 const SWIM_DRAG := 900.0
 const BUOYANCY := -30.0  # gentle drift up when idle
+## Spiky (a fish bumped him, BlobbSprite.bristle()) he puffs up like a pufferfish: bigger, darker so
+## he shows against the light water, and full of air, so he floats up.
+const PUFF_BUOYANCY := -170.0
+const PUFF_SCALE := 1.18
+const PUFF_SHADE := Color(0.62, 0.68, 0.8)
 
 var mode := Mode.LAND
 var can_swim := false
@@ -115,8 +120,11 @@ func _move_sink(input: Vector2, delta: float) -> void:
 
 func _move_swim(input: Vector2, delta: float) -> void:
 	var want := input.limit_length(1.0) * SWIM
+	var puffed := sprite.form == "grumpy"
+	if puffed:
+		want.y = minf(want.y, 0.0) + PUFF_BUOYANCY * (1.0 - absf(input.y))  # he can't swim down, only up
 	if input == Vector2.ZERO:
-		velocity = velocity.move_toward(Vector2(0, buoyancy), SWIM_DRAG * delta)
+		velocity = velocity.move_toward(Vector2(0, PUFF_BUOYANCY if puffed else buoyancy), SWIM_DRAG * delta)
 	else:
 		velocity = velocity.move_toward(want, SWIM_ACCEL * delta)
 
@@ -135,6 +143,10 @@ func _animate(input: Vector2, delta: float) -> void:
 		Mode.SWIM:
 			if sprite.animation != "idle":
 				sprite.play("idle")
+			var puffed := sprite.form == "grumpy"
+			var k := 1.0 - exp(-delta * 10.0)
+			sprite.scale = sprite.scale.lerp(Vector2.ONE * sprite_scale * (PUFF_SCALE if puffed else 1.0), k)
+			sprite.modulate = sprite.modulate.lerp(PUFF_SHADE if puffed else Color.WHITE, k)
 			# paddle: a quick wobble while moving, a slow sway while floating
 			var moving := velocity.length() > 60.0
 			var tilt := clampf(velocity.x / SWIM, -1, 1) * 0.25

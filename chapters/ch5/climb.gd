@@ -33,6 +33,11 @@ const STAR_LAYERS := [[0.4, 1600, 0.9], [0.55, 1100, 1.3], [0.8, 800, 1.8], [1.0
 const MOON_AT := Vector2(700, 430)   # where the moon and the bright star end up on screen
 const STAR_AT := Vector2(1260, 340)  # (below the narrator lines)
 const MILKY_F := 0.85          # the milky way's layer
+## The painted starry sky (assets/gen/ch5/stars_sky.png, 1920x3000 on black, drawn additively):
+## one tall picture, sparse at the bottom, denser upward, the milky way at the top. It scrolls with
+## the night picture (the sky shift), so the climb and the sweep up move into ever more stars; at the
+## end of the sweep its top fills the screen. Without it the stars are drawn in code.
+const STARS_SKY := "stars_sky.png"
 const FALL := 700.0            # this far below the last safe ledge is a fall (a retell)
 
 ## Plain ledges [x0, x1, top], bottom to top. The first is the ground; the last is the summit.
@@ -105,12 +110,16 @@ var _stars: Array = []         # per layer: Array of Vector4(x, y, threshold, tw
 var _milky: Array = []         # Vector4(x, y, radius, hue) soft glows, and _milky_dust stars
 var _nebula: Array[Vector4] = []  # big faint coloured glows high up (x, y, radius, hue 0..1)
 var _milky_dust: Array = []
+var _star_nodes: Array[MultiMeshInstance2D] = []  # one per STAR_LAYERS entry (drawn on the GPU)
+var _dust_node: MultiMeshInstance2D
+var _stars_sky: Sprite2D  # the painted starry sky (STARS_SKY), if there is one
 var _shoot := -1.0             # when the shooting star set off (_t), or -1
 var _sky_top: Node2D
 var _pigeons: Array[Sprite2D] = []
 var _pigeons_on := false
 var _room: CanvasLayer
-var _viewer: CanvasLayer  # the drawing of Blobb, full screen ({use} in the room)
+var _room_root: Control  # the room (dimmed under the credits)
+var _room_art: TextureRect  # the drawing of Blobb on the wall (it grows to full screen at the end)
 var _cover: ColorRect  # the start: all black but Blobb, until O tells the mountain back (@mountain)
 var _bot_i := 0
 var _bot_wait := 0.0
@@ -232,6 +241,7 @@ func _warp_to(i: int) -> void:
 		_fired["intro"] = true
 	if i >= 2:
 		rig.can_reach = true
+		Narrator.legend("hint_swing")
 	player.teleport(p)
 	_safe = p
 	Game.control_locked = false
@@ -333,10 +343,12 @@ func _save_section() -> void:
 ## little more night (the summit scene), the moon comes out beside the star, and the room.
 func _summit() -> void:
 	_done = true
+	Narrator.legend("")
 	Game.unlock_chapter(6)  # the story is finished: nothing left to continue
 	rig.release()
 	Game.control_locked = true
 	player.velocity = Vector2.ZERO
+	player.frozen = true  # he only looks from here on: a blocking line ending must not let him jump again
 	await get_tree().create_timer(1.0 if Game.fast else 2.0).timeout
 	await _look_up()
 	# he just looks, a while; one shooting star
@@ -348,17 +360,9 @@ func _summit() -> void:
 	_show_room()
 	await get_tree().create_timer(1.0 if Game.fast else 4.5).timeout
 	await story.play("room", self)
-	if not (Game.autoplay or Game.fast):
-		# the room stays until the player is done: {use} shows the drawing full screen
-		Narrator.hint(Game.t("hint_drawing"), 3600.0)
-		var closed_now := false  # the press that closes the drawing doesn't also end the game
-		while not (Input.is_action_just_pressed("advance") and not _viewer and not closed_now):
-			var open := _viewer != null
-			await get_tree().process_frame
-			closed_now = open and not _viewer
-		Narrator.hint_off()
-	if _viewer:
-		_toggle_drawing()
+	await get_tree().create_timer(0.5 if Game.fast else 2.0).timeout
+	await _credits()
+	await _zoom_drawing()
 	var night := Color(0.04, 0.05, 0.12)
 	await ChapterCard.closing(self, "the_end", Color(0.85, 0.87, 0.97), night, 2.5, 5.0)
 	Game.go("res://scenes/title.tscn", night, 2.0)
@@ -396,7 +400,7 @@ func fx_stars() -> void:
 func fx_stretch() -> void:
 	rig.can_reach = true
 	Game.sfx("pop", -6.0, 0.8)
-	Narrator.hint(Game.t("hint_swing"), 10.0)
+	Narrator.legend("hint_swing")  # stays at the bottom of the screen: easy to miss if it faded
 
 
 ## "And your moon." The moon comes out beside the bright star: the narrators' signs, night kept.
@@ -407,43 +411,88 @@ func fx_moon() -> void:
 
 # ================================================================ the room and the end
 
-## The drawing of Blobb (assets/drawing.jpeg) full screen over the room, or back again.
-func _toggle_drawing() -> void:
-	if _viewer:
-		var old := _viewer
-		_viewer = null
-		var tw := create_tween()
-		tw.tween_property(old.get_child(0), "modulate:a", 0.0, 0.3)
-		tw.tween_callback(old.queue_free)
-		return
-	if not ResourceLoader.exists("res://assets/drawing.jpeg"):
-		return
-	_viewer = CanvasLayer.new()
-	_viewer.layer = 70  # over the room and the narrator
-	add_child(_viewer)
-	var root := ColorRect.new()
-	root.color = Color(0.02, 0.02, 0.05, 0.94)
-	root.size = Vector2(1920, 1080)
-	root.modulate.a = 0.0
-	_viewer.add_child(root)
-	var art := TextureRect.new()
-	var photo := AtlasTexture.new()
-	photo.atlas = load("res://assets/drawing.jpeg")
-	photo.region = Rect2(Vector2(photo.atlas.get_size()) * 0.05, Vector2(photo.atlas.get_size()) * 0.9)
-	art.texture = photo
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	art.size = Vector2(1000, 1800)  # turned a quarter to the left: 1800 wide, 1000 high
-	art.pivot_offset = art.size * 0.5
-	art.position = Vector2(960, 540) - art.size * 0.5
-	art.rotation = -PI * 0.5
-	root.add_child(art)
-	create_tween().tween_property(root, "modulate:a", 1.0, 0.3)
+## The credits, over the room: a slow roll from below to above, the room dimmed behind it.
+## Holding {advance} rolls them faster while it's held; {skip} rolls the rest fast.
+const CREDITS := [  # [Game.UI key, style]: title, head (the role) or name; "" = a gap
+	["credits_title", "title"], [""],
+	["credits_art", "head"], ["credits_art_by", "name"], [""],
+	["credits_director", "head"], ["credits_director_by", "name"], [""],
+	["credits_qa", "head"], ["credits_qa_by", "name"], [""],
+	["credits_code", "head"], ["credits_code_by", "name"], [""],
+	["credits_pictures", "head"], ["credits_pictures_by", "name"], [""],
+	["credits_engine", "head"], ["credits_engine_by", "name"], [""],
+	[""],
+	["credits_thanks", "name"],
+]
+
+func _credits() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 50  # over the room, under the narrator
+	add_child(layer)
+	var box := VBoxContainer.new()
+	box.custom_minimum_size.x = 1920  # full width, so every line centres
+	box.add_theme_constant_override("separation", 10)
+	layer.add_child(box)
+	for c in CREDITS:
+		var l := Label.new()
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if c[0] == "":
+			l.custom_minimum_size.y = 40
+		else:
+			l.text = Game.t(c[0])
+			var title: bool = c[1] == "title"
+			l.add_theme_font_override("font", Fonts.hand() if c[1] != "head" else Fonts.serif())
+			l.add_theme_font_size_override("font_size", 110 if title else (30 if c[1] == "head" else 48))
+			l.add_theme_color_override("font_color", Color(0.7, 0.74, 0.86) if c[1] == "head" else Color(0.95, 0.95, 1.0))
+			l.add_theme_color_override("font_shadow_color", Color(0, 0, 0.05, 0.8))
+			l.add_theme_constant_override("shadow_outline_size", 12)
+		box.add_child(l)
+	box.reset_size()
+	box.position.y = 1080.0
+	var dur := 4.0 if Game.fast else 38.0
+	create_tween().tween_property(_room_root, "modulate", Color(0.45, 0.45, 0.5), 3.0)
+	var tw := create_tween()
+	tw.tween_property(box, "position:y", -box.size.y, dur)
+	var rush := false  # {skip} rolls the rest fast; holding {advance} only while it's held
+	var speed := 1.0
+	while tw.is_running():
+		if Input.is_action_just_pressed("skip"):
+			rush = true
+		var want := 8.0 if rush else (6.0 if Input.is_action_pressed("advance") else 1.0)
+		speed = move_toward(speed, want, get_process_delta_time() * 20.0)  # eases in and out, no jolt
+		tw.set_speed_scale(speed)
+		await get_tree().process_frame
+	layer.queue_free()
+	await create_tween().tween_property(_room_root, "modulate", Color.WHITE, 2.0).finished
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if _room and (event.is_action_pressed("use") or (_viewer and event.is_action_pressed("advance"))):
-		_toggle_drawing()  # {use} opens and closes it; {advance} closes it too
+## Last of all, the drawing on the wall grows until it fills the screen, out of the moonlight,
+## and stays there until {advance} is pressed.
+func _zoom_drawing() -> void:
+	if not _room_art:
+		return
+	var back := ColorRect.new()  # the room fades behind it, so the drawing is all there is
+	back.color = Color(0.02, 0.02, 0.05)
+	back.size = Vector2(1920, 1080)
+	back.modulate.a = 0.0
+	_room.add_child(back)
+	_room.move_child(back, _room.get_child_count() - 1)
+	var art := _room_art
+	art.reparent(_room)  # out of the dimmed room, above the backdrop
+	var big := Vector2(1000, 1800)  # turned a quarter to the left: 1800 wide, 1000 high
+	var dur := 1.5 if Game.fast else 7.0
+	var tw := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(back, "modulate:a", 1.0, dur)
+	tw.tween_property(art, "size", big, dur)
+	tw.tween_property(art, "pivot_offset", big * 0.5, dur)
+	tw.tween_property(art, "position", Vector2(960, 540) - big * 0.5, dur)
+	tw.tween_property(art, "modulate", Color.WHITE, dur)
+	await tw.finished
+	if Game.fast or Game.autoplay:
+		await get_tree().create_timer(1.0).timeout
+		return
+	while not Input.is_action_just_pressed("advance"):  # it stays until {advance} is pressed
+		await get_tree().process_frame
 
 
 ## The real room at night: two people, the moon and the star in the window, and the drawing of
@@ -456,6 +505,7 @@ func _show_room() -> void:
 	root.size = Vector2(1920, 1080)
 	root.modulate.a = 0.0
 	_room.add_child(root)
+	_room_root = root
 	var drawn := Control.new()
 	drawn.size = Vector2(1920, 1080)
 	drawn.draw.connect(_draw_room.bind(drawn))
@@ -489,6 +539,7 @@ func _show_room() -> void:
 		art.rotation = -PI * 0.5
 		art.modulate = Color(0.66, 0.7, 0.84)  # in the moonlight
 		root.add_child(art)
+		_room_art = art
 	create_tween().tween_property(root, "modulate:a", 1.0, 1.0 if Game.fast else 4.0)
 
 
@@ -632,7 +683,7 @@ func _next_interval() -> float:
 
 
 func _on_beat() -> void:
-	Game.sfx("monitor", -12.0 if not _room else -20.0)
+	Game.sfx("monitor", -19.0 if not _room else -24.0)  # quieter than at first (-12 / -20)
 	rig.kick(_t)
 	if rig.standing_heart >= 0 and rig.hold < 0 and not _done and not Game.control_locked:
 		rig.launch()
@@ -700,6 +751,18 @@ func _star_density() -> float:
 
 
 func _make_stars() -> void:
+	if ResourceLoader.exists(ART + STARS_SKY):
+		_stars_sky = Sprite2D.new()
+		_stars_sky.texture = load(ART + STARS_SKY)
+		_stars_sky.centered = false
+		_stars_sky.scale = Vector2.ONE * (1920.0 / _stars_sky.texture.get_width())
+		# its bottom edge just under the screen's at the foot; its top at the screen's top at the end
+		_stars_sky.offset.y = 640.0 / _stars_sky.scale.y - _stars_sky.texture.get_height()
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://shaders/sky_layer.gdshader")
+		_stars_sky.material = mat
+		_sky_top.add_child(_stars_sky)
+		return  # (the milky way's glows and the nebulae are in the paintings too)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 55
 	var reach := SKY_RISE + SKY_PAN
@@ -716,8 +779,43 @@ func _make_stars() -> void:
 	for i in 3200:
 		var x := rng.randf() * 1920.0
 		_milky_dust.append(Vector4(x, _milky_y(x) + rng.randfn(0.0, 95.0), rng.randf_range(0.35, 1.0), rng.randf() * TAU))
+	for li in STAR_LAYERS.size():
+		var size: float = STAR_LAYERS[li][2]
+		var pts: Array = []
+		for st: Vector4 in _stars[li]:
+			pts.append([Vector2(st.x, st.y), size * (0.6 + 0.4 * (1.0 - st.z)) * 2.0, Color(st.z, st.w, 1.0 if size > 2.0 else 0.0, 0.0)])
+		_star_nodes.append(_star_layer(pts, {"round": true}))
+	var dust: Array = []
+	for d: Vector4 in _milky_dust:
+		dust.append([Vector2(d.x, d.y), 1.8, Color(d.z, d.w, 0.0, 0.0)])
+	_dust_node = _star_layer(dust, {"round": false, "thresh_k": 0.6, "ramp": 0.3, "fade_over": 1.0, "tint": Color(0.95, 0.93, 1.0, 0.8)})
 	for i in 14:  # faint clouds of colour, in the milky way's layer, over the sky the sweep reveals
 		_nebula.append(Vector4(rng.randf_range(-100.0, 2020.0), rng.randf_range(-reach * MILKY_F - 200.0, -300.0), rng.randf_range(260.0, 520.0), rng.randf()))
+
+
+## A layer of stars (or dust) as one MultiMesh, faded in and out by shaders/sky_stars.gdshader:
+## [position, size, custom (threshold, twinkle phase, twinkles)] per star.
+func _star_layer(pts: Array, params: Dictionary) -> MultiMeshInstance2D:
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_2D
+	mm.use_custom_data = true
+	mm.mesh = quad
+	mm.instance_count = pts.size()
+	for i in pts.size():
+		var p: Array = pts[i]
+		mm.set_instance_transform_2d(i, Transform2D(0.0, Vector2(p[1], p[1]), 0.0, p[0]))
+		mm.set_instance_custom_data(i, p[2])
+	var node := MultiMeshInstance2D.new()
+	node.multimesh = mm
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://shaders/sky_stars.gdshader")
+	for k in params:
+		mat.set_shader_parameter(k, params[k])
+	node.material = mat
+	_sky_top.add_child(node)
+	return node
 
 
 func _milky_y(x: float) -> float:
@@ -740,6 +838,24 @@ func _update_sky() -> void:
 		_sky_sprites["star"].modulate = Color(breathe, breathe, breathe, _moon)
 	_sky.queue_redraw()
 	_sky_top.queue_redraw()
+	# the stars only move (parallax) and fade; the GPU does the rest
+	var dens := _star_density()
+	var horizon := shift + 430.0
+	if _stars_sky:
+		# scrolls so that the whole picture passes between the foot and the end of the sweep
+		var h := _stars_sky.texture.get_height() * _stars_sky.scale.y
+		_stars_sky.position.y = shift * (h - 640.0) / (SKY_RISE + SKY_PAN)
+		(_stars_sky.material as ShaderMaterial).set_shader_parameter("alpha", _lit)  # out once Y tells them
+		(_stars_sky.material as ShaderMaterial).set_shader_parameter("horizon", horizon)
+	for li in _star_nodes.size():
+		var n := _star_nodes[li]
+		n.position.y = shift * float(STAR_LAYERS[li][0])
+		(n.material as ShaderMaterial).set_shader_parameter("dens", dens)
+		(n.material as ShaderMaterial).set_shader_parameter("horizon", horizon)
+	if _dust_node:
+		_dust_node.position.y = shift * MILKY_F
+		(_dust_node.material as ShaderMaterial).set_shader_parameter("dens", smoothstep(0.55, 1.0, dens))
+		(_dust_node.material as ShaderMaterial).set_shader_parameter("horizon", horizon)
 
 
 ## Behind the picture (or instead of it): the night gradient and far ranges.
@@ -782,27 +898,7 @@ func _draw_sky_top() -> void:
 			if at.y > -g.z and at.y < horizon:
 				var col := Color(0.55, 0.45, 0.85).lerp(Color(0.4, 0.6, 0.95), g.w)
 				_halo(at, g.z, Color(col, 0.26 * mw))
-		for d in _milky_dust:
-			var at := Vector2(d.x, d.y + shift * MILKY_F)
-			if at.y < -2.0 or at.y > horizon:
-				continue
-			var a := clampf((mw - d.z * 0.6) / 0.3, 0.0, 1.0)
-			if a > 0.0:
-				_sky_top.draw_rect(Rect2(at, Vector2(1.8, 1.8)), Color(0.95, 0.93, 1.0, 0.8 * a))
-	for li in STAR_LAYERS.size():
-		var f: float = STAR_LAYERS[li][0]
-		var size: float = STAR_LAYERS[li][2]
-		for st in _stars[li]:
-			var a := clampf((dens - st.z) / 0.12, 0.0, 1.0)
-			if a <= 0.0:
-				continue
-			var at := Vector2(st.x, st.y + shift * f)
-			if at.y < -4.0 or at.y > horizon:
-				continue
-			a *= 1.0 - smoothstep(horizon - 160.0, horizon, at.y)
-			if size > 2.0:  # the big ones twinkle, slowly
-				a *= 0.75 + 0.25 * sin(_t * 1.7 + st.w)
-			_sky_top.draw_circle(at, size * (0.6 + 0.4 * (1.0 - st.z)), Color(1, 1, 0.94, 0.85 * a))
+	# (the stars and the milky way's dust are MultiMeshes, see _star_layer and _update_sky)
 	# one shooting star while Blobb looks up
 	if _shoot >= 0.0:
 		var k := (_t - _shoot) / 1.1

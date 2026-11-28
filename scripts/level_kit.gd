@@ -39,7 +39,10 @@ static func checkpoint_columns(level: Node, who: Node, cols: Array, tile: float,
 	for col in cols:
 		var pos: Vector2 = spot.call(col)
 		column_area(level, col, tile, height).body_entered.connect(func(b: Node) -> void:
-			if b == who and not paused.call():
+			# he must really be there: right after a warp or Continue moves him, the column he
+			# stood in at the start still reports him for a frame, which would send him back there
+			var there := absf((b as Node2D).global_position.x - (col + 0.5) * tile) < tile * 2.0
+			if b == who and there and not paused.call():
 				reached.call(pos)
 				if col != cols[0]:
 					Game.checkpoint(col))

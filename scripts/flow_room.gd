@@ -7,7 +7,7 @@ extends RefCounted
 ##
 ## Room spec (chapters/ch2/flow_rooms.gd):
 ##   "rows": strings, one char per cell:
-##     #  rock (solid)        .  water        H  fence (Blobb can't pass; water and the duck can)
+##     #  rock (solid)        .  water        H  fence (water passes; Blobb and the duck can't)
 ##     D  duck start         G  goal         P  Blobb start
 ##     A-F  sluice spouts (solid), set up in "spouts": {"A": {"dir": ">", "on": false}}
 ##     a-f  turnable boards, set up in "boards": {"a": "/"}       /  \  fixed boards
@@ -177,7 +177,7 @@ func step(flow: Dictionary) -> bool:
 		return false
 	var d: Vector2i = flow[duck] if flow.has(duck) else Vector2i.UP
 	var next: Vector2i = duck + d
-	if solid(next):
+	if solid(next) or rows[next.y][next.x] == "H":  # the fence lets water through, not the duck
 		return false
 	if flow.has(duck) and flow.has(next) and flow[next] == -d:
 		return false

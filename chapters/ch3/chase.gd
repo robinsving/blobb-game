@@ -1,5 +1,5 @@
 extends Node2D
-## Chapter 3, part 3: the rooftop chase. Isometric view, Blobb running away from the camera
+## Chapter 3, part 3: the rooftop chase. Seen from high up behind Blobb (perspective, _proj), running away from the camera
 ## (up and to the right on screen) across the roofs, on the beat.
 ##
 ## Everything is driven by one beat clock: Blobb's distance along the roofs IS the beat
@@ -16,7 +16,14 @@ const S := 118.0                          # pixels per world unit
 const AX := Vector2(0.866, 0.5) * S        # +x (lane to Blobb's right): down-right on screen
 const AZ := Vector2(0.866, -0.5) * S       # +z (forward): up-right
 const AH := Vector2(0, -0.92) * S          # +h: up
-const BEAT_LEN := 2.0
+## The camera, high up behind Blobb (a perspective view; the old isometric one used AX/AZ/AH):
+const CAM_BACK := 5.5                      # world units behind him
+const CAM_UP := 4.6                        # and above his roof
+const CAM_PITCH := 0.5                     # radians, looking down
+const CAM_F := 980.0                       # focal length in pixels
+const CAM_SCREEN := Vector2(960, 600)      # where the view's centre lands on screen
+const BEAT_LEN := 2.8                     # world units per beat: how fast he runs (was 2.0)
+const GAP := 1.3                           # the gap before each roof (world units)
 const ROOF_HALF := 1.65                    # roofs span x in [-1.65, 1.65]
 const TEX_UNIT := 2.0                      # world units per repeat of the painted roof textures
 const JUMP_BEATS := 0.9                    # a jump lasts this long, so it always covers ~one beat
@@ -68,6 +75,8 @@ var _sky_tex: Texture2D      # painted art, if generated (else the code-drawn lo
 var _top_tex: Texture2D
 var _side_tex: Texture2D
 var _cam_extra := Vector2.ZERO
+var _cam := Vector3.ZERO                   # camera position (x, z, h)
+var _cam_pitch := CAM_PITCH                # the end tips it up toward the hospital sign
 var _white := 0.0
 var story := StoryScript.load_file("res://chapters/ch3/story.txt")
 
@@ -109,7 +118,8 @@ func _ready() -> void:
 		_checkpoint = _checkpoint_for(_beat)
 		_beat = _checkpoint
 		_h = (_roof_at(_beat * BEAT_LEN) as Dictionary)["h"]  # standing on that roof, not inside it
-	camera.position = _proj(0, _beat * BEAT_LEN + 3.0, 0)
+	_cam = Vector3.ZERO
+	_update_camera()
 	camera.reset_smoothing()
 	_last_whole = floori(_beat)
 	await get_tree().create_timer(0.8).timeout
@@ -129,7 +139,7 @@ func _build_course() -> void:
 	while b < END_BEAT:
 		var length := float(rng.randi_range(5, 8)) if b > 8 else 14.0
 		var z0 := b * BEAT_LEN
-		_buildings.append({"z0": z0, "z1": (b + length) * BEAT_LEN - 0.9, "h": h, "seed": rng.randi()})
+		_buildings.append({"z0": z0, "z1": (b + length) * BEAT_LEN - GAP, "h": h, "seed": rng.randi()})
 		# things on this roof, on whole beats, leaving the last beat and the first three clear: the
 		# checkpoint is beat 1, so after a restart he has two clear beats to find his feet
 		var busy := clampf((b - 6.0) / 90.0, 0.15, 0.8)
@@ -388,7 +398,8 @@ func _fail(why: String) -> void:
 		if not d.has("gone"):  # and none in the first beats after the restart: he needs a moment
 			d["done"] = d["beat"] < _beat + RESTART_CLEAR
 			d["lane"] = 99
-	camera.position = _proj(0, _beat * BEAT_LEN + 3.0, 0)
+	_cam = Vector3.ZERO
+	_update_camera()
 	camera.reset_smoothing()
 	await get_tree().create_timer(0.2 if Game.fast else RESTART_PAUSE).timeout  # see where he is first
 	if _ended:
@@ -399,7 +410,7 @@ func _fail(why: String) -> void:
 ## He goes prickly as he hits something, like the grumpy Blobb in the forest: that's why a
 ## chimney or vent breaks apart. The spikes are gone again before he starts over.
 func _bristle() -> void:
-	Game.sfx("pop", -8.0, 0.8)
+	Game.sfx("bristle", -5.0, randf_range(0.95, 1.08))  # the same sound as BlobbSprite's spiky form
 	_spikes = 0.0
 	var tw := create_tween()
 	tw.tween_property(self, "_spikes", 1.0, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -411,10 +422,8 @@ func _end() -> void:
 	_ended = true
 	await get_tree().create_timer(1.0).timeout
 	# look up at the sign
-	var sign_at := _proj(0.0, _hospital["z0"], _hospital["top"] - 1.3)
-	var from := _proj(_x * 0.3, _beat * BEAT_LEN + 3.2, maxf(_h, -1.0) * 0.5) + Vector2(0, 40)
-	var tw := create_tween()
-	tw.tween_property(self, "_cam_extra", sign_at + Vector2(-180, 260) - from, 4.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var tw := create_tween()  # tip the view up from the roof to the sign
+	tw.tween_property(self, "_cam_pitch", 0.02, 4.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await get_tree().create_timer(2.2).timeout
 	await story.play("help", self)
 
@@ -466,13 +475,32 @@ func _bot(z: float) -> void:
 
 # ================================================================ drawing
 
+## World (x lane, z forward, h up) to screen, seen from the camera behind and above Blobb.
 func _proj(x: float, z: float, h: float) -> Vector2:
-	return AX * x + AZ * z + AH * h
+	var rx := x - _cam.x
+	var rz := z - _cam.y
+	var rh := h - _cam.z
+	var d := maxf(rz * cos(_cam_pitch) - rh * sin(_cam_pitch), 0.35)
+	var v := rz * sin(_cam_pitch) + rh * cos(_cam_pitch)
+	return CAM_SCREEN + Vector2(rx, -v) * (CAM_F / d)
+
+
+## Pixels per world unit at a point (for things drawn at a fixed size: Blobb, birds, shadows).
+func _ppu(z: float, h: float) -> float:
+	var d := maxf((z - _cam.y) * cos(_cam_pitch) - (h - _cam.z) * sin(_cam_pitch), 0.35)
+	return CAM_F / d
 
 
 func _update_camera() -> void:
 	var z := _beat * BEAT_LEN
-	camera.position = _proj(_x * 0.3, z + 3.2, maxf(_h, -1.0) * 0.5) + Vector2(0, 40) + _cam_extra
+	var roof: Variant = _roof_at(z)
+	var ground: float = roof["h"] if roof != null else maxf(_h, -1.0)
+	var target := Vector3(0.0, z - CAM_BACK, ground + CAM_UP)  # straight behind the roofs: no sideways sway
+	if _cam == Vector3.ZERO:
+		_cam = target
+	_cam = _cam.lerp(target, 0.12)  # eased, so a jump or a lane change never jolts the view
+	_cam.y = target.y  # but never falls behind him
+	camera.position = Vector2(960, 540) + _cam_extra
 
 
 func _draw_sky(n: Node2D) -> void:
@@ -513,8 +541,8 @@ func _draw_world() -> void:
 	var items := []
 	for o in _obstacles:
 		if o["z1"] > z - 1.0 and o["z0"] < view_far:
-			items.append({"k": o["z0"] - o["lane"] * 0.6, "o": o})
-	items.append({"k": z - _x * 0.6, "blobb": true})
+			items.append({"k": o["z0"], "o": o})
+	items.append({"k": z, "blobb": true})
 	items.sort_custom(func(a, b): return a["k"] > b["k"])
 	for d in _dives:
 		if not d["done"] and d["lane"] != 99:
@@ -534,10 +562,15 @@ func _quad(a: Vector2, b: Vector2, c: Vector2, d: Vector2, col: Color) -> void:
 
 
 func _box(x0: float, x1: float, z0: float, z1: float, h0: float, h1: float, top: Color, front: Color, side: Color) -> void:
-	# visible: the top, the face toward the camera's back (-z), and the right side (+x)
-	_quad(_proj(x0, z0, h1), _proj(x1, z0, h1), _proj(x1, z1, h1), _proj(x0, z1, h1), top)
-	_quad(_proj(x0, z0, h0), _proj(x1, z0, h0), _proj(x1, z0, h1), _proj(x0, z0, h1), front)
-	_quad(_proj(x1, z0, h0), _proj(x1, z1, h0), _proj(x1, z1, h1), _proj(x1, z0, h1), side)
+	# the faces the camera can see: a side wall it's beside, the front if it's behind it, then the top
+	if _cam.x > x1:
+		_quad(_proj(x1, z0, h0), _proj(x1, z1, h0), _proj(x1, z1, h1), _proj(x1, z0, h1), side)
+	elif _cam.x < x0:
+		_quad(_proj(x0, z0, h0), _proj(x0, z1, h0), _proj(x0, z1, h1), _proj(x0, z0, h1), side)
+	if _cam.y < z0:
+		_quad(_proj(x0, z0, h0), _proj(x1, z0, h0), _proj(x1, z0, h1), _proj(x0, z0, h1), front)
+	if _cam.z > h1:
+		_quad(_proj(x0, z0, h1), _proj(x1, z0, h1), _proj(x1, z1, h1), _proj(x0, z1, h1), top)
 
 
 ## A textured quad; uv are in world units, TEX_UNIT units per texture repeat.
@@ -556,12 +589,18 @@ func _draw_building(bl: Dictionary) -> void:
 		var x0 := -ROOF_HALF
 		var x1 := ROOF_HALF
 		var hb := h - 9.0
-		_tquad([_proj(x0, z0, h), _proj(x1, z0, h), _proj(x1, z1, h), _proj(x0, z1, h)],
-			[Vector2(x0, z0), Vector2(x1, z0), Vector2(x1, z1), Vector2(x0, z1)], _top_tex, Color(1, 1, 1))
-		_tquad([_proj(x0, z0, hb), _proj(x1, z0, hb), _proj(x1, z0, h), _proj(x0, z0, h)],
-			[Vector2(x0, -hb), Vector2(x1, -hb), Vector2(x1, -h), Vector2(x0, -h)], _side_tex, Color(0.85, 0.85, 0.9))
-		_tquad([_proj(x1, z0, hb), _proj(x1, z1, hb), _proj(x1, z1, h), _proj(x1, z0, h)],
-			[Vector2(z0, -hb), Vector2(z1, -hb), Vector2(z1, -h), Vector2(z0, -h)], _side_tex, Color(0.6, 0.6, 0.68))
+		if _cam.y < z0:  # the wall facing the camera, under the roof's near edge
+			_tquad([_proj(x0, z0, hb), _proj(x1, z0, hb), _proj(x1, z0, h), _proj(x0, z0, h)],
+				[Vector2(x0, -hb), Vector2(x1, -hb), Vector2(x1, -h), Vector2(x0, -h)], _side_tex, Color(0.85, 0.85, 0.9))
+		# in short strips: one big quad's texture would slide about in perspective as he runs
+		var za := maxf(z0, _cam.y + 0.6)
+		while za < z1:
+			var zb := minf(za + 0.7, z1)
+			for xa in [x0, 0.0]:
+				var xb: float = xa + ROOF_HALF
+				_tquad([_proj(xa, za, h), _proj(xb, za, h), _proj(xb, zb, h), _proj(xa, zb, h)],
+					[Vector2(xa, za), Vector2(xb, za), Vector2(xb, zb), Vector2(xa, zb)], _top_tex, Color(1, 1, 1))
+			za = zb
 	else:
 		_box(-ROOF_HALF, ROOF_HALF, z0, z1, h - 9.0, h, Color(0.27, 0.3, 0.42), Color(0.19, 0.17, 0.25), Color(0.13, 0.12, 0.19))
 		# slate courses across the roof
@@ -570,13 +609,15 @@ func _draw_building(bl: Dictionary) -> void:
 			_world.draw_line(_proj(-ROOF_HALF, zz, h), _proj(ROOF_HALF, zz, h), Color(0.22, 0.25, 0.36), 2.0)
 			zz += 1.0
 	# a lit edge so the gap reads
-	_world.draw_line(_proj(-ROOF_HALF, z0, h), _proj(ROOF_HALF, z0, h), Color(0.62, 0.68, 0.85), 4.0)
-	_world.draw_line(_proj(-ROOF_HALF, z1, h), _proj(ROOF_HALF, z1, h), Color(0.4, 0.45, 0.6), 3.0)
+	if z0 > _cam.y + 0.6:
+		_world.draw_line(_proj(-ROOF_HALF, z0, h), _proj(ROOF_HALF, z0, h), Color(0.75, 0.8, 0.95), 5.0)
+	if z1 > _cam.y + 0.6:
+		_world.draw_line(_proj(-ROOF_HALF, z1, h), _proj(ROOF_HALF, z1, h), Color(0.08, 0.08, 0.14), 6.0)
 	# lit windows on the side wall
 	var rng := RandomNumberGenerator.new()
 	rng.seed = bl["seed"]
 	var wz := z0 + 0.6
-	while wz < z1 - 0.6:
+	while wz < z1 - 0.6 and absf(_cam.x) > ROOF_HALF:  # the side wall only shows from beside it
 		for k in 3:
 			if rng.randf() < 0.3:
 				var hh := h - 1.4 - k * 1.6
@@ -668,10 +709,12 @@ func _draw_dive_shadow(d: Dictionary) -> void:
 	var pts := PackedVector2Array()
 	for i in 24:
 		var a := TAU * i / 24.0
-		pts.append(c + (AX * cos(a) + AZ * sin(a)) * (0.25 + 0.3 * k))
+		pts.append(_proj(d["lane"] + cos(a) * (0.25 + 0.3 * k), zt + sin(a) * (0.25 + 0.3 * k), h))
 	_world.draw_colored_polygon(pts, Color(0.0, 0.0, 0.05, 0.25 + 0.35 * k))
 	# the diving bird, coming down out of the dark
-	_draw_bird(_proj(d["lane"], zt - 1.5 * (1.0 - k), h + 5.0 * (1.0 - k) + 0.4), 0.8 + 0.4 * k, true)
+	var bz: float = zt - 1.5 * (1.0 - k)
+	var bh: float = h + 5.0 * (1.0 - k) + 0.4
+	_draw_bird(_proj(d["lane"], bz, bh), (0.8 + 0.4 * k) * _ppu(bz, bh) / S, true)
 
 
 func _draw_birds() -> void:
@@ -680,8 +723,9 @@ func _draw_birds() -> void:
 	var roof: Variant = _roof_at(z)
 	var h: float = roof["h"] if roof != null else 0.0
 	for i in 5:
-		var off := Vector3(sin(_t * 0.9 + i * 1.7) * 1.4, -3.0 - i * 0.7, 2.2 + sin(_t * 1.3 + i) * 0.4 + i * 0.3)
-		_draw_bird(_proj(off.x, z + off.y, h + off.z), 0.7, false)
+		var side := -1.0 if i % 2 == 0 else 1.0
+		var off := Vector3(side * (2.4 + i * 0.25) + sin(_t * 0.9 + i * 1.7) * 0.3, 1.0 + i * 1.6, 1.6 + sin(_t * 1.3 + i) * 0.4 + i * 0.2)
+		_draw_bird(_proj(off.x, z + off.y, h + off.z), 0.7 * _ppu(z + off.y, h + off.z) / S, false)
 
 
 func _draw_bird(p: Vector2, size: float, diving: bool) -> void:
@@ -710,18 +754,19 @@ func _draw_blobb() -> void:
 		var spread := 1.0 - clampf((_h - roof["h"]) / 3.0, 0.0, 0.6)
 		for i in 20:
 			var a := TAU * i / 20.0
-			pts.append(c + (AX * cos(a) + AZ * sin(a)) * 0.36 * spread)
+			pts.append(_proj(_x + cos(a) * 0.36 * spread, z + sin(a) * 0.36 * spread, roof["h"]))
 		_world.draw_colored_polygon(pts, Color(0, 0, 0.05, 0.4 * spread))
 	var run := 0.0 if _air >= 0.0 or _falling else absf(sin(_beat * PI * 2.0))
 	var foot := _proj(_x, z, _h)
-	var r := BODY_R * S
+	var k := _ppu(z, _h) / S  # his drawn size, from the old fixed scale
+	var r := BODY_R * S * k
 	var sq := Vector2(1.0 / sqrt(_squash), _squash)
-	var center := foot + Vector2(0, -r * sq.y - run * 8.0)
+	var center := foot + Vector2(0, -r * sq.y - run * 8.0 * k)
 	# feet, stepping on the beat
-	var step := sin(_beat * PI * 2.0) * 9.0 if run > 0.0 else 0.0
-	_world.draw_set_transform(foot + Vector2(-16 + step * 0.4, -6 - maxf(step, 0.0)), 0.0, Vector2(1, 0.55))
+	var step := sin(_beat * PI * 2.0) * 9.0 * k if run > 0.0 else 0.0
+	_world.draw_set_transform(foot + Vector2(-16 * k + step * 0.4, -6 * k - maxf(step, 0.0)), 0.0, Vector2(k, 0.55 * k))
 	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95))
-	_world.draw_set_transform(foot + Vector2(18 - step * 0.4, -10 - maxf(-step, 0.0)), 0.0, Vector2(1, 0.55))
+	_world.draw_set_transform(foot + Vector2(18 * k - step * 0.4, -10 * k - maxf(-step, 0.0)), 0.0, Vector2(k, 0.55 * k))
 	_world.draw_circle(Vector2.ZERO, 14.0, Color(0.25, 0.4, 0.95))
 	# body
 	_world.draw_set_transform(center, sin(_t * 9.0) * 0.04, sq)
@@ -762,30 +807,39 @@ func _draw_hospital() -> void:
 		var xx := -3.4
 		while xx < 3.3:
 			var lit := rng.randf() < 0.55
-			_quad(_proj(xx, z0, hh), _proj(xx + 0.5, z0, hh), _proj(xx + 0.5, z0, hh - 0.7), _proj(xx, z0, hh - 0.7), Color(0.8, 0.9, 1.0, 0.75) if lit else Color(0.1, 0.12, 0.2))
+			var star := absf(hh - (top - 4.3)) < 0.01 and absf(xx - 1.35) < 0.01
+			_quad(_proj(xx, z0, hh), _proj(xx + 0.5, z0, hh), _proj(xx + 0.5, z0, hh - 0.7), _proj(xx, z0, hh - 0.7), Color(0.8, 0.9, 1.0, 0.75) if lit or star else Color(0.1, 0.12, 0.2))
+			if star:  # a star in this one: the same star as in the window at the very end
+				var pts := PackedVector2Array()
+				for i in 10:
+					var a := -PI * 0.5 + i * PI / 5.0
+					var r := 0.2 if i % 2 == 0 else 0.085
+					pts.append(_proj(xx + 0.25 + cos(a) * r, z0 - 0.01, hh - 0.35 - sin(a) * r))
+				_world.draw_colored_polygon(pts, Color(0.1, 0.12, 0.2))
 			xx += 0.95
 		hh -= 1.3
-	# a helipad on the roof: a pale ring with an H
-	var pad: float = (_hospital["z0"] + _hospital["z1"]) * 0.5
-	var ring := PackedVector2Array()
-	for i in 28:
-		var ang := TAU * i / 28.0
-		ring.append(_proj(cos(ang) * 2.4, pad + sin(ang) * 2.4, top))
-	_world.draw_colored_polygon(ring, Color(0.85, 0.88, 0.95, 0.85))
-	ring = PackedVector2Array()
-	for i in 28:
-		var ang := TAU * i / 28.0
-		ring.append(_proj(cos(ang) * 2.05, pad + sin(ang) * 2.05, top))
-	_world.draw_colored_polygon(ring, Color(0.22, 0.25, 0.34))
-	for r in [[-1.0, -0.6, -1.2, 1.2], [0.6, 1.0, -1.2, 1.2], [-0.6, 0.6, -0.2, 0.2]]:
-		_quad(_proj(r[0], pad + r[2], top), _proj(r[1], pad + r[2], top), _proj(r[1], pad + r[3], top), _proj(r[0], pad + r[3], top), Color(0.92, 0.94, 1.0))
-	# the sign: the hospital H, white on a glowing blue square (no words, so it reads in any language)
+	# a helipad on the roof: a pale ring with an H (only seen from above the roof)
+	if _cam.z > top:
+		var pad: float = (_hospital["z0"] + _hospital["z1"]) * 0.5
+		var ring := PackedVector2Array()
+		for i in 28:
+			var ang := TAU * i / 28.0
+			ring.append(_proj(cos(ang) * 2.4, pad + sin(ang) * 2.4, top))
+		_world.draw_colored_polygon(ring, Color(0.85, 0.88, 0.95, 0.85))
+		ring = PackedVector2Array()
+		for i in 28:
+			var ang := TAU * i / 28.0
+			ring.append(_proj(cos(ang) * 2.05, pad + sin(ang) * 2.05, top))
+		_world.draw_colored_polygon(ring, Color(0.22, 0.25, 0.34))
+		for r in [[-1.0, -0.6, -1.2, 1.2], [0.6, 1.0, -1.2, 1.2], [-0.6, 0.6, -0.2, 0.2]]:
+			_quad(_proj(r[0], pad + r[2], top), _proj(r[1], pad + r[2], top), _proj(r[1], pad + r[3], top), _proj(r[0], pad + r[3], top), Color(0.92, 0.94, 1.0))
+	# the sign: a red cross on a glowing white square (no words, so it reads in any language)
 	var glow := 0.8 + 0.2 * sin(_t * 2.0)
 	var zf: float = z0 - 0.05
-	_quad(_proj(-1.35, zf, top - 0.0), _proj(1.35, zf, top - 0.0), _proj(1.35, zf, top - 2.6), _proj(-1.35, zf, top - 2.6), Color(0.35, 0.6, 1.0, 0.3 * glow))
-	_quad(_proj(-1.0, zf, top - 0.35), _proj(1.0, zf, top - 0.35), _proj(1.0, zf, top - 2.25), _proj(-1.0, zf, top - 2.25), Color(0.12, 0.38, 0.92).lightened(0.15 * glow))
-	for r in [[-0.62, -0.3, 0.6, 2.0], [0.3, 0.62, 0.6, 2.0], [-0.3, 0.3, 1.15, 1.45]]:
-		_quad(_proj(r[0], zf - 0.01, top - r[2]), _proj(r[1], zf - 0.01, top - r[2]), _proj(r[1], zf - 0.01, top - r[3]), _proj(r[0], zf - 0.01, top - r[3]), Color(1, 1, 1, 0.95))
+	_quad(_proj(-1.35, zf, top - 0.0), _proj(1.35, zf, top - 0.0), _proj(1.35, zf, top - 2.6), _proj(-1.35, zf, top - 2.6), Color(1.0, 0.95, 0.9, 0.3 * glow))
+	_quad(_proj(-1.0, zf, top - 0.35), _proj(1.0, zf, top - 0.35), _proj(1.0, zf, top - 2.25), _proj(-1.0, zf, top - 2.25), Color(0.86, 0.87, 0.9).lightened(0.12 * glow))
+	for r in [[-0.21, 0.21, 0.6, 2.0], [-0.7, 0.7, 1.09, 1.51]]:
+		_quad(_proj(r[0], zf - 0.01, top - r[2]), _proj(r[1], zf - 0.01, top - r[2]), _proj(r[1], zf - 0.01, top - r[3]), _proj(r[0], zf - 0.01, top - r[3]), Color(0.86, 0.1, 0.12))
 
 
 ## Blobb's body: a round fuzzy ball, lit from up and to the left, three flat bands of light

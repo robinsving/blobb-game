@@ -95,7 +95,7 @@ Y: Listen. The mountain has a heartbeat.
 O: ...An uneven one.
   sv: ...Lite ojämnt.
 Y: Then stand on it and wait for the beat.
-  sv: Då ställer man sig där och väntar på slaget.
+  sv: Då ställer man sig där och väntar på hjärtslaget.
 
 
 # TRIGGER: higher up the foot. O's first joke: the ch1 colour mix-up,
@@ -121,8 +121,8 @@ O: No.
 # TRIGGER: a ledge too high to reach, even off a heartbeat ledge on the
 # beat. A glowing root hangs above it. Blocking: O's first rule.
 === rule ===
-Y: Too high. Even on the beat.
-  sv: För högt. Även på slaget.
+Y: Too high. Not even the heartbeat gets him up there.
+  sv: För högt. Dit upp når han inte ens med hjärtslaget.
 O: Then... in my half...
   sv: Då... i min halva...
 @pause 1.5

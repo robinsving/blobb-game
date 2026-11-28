@@ -287,7 +287,31 @@ Y: Box bridge!
   sv: Lådbro!
 
 
-# TRIGGER: Blobb leaves room 2. The music fades, Blobb lies down, the light turns blue.
+# TRIGGER: Blobb walks through the gate into room 3. The tiny banana from the forest
+# marches along the bottom row, one step for each of Blobb's, and pushes whatever is in its way:
+# the crates dropped into its row only get to the plates if it pushes them there.
+# (It has no job yet: that's ch2's joke.)
+=== room3 ===
+O: On the other side of the stream, someone was stomping up and down.
+  sv: På andra sidan bäcken var det någon som stampade fram och tillbaka.
+Y: The tiny banana! Is it still grumpy?
+  sv: Den pyttelilla bananen! Är den fortfarande sur?
+O: Very. Up and down, along the bottom of the clearing, and it pushes everything out of its way.
+  sv: Väldigt. Fram och tillbaka längst ner i gläntan, och allt som står i vägen knuffar den undan.
+Y: Then it can push the crates for Blobb.
+  sv: Då får den knuffa lådorna åt Blobb.
+O: If it's walking the right way.
+  sv: Om den går åt rätt håll.
+# (hint appears: arrows, Z undo, R restart)
+
+
+# TRIGGER: the banana shoves Blobb along its row for the first time.
+=== banana_shove (ambient) ===
+Y: Hey! Don't push Blobb!
+  sv: Hallå! Knuffa inte Blobb!
+
+
+# TRIGGER: Blobb leaves room 3. The music fades, Blobb lies down, the light turns blue.
 # Keep this ambiguous: nothing here may suggest WHICH of them is unwell, or where they are.
 === ending ===
 O: On the other side, the grass was warm and soft. So Blobb lay down to rest.

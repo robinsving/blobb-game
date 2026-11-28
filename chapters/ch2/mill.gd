@@ -128,6 +128,11 @@ func fx_float_back() -> void:
 	fx.tint(Color(1.0, 0.86, 0.62), 0.45, 4.0)
 
 
+## In the warm water Blobb's blue goes, slowly, back to his own green.
+func fx_blobb_green() -> void:
+	player.sprite.set_tint(BlobbSprite.GREEN, BlobbSprite.GREEN_AMOUNT, 3.5)
+
+
 func fx_fade_to_black() -> void:
 	Game.fade_out(Color.BLACK, 3.0)
 
@@ -165,7 +170,8 @@ func _process(delta: float) -> void:
 		return
 	if Game.control_locked or Game.autoplay:
 		return
-	if Input.is_action_just_pressed("advance"):
+	# {use} (E), as at the cranks on the roofs; Space is for the narration
+	if Input.is_action_just_pressed("use"):
 		var c := _control_in_reach()
 		if c != Vector2i(-1, -1):
 			_press(c)
@@ -299,7 +305,7 @@ func _ending() -> void:
 	Game.sfx("beep", -20.0)
 	await get_tree().create_timer(2.4).timeout
 	Game.unlock_chapter(3)
-	Game.go("res://chapters/ch3/city.tscn", Color.BLACK, 1.5)  # straight on into chapter 3's poster
+	Game.go("res://chapters/ch3/city.tscn", Color.BLACK, 1.5)  # straight on into chapter 3
 
 
 # ================================================================ building
@@ -382,7 +388,8 @@ func _load_room(i: int) -> void:
 	for k in keys:
 		var t: String = room.controls[k]
 		pair[t] = PAIR_COLORS[pair.size() % PAIR_COLORS.size()]
-		_pair_num[t] = str(_pair_num.size() + 1)
+		# wheels (spouts) are labelled with letters, levers (boards) with numbers: A B C / 1 2 3
+		_pair_num[t] = t if room.spouts.has(t) else str(t.unicode_at(0) - "a".unicode_at(0) + 1)
 	_pair_col = pair
 
 	for y in room.height:

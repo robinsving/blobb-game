@@ -1,6 +1,9 @@
 extends Node2D
 ## Chapter 1, part 2: top-down box pushing in the clearing ("like a bird sees it").
-## Two rooms. Room 2's stream can only be crossed after the narrators agree that wooden crates float.
+## Three rooms. Room 2's stream can only be crossed after the narrators agree that wooden crates float.
+## In room 3 the tiny banana from the forest marches along the bottom row, one step for each step Blobb
+## takes (SokobanGrid.banana_step()), pushing crates ahead of it: it has to do the pushing down there,
+## so Blobb times when he drops each crate into its row.
 ## Dialogue: chapters/ch1/story.txt. Room layouts live in rooms.gd (verified by tools/solve_sokoban.py and tests/test_sokoban.gd).
 
 const CELL := 96
@@ -10,6 +13,7 @@ const TOPDOWN_TEXES := ["res://assets/sprites/drawn_ball.png", "res://assets/gen
 const CRATE_TEX := "res://assets/gen/ch1/crate_topdown.png"
 const STUMP_TEX := "res://assets/gen/ch1/stump_topdown.png"
 const GROUND_TEX := "res://assets/gen/ch1/clearing_topdown_ground.png"
+const BANANA_TEX := "res://assets/sprites/banana.png"
 
 var room := 0
 var grid: SokobanGrid
@@ -27,6 +31,9 @@ var _restart_told := false
 var _gate_told := false
 var _pancake := false
 var _done := false
+var banana_node: Node2D
+var banana_sprite: Sprite2D
+var _banana_told := false
 var _t := 0.0
 var story := StoryScript.load_file("res://chapters/ch1/story.txt")
 
@@ -46,6 +53,8 @@ func _ready() -> void:
 func _debug_play(spec: String) -> void:
 	var per_room := spec.split("|")
 	for r in per_room.size():
+		if per_room[r] == "":
+			continue  # e.g. "||RRUL" with --warp=3: only room 3's moves
 		while room != r or Game.control_locked or _moving:
 			await get_tree().process_frame
 		for ch in per_room[r]:
@@ -65,9 +74,7 @@ func _room_intro() -> void:
 	Game.control_locked = true
 	if room == 0:
 		await get_tree().create_timer(0.8).timeout
-		await story.play("room1", self)
-	else:
-		await story.play("room2", self)
+	await story.play("room%d" % (room + 1), self)
 	Narrator.legend("hint_push")
 
 
@@ -151,6 +158,17 @@ func _load_room(i: int) -> void:
 		n.position = _cell_pos(p)
 		add_child(n)
 		crate_nodes[grid.crates[p]] = n
+
+	banana_node = null
+	if grid.has_banana():
+		banana_node = Node2D.new()
+		banana_node.position = _cell_pos(grid.banana)
+		banana_sprite = Sprite2D.new()
+		banana_sprite.texture = load(BANANA_TEX)
+		banana_sprite.scale = Vector2.ONE * (CELL * 1.1 / banana_sprite.texture.get_height())
+		banana_sprite.position = Vector2(0, -10)
+		banana_node.add_child(banana_sprite)
+		add_child(banana_node)
 
 	player_node = Node2D.new()
 	player_node.name = "Player"  # a stable path for gda: /root/<Level>/Player
@@ -253,6 +271,8 @@ func _move(dir: Vector2i) -> void:
 				board.queue_redraw())
 		elif grid.plates.has(res["to"]):
 			Game.sfx("plate", -4.0)
+	if banana_node:
+		_banana_step(dur)
 	# hop
 	var hop := create_tween()
 	hop.tween_property(player_sprite, "position:y", player_sprite.position.y - 10, dur * 0.5)
@@ -276,6 +296,31 @@ func _bump(dir: Vector2i) -> void:
 	tw.tween_property(player_node, "position", base, 0.08)
 	await tw.finished
 	_moving = false
+
+
+## The banana's step after Blobb's move, shown in the same time as his hop: a waddle to the next
+## cell, pushing a crate ahead of it, or shoving Blobb one cell on.
+func _banana_step(dur: float) -> void:
+	var res := grid.banana_step()
+	banana_sprite.flip_h = grid.banana_dir < 0
+	if not res["moved"]:
+		return
+	var tw := create_tween().set_parallel()
+	tw.tween_property(banana_node, "position", _cell_pos(grid.banana), dur)
+	var waddle := create_tween()
+	waddle.tween_property(banana_sprite, "rotation", 0.12 * grid.banana_dir, dur * 0.5)
+	waddle.tween_property(banana_sprite, "rotation", 0.0, dur * 0.5)
+	if res["pushed"] >= 0:
+		tw.tween_property(crate_nodes[res["pushed"]], "position", _cell_pos(res["to"]), dur)
+		Game.sfx("push", -9.0, randf_range(1.1, 1.25))
+		if grid.plates.has(res["to"]):
+			Game.sfx("plate", -4.0)
+	if res["shoved"]:
+		Game.sfx("bonk", -6.0, randf_range(0.95, 1.1))
+		tw.tween_property(player_node, "position", _cell_pos(grid.player), dur).set_delay(dur * 0.3)
+		if not _banana_told:
+			_banana_told = true
+			story.play("banana_shove", self)
 
 
 func _gate_changed(open: bool) -> void:
@@ -304,6 +349,9 @@ func _restart() -> void:
 
 func _sync_nodes() -> void:
 	player_node.position = _cell_pos(grid.player)
+	if banana_node:
+		banana_node.position = _cell_pos(grid.banana)
+		banana_sprite.flip_h = grid.banana_dir < 0
 	var alive := {}
 	for p in grid.crates:
 		var id: int = grid.crates[p]
@@ -337,5 +385,5 @@ const GDA_CALLABLE := ["debug_state"]
 
 func debug_state() -> Dictionary:
 	var d := DebugState.base(player_node)
-	d.merge(DebugState.json({"room": room, "cell": grid.player, "crates": grid.crates.keys(), "crates_float": grid.crates_float, "gate_open": grid.gate_open(), "done": _done}), true)
+	d.merge(DebugState.json({"room": room, "cell": grid.player, "crates": grid.crates.keys(), "crates_float": grid.crates_float, "gate_open": grid.gate_open(), "banana": grid.banana, "done": _done}), true)
 	return d

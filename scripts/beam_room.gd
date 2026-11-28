@@ -89,6 +89,8 @@ func set_states(s: Array) -> void:
 func surfaces(s: Array) -> Dictionary:
 	var lit := {}
 	for i in order.size():
+		if dir_of(order[i], s[i]).x == 0:
+			continue  # straight-up light is only light: nothing to stand on
 		for c in beam(order[i], s[i]):
 			lit[c] = true
 	var out := {}

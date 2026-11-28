@@ -71,60 +71,35 @@ func swing_speed() -> float:
 
 
 ## Ends a swing without a fling (a retell, the summit).
-## The stretched arm is Blobb himself: a strip of his own crayon fur (cut from the idle drawing,
-## mirrored so it tiles without a seam), with his recolour material, so it's the same green and
-## glows with him. Thick at his body, thinner toward a round fuzzy hand on the hold.
+## The stretched arms are drawn like his legs in the drawing: two thin black lines, one from each
+## side of him, bowing apart a little and meeting at the hold.
+const ARM_W := 5.0
+const ARM_COLOR := Color(0.07, 0.06, 0.06)
+const ARM_SPREAD := 22.0  # how far apart the two arms leave his body
+const ARM_BOW := 14.0     # how far each bows out at the elbow
+
+
 func _dress_arm() -> void:
-	const ARM_W := 40.0
-	rope.width = ARM_W
-	rope.default_color = Color.WHITE
-	rope.material = player.sprite.material
-	rope.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	rope.end_cap_mode = Line2D.LINE_CAP_ROUND
-	rope.joint_mode = Line2D.LINE_JOINT_ROUND
-	var curve := Curve.new()
-	curve.add_point(Vector2(0.0, 1.0))
-	curve.add_point(Vector2(1.0, 0.62))
-	rope.width_curve = curve
-	var frames := player.sprite.sprite_frames
-	if not frames or not frames.has_animation("idle"):
-		return
-	var src := frames.get_frame_texture("idle", 0).get_image()
-	if src.is_compressed():
-		src.decompress()
-	src.convert(Image.FORMAT_RGBA8)
-	# a band of fur below the mouth, well inside his outline (frames are 321x305)
-	var band := src.get_region(Rect2i(70, 170, 180, 60))
-	var flip := band.duplicate()
-	flip.flip_x()
-	var strip := Image.create(band.get_width() * 2, band.get_height(), false, Image.FORMAT_RGBA8)
-	strip.blit_rect(band, Rect2i(Vector2i.ZERO, band.get_size()), Vector2i.ZERO)
-	strip.blit_rect(flip, Rect2i(Vector2i.ZERO, flip.get_size()), Vector2i(band.get_width(), 0))
-	rope.texture = ImageTexture.create_from_image(strip)
-	rope.texture_mode = Line2D.LINE_TEXTURE_TILE
-	rope.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	# the hand: a round patch of the same fur with a soft, ragged edge
-	var size := 72
-	var patch := src.get_region(Rect2i(120, 150, size, size))
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	var bumps: Array[float] = []
-	for i in 12:
-		bumps.append(rng.randf_range(0.86, 1.0))
-	for y in size:
-		for x in size:
-			var d := Vector2(x - size / 2.0 + 0.5, y - size / 2.0 + 0.5)
-			var a := fposmod(d.angle(), TAU) / TAU * 12.0
-			var r := lerpf(bumps[int(a) % 12], bumps[(int(a) + 1) % 12], a - floorf(a)) * size * 0.5
-			var c := patch.get_pixel(x, y)
-			c.a *= clampf((r - d.length()) / 3.0, 0.0, 1.0)
-			patch.set_pixel(x, y, c)
-	var hand := Sprite2D.new()
-	hand.name = "Hand"
-	hand.texture = ImageTexture.create_from_image(patch)
-	hand.scale = Vector2.ONE * (ARM_W * 1.25 / size)
-	hand.material = player.sprite.material
-	rope.add_child(hand)
+	for line in [rope, Line2D.new()]:
+		line.width = ARM_W
+		line.default_color = ARM_COLOR
+		line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		line.joint_mode = Line2D.LINE_JOINT_ROUND
+		line.antialiased = true
+		if line != rope:
+			line.name = "Arm2"
+			rope.add_child(line)
+
+
+## The two arms from Blobb's middle (`from`) to the hold (`to`).
+func _place_arms(from: Vector2, to: Vector2) -> void:
+	var dir := (to - from).normalized()
+	var side := Vector2(-dir.y, dir.x)
+	var mid := (from + to) * 0.5
+	rope.points = PackedVector2Array([from + side * ARM_SPREAD, mid + side * ARM_BOW, to])
+	var other: Line2D = rope.get_node("Arm2")
+	other.points = PackedVector2Array([from - side * ARM_SPREAD, mid - side * ARM_BOW, to])
 
 
 func release() -> void:
@@ -185,11 +160,7 @@ func _swing(delta: float) -> void:
 		var v := player.position + BODY - holds[hold]
 		_theta = atan2(v.x, v.y)
 	rope.visible = true
-	rope.points = PackedVector2Array([player.position + BODY, holds[hold]])
-	if rope.has_node("Hand"):
-		var hand: Sprite2D = rope.get_node("Hand")
-		hand.position = holds[hold]
-		hand.rotation = (holds[hold] - player.position - BODY).angle()
+	_place_arms(player.position + BODY, holds[hold])
 	player.sprite.rotation = -_theta * 0.6
 	if input != 0.0:
 		player.sprite.face(input)

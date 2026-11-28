@@ -10,6 +10,7 @@ const ENTRIES := [
 		["Skogen: kvällen", "res://chapters/ch1/forest.tscn", 98],
 		["Gläntan: rum 1", "res://chapters/ch1/clearing.tscn", 1],
 		["Gläntan: rum 2", "res://chapters/ch1/clearing.tscn", 2],
+		["Gläntan: rum 3 (bananen)", "res://chapters/ch1/clearing.tscn", 3],
 	]],
 	["Kapitel 2", [
 		["Dammen", "res://chapters/ch2/pond.tscn", -1],

@@ -26,7 +26,7 @@
 #  PART 1: THE TOWN AT NIGHT (side view)
 # ---------------------------------------------------------------------
 
-# TRIGGER: the chapter starts, over the poster. Then the street fades in at dusk.
+# TRIGGER: the chapter starts, after its chapter card. Then the street fades in at dusk.
 === intro ===
 O: Now. Where had we got to?
   sv: Nå. Var var vi någonstans?
@@ -37,8 +37,8 @@ O: So I was. The river carried Blobb all the way into town, and the sun went dow
   @nightfall
 O: There. One night, as promised. Deep and blue, with the stars put in.
   sv: Så där. En natt, som jag lovade. Djupblå, med stjärnor och allt.
-Y: Too dark. My half: lights.
-  sv: För mörkt. Min halva: ljus.
+Y: But you can't see stars in a town, so it's too dark. My half: lights.
+  sv: Men stjärnor syns inte i en stad, så det blir för mörkt. Min halva: ljus.
   @lamps_on
 Y: There. And there. And THERE.
   sv: Där. Och där. Och DÄR.
@@ -156,8 +156,8 @@ Y: Up! Lights from up high, that was the deal.
 === roofs ===
 O: Up on the roofs, the whole town was lit up below.
   sv: Uppe på taken låg hela stan upplyst där nedanför.
-Y: Told you. Lights from up high.
-  sv: Vad var det jag sa. Ljus högt uppifrån.
+Y: Perfect. Lights from up high.
+  sv: Perfekt. Ljus högt uppifrån.
 O: But the roofs had gaps between them. Too wide, even for a super jump.
   sv: Men det var långt mellan taken. För långt, till och med för ett superhopp.
 Y: Then the lights help. In my half, light is solid. You can walk on it.
@@ -215,7 +215,7 @@ Y: And they were ANGRY.
 
 
 # ---------------------------------------------------------------------
-#  PART 3: THE CHASE (isometric rooftops, on the beat)
+#  PART 3: THE CHASE (a runner over the rooftops, seen from behind, on the beat)
 #  Only Y speaks. Lines fire at beats (chase.gd LINES). The beat slowly
 #  becomes a monitor beep, then speeds up.
 # ---------------------------------------------------------------------
@@ -277,7 +277,7 @@ Y: Again. ...Again.
 Y: Not like that. Tell it right.
   sv: Inte så. Berätta det rätt.
 
-# TRIGGER: the last roof. The hospital (blue H sign, helipad) fills the view.
+# TRIGGER: the last roof. The hospital (red cross sign, helipad) fills the view.
 # Silence after this: the beeps stop, a slow fade to white, then chapter 4 begins in the white.
 === help ===
 Y: ...Help.

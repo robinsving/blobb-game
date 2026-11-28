@@ -65,7 +65,8 @@ class Room:
         """Every place Blobb can stand: (x, y2) with y2 = 2 * y (half cells)."""
         lit = set()
         for i, l in enumerate(self.order):
-            lit.update(self.beam(l, states[i]))
+            if DIRS[self.lamps[l]['dirs'][states[i]]][0] != 0:  # straight-up light is only light
+                lit.update(self.beam(l, states[i]))
         out = set()
         for x in range(self.w):
             for r in range(self.h):

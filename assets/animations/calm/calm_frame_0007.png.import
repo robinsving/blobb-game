@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://drg7a7o51hj5p"
-path="res://.godot/imported/ch3_poster.png-274d6e4e9e4b3348a98b53bef79f9357.ctex"
+uid="uid://chymmf8kb1yw2"
+path="res://.godot/imported/calm_frame_0007.png-665621868fbb071b6f1afba20eb08def.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/gen/ch3/ch3_poster.png"
-dest_files=["res://.godot/imported/ch3_poster.png-274d6e4e9e4b3348a98b53bef79f9357.ctex"]
+source_file="res://assets/animations/calm/calm_frame_0007.png"
+dest_files=["res://.godot/imported/calm_frame_0007.png-665621868fbb071b6f1afba20eb08def.ctex"]
 
 [params]
 

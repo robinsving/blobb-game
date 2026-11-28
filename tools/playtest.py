@@ -1,6 +1,6 @@
 """Plays Blobb's puzzle rooms through gda (live, in the real game) and reports what happens.
 Start a session first (tools/gda.sh start SCENE); this script only drives and reads it.
-  python3 tools/playtest.py clearing    # both clearing rooms, by the known solutions
+  python3 tools/playtest.py clearing    # the clearing rooms, by the known solutions
 Every narration line seen is logged, so missing or odd text shows up in the output.
 """
 import json, os, subprocess, sys, time
@@ -85,7 +85,8 @@ def note(msg):
 
 # ---------------------------------------------------------------- ch1 clearing (sokoban)
 
-CLEAR_SOLUTIONS = ["RRRRLDDRDLLRRRURR", "DRRRLLUURDLDRRRLDDLULURRRRRRDRURDRRRR"]
+CLEAR_SOLUTIONS = ["RRRRLDDRDLLRRRURR", "DRRRLLUURDLDRRRLDDLULURRRRRRDRURDRRRR",
+                   "RRLRLRLRLRLRLRLRLDDLDRRRURDDUURULLLULDDLDRRRURDDUUUURDRRRR"]  # room 3: the banana steps after each move
 KEYS = {"R": "right", "L": "left", "U": "up", "D": "down"}
 STEP = {"R": (1, 0), "L": (-1, 0), "U": (0, -1), "D": (0, 1)}
 
@@ -179,7 +180,7 @@ def mill(g):
                 note(f"room {room + 1}: couldn't get control {c} in reach; {g.state()}")
                 return
             before = g.state()
-            g.action("advance")
+            g.action("use")
             time.sleep(0.3)
             after = g.free(busy_keys=("busy", "busy_room"))
             if (after["spouts"], after["boards"]) == (before["spouts"], before["boards"]) and after["room"] == room:

@@ -1,6 +1,6 @@
 extends Node2D
 ## Chapter 3, part 1: the town at night, side view.
-## Flow: poster (title page) -> street at dusk -> "I brought the night" -> Y switches the lamps on ->
+## Flow: chapter card -> street at dusk -> "I brought the night" -> Y switches the lamps on ->
 ## gold Blobb under the lamps ("Wasn't he green?") -> the banana sweeping -> the dash over the
 ## canals (retells) -> sleeping pigeons -> the drainpipe up to the roofs (chapters/ch3/roofs.tscn).
 ## Dialogue: chapters/ch3/story.txt. Art: assets/gen/ch3/ (everything has a drawn fallback).
@@ -51,7 +51,6 @@ var _fired := {}
 var _retelling := false
 var _fail_count := 0
 var _t := 0.0
-var _poster_layer: CanvasLayer
 var story := StoryScript.load_file("res://chapters/ch3/story.txt")
 
 
@@ -85,70 +84,10 @@ func _warp_to(col: int) -> void:
 func _intro() -> void:
 	Game.control_locked = true
 	player.visible = true
-	await _poster()
+	await ChapterCard.title(self, 3, Color(0.95, 0.9, 0.8), Color.BLACK)
 	await ChapterCard.breath(self)
 	await story.play("intro", self)
 	Narrator.hint(Game.t("hint_move"), 6.0)
-
-
-## The chapter's title page: the poster with the chapter name, a very slow push in (no sway),
-## then it dissolves into the street.
-func _poster() -> void:
-	_poster_layer = CanvasLayer.new()
-	_poster_layer.layer = 50  # above StyleFX (40), below the fade (55) and the narrator (60)
-	add_child(_poster_layer)
-	var pic := TextureRect.new()
-	pic.size = Vector2(1920, 1080)
-	pic.pivot_offset = Vector2(1100, 640)
-	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	if ResourceLoader.exists(ART + "ch3_poster.png"):
-		pic.texture = load(ART + "ch3_poster.png")
-	else:
-		pic.texture = _poster_fallback()
-	_poster_layer.add_child(pic)
-	var title := VBoxContainer.new()
-	title.position = Vector2(130, 110)
-	_poster_layer.add_child(title)
-	for spec in [[Game.t("chapter_3"), 44, Fonts.serif()], [Game.t("chapter_3_name"), 120, Fonts.hand()]]:
-		var l := Label.new()
-		l.text = spec[0]
-		l.add_theme_font_override("font", spec[2])
-		l.add_theme_font_size_override("font_size", spec[1])
-		l.add_theme_color_override("font_color", Color(1.0, 0.93, 0.78))
-		l.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.08, 0.8))
-		l.add_theme_constant_override("outline_size", 10)
-		l.modulate.a = 0.0
-		title.add_child(l)
-	pic.modulate.a = 0.0
-	var hold := 0.6 if Game.fast else 5.0
-	var tw := create_tween()
-	tw.tween_property(pic, "modulate:a", 1.0, 1.6)
-	# the slow push in runs on its own (in the same tween it held the title back until it was done)
-	create_tween().tween_property(pic, "scale", Vector2.ONE * 1.035, hold + 4.5).set_trans(Tween.TRANS_SINE)
-	for l in title.get_children():
-		tw.tween_property(l, "modulate:a", 1.0, 1.0)
-	tw.tween_interval(hold)
-	await tw.finished
-	var out := create_tween().set_parallel()
-	out.tween_property(pic, "modulate:a", 0.0, 2.4)
-	out.tween_property(title, "modulate:a", 0.0, 1.2)
-	await out.finished
-	_poster_layer.queue_free()
-
-
-## Night street with one lamp and Blobb, used until the generated poster exists.
-func _poster_fallback() -> Texture2D:
-	var img := Image.create(480, 270, false, Image.FORMAT_RGBA8)
-	for y in 270:
-		for x in 480:
-			var sky := Color(0.04, 0.06, 0.16).lerp(Color(0.12, 0.16, 0.32), y / 270.0)
-			var d := Vector2(x - 300, (y - 150) * 1.4).length()
-			sky = sky.lerp(Color(1.0, 0.75, 0.35), clampf(1.0 - d / 140.0, 0, 1) * 0.55)
-			if y > 215:
-				sky = Color(0.08, 0.09, 0.14).lerp(Color(0.5, 0.38, 0.2), clampf(1.0 - absf(x - 300) / 90.0, 0, 1) * 0.6)
-			img.set_pixel(x, y, sky)
-	return ImageTexture.create_from_image(img)
 
 
 func _beat(scene: String) -> void:
@@ -291,9 +230,12 @@ func _update_sweeper(delta: float) -> void:
 	if _sweep_hit <= 0.0 and not _retelling and player.position.distance_to(_sweeper.position) < 90.0:
 		_sweep_hit = 1.0
 		player.knockback(_sweeper.position.x)
-		_bumps += 1
-		if _bumps == 1:
-			story.play("banana_bump", self)
+		# Y's objection waits for a bump while nothing is being told: queued behind the sweeper
+		# scene it would hurry that one along, too fast to read
+		if not Narrator.busy:
+			_bumps += 1
+			if _bumps == 1:
+				story.play("banana_bump", self)
 
 
 # ================================================================ world building
@@ -367,7 +309,8 @@ func _build_world() -> void:
 	player.visible = false
 	player.z_index = 2
 	add_child(player)
-	StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
+	var gate := StoryGate.attach(self, player, TRIGGERS, _fired, TILE)  # waits for the story before the next beat
+	gate.hurry = false  # the town's lines are short and quick already: he waits, they aren't rushed
 	var retelling := func() -> bool: return _retelling
 	LevelKit.story_columns(self, player, TRIGGERS, _fired, TILE, ROWS * TILE, _beat, retelling)
 	LevelKit.checkpoint_columns(self, player, CHECKPOINTS, TILE, ROWS * TILE,
@@ -523,7 +466,9 @@ func _make_sweeper() -> void:
 	s.texture = load(path)
 	var k := 150.0 / s.texture.get_height()
 	s.scale = Vector2(k, k)
-	s.offset = Vector2(0, -s.texture.get_height() * 0.5)
+	# feet on the pavement: the picture has empty space under its feet, so line up its lowest pixel
+	var used := s.texture.get_image().get_used_rect()
+	s.offset = Vector2(0, s.texture.get_height() * 0.5 - used.end.y)
 	_sweeper.add_child(s)
 
 

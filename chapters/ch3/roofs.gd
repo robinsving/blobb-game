@@ -1,7 +1,7 @@
 extends Node2D
 ## Chapter 3, part 2: the rooftops, where light is solid. Three rooms (chapters/ch3/beam_rooms.gd,
 ## rules in scripts/beam_room.gd): Blobb turns cranks that swing the rooftop lamps, and every
-## beam becomes a bridge, a ramp or a ladder he can stand on. Turning a lamp he is standing on
+## beam (but one shining straight up) becomes a bridge or a ramp he can stand on. Turning a lamp he is standing on
 ## drops him. Falling off the roofs is a retell. After room 3 the pigeons wake (chase.tscn).
 ## Dialogue: chapters/ch3/story.txt. Art: assets/gen/ch3/ (everything has a drawn fallback).
 
@@ -462,9 +462,7 @@ func _refresh_beams() -> void:
 				continue
 			var d := room.dir_of(l)
 			if d.x == 0:
-				# straight up: a rung in the middle of every cell, like a ladder
-				for c in cells:
-					_one_way(_cell_pos(c), CELL, 0.0)
+				continue  # straight up: only light, nothing to stand on
 			else:
 				var a := _cell_pos(cells[0]) - Vector2(d) * CELL * 0.5
 				var b := _cell_pos(cells[-1]) + Vector2(d) * CELL * 0.5
@@ -472,7 +470,27 @@ func _refresh_beams() -> void:
 				if dir.x < 0:
 					dir = -dir
 				_one_way((a + b) * 0.5, a.distance_to(b), dir.angle())
+				if d.y == 0:
+					_step_ramps(cells, d)
 	_beam_node.queue_redraw()
+
+
+## A level beam runs at mid-height of its row, half a cell below the top of a lamp or roof at
+## its ends: a short ramp at each such end lets Blobb walk up onto it instead of jumping.
+func _step_ramps(cells: Array, d: Vector2i) -> void:
+	for end in [[cells[0], -d], [cells[-1], d]]:
+		var c: Vector2i = end[0]
+		var side: Vector2i = end[1]
+		var n := c + side
+		if not room.solid(n.x, n.y) or room.solid(n.x, n.y - 1):
+			continue
+		var edge_x := _cell_pos(c).x + side.x * CELL * 0.5
+		var low := Vector2(edge_x - side.x * CELL * 0.5, _cell_pos(c).y - 7.0)
+		var high := Vector2(edge_x, _cell_pos(c).y - CELL * 0.5)
+		var dir := (high - low).normalized()
+		if dir.x < 0:
+			dir = -dir
+		_one_way((low + high) * 0.5, low.distance_to(high), dir.angle())
 
 
 func _one_way(center: Vector2, length: float, angle: float) -> void:
@@ -498,11 +516,9 @@ func _draw_beams(n: Node2D) -> void:
 		var alpha := 1.0 if _solid_light else 0.5
 		n.draw_line(a, b, Color(LIGHT, 0.12 * alpha), BEAM_W * 3.2)
 		n.draw_line(a, b, Color(LIGHT, 0.25 * alpha), BEAM_W * 1.6)
-		if _solid_light:
-			# solid light: a bright walkable edge along the top
+		if _solid_light and d.x != 0:
+			# solid light: a bright walkable edge along the top (straight-up light is only light)
 			n.draw_line(a, b, Color(1.0, 0.95, 0.8, 0.85), 8.0)
-			for c in (cells if d.x == 0 else []):
-				n.draw_line(_cell_pos(c) - Vector2(46, 0), _cell_pos(c) + Vector2(46, 0), Color(1.0, 0.95, 0.8, 0.8), 7.0)
 
 
 func _pulse() -> void:

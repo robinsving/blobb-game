@@ -8,12 +8,23 @@ extends RefCounted
 ## `count`), then pops him back. If a scene is being told, Y's objection would wait behind it
 ## (Blobb gone, controls locked), so then he just comes back after a moment, unexplained.
 ## Returns true if Y objected (the level counts those).
-static func tell(level: Node, story: StoryScript, fx: StyleFX, who: BlobbBody, at: Vector2, count: int) -> bool:
+## `in_water` (the pond): the scribble is darker, so it shows against the water, and it floats up
+## while it waits, the way Blobb himself drifts up; he comes back where it has floated to.
+static func tell(level: Node, story: StoryScript, fx: StyleFX, who: BlobbBody, at: Vector2, count: int, in_water := false) -> bool:
 	Game.control_locked = true
 	Game.sfx("rewind", -4.0)
 	fx.rewind_pulse(1.2)
 	who.visible = false
 	var s := scribble(level, at + Vector2(0, -70))
+	var rise: Tween
+	if s and in_water:
+		s.modulate = Color(0.12, 0.12, 0.16)  # near black: the pond is mid-dark green
+		var top := (who as PlayerSwim).surface_y + 70.0 if who is PlayerSwim else s.position.y - 400.0
+		rise = s.create_tween()  # up at about 45 px/s, the drift of a floating Blobb, until the surface
+		rise.tween_property(s, "position:y", top, maxf(s.position.y - top, 0.0) / 45.0)
+		var sway := s.create_tween().set_loops()
+		sway.tween_property(s, "rotation", s.rotation + 0.12, 1.1).set_trans(Tween.TRANS_SINE)
+		sway.tween_property(s, "rotation", s.rotation - 0.12, 1.1).set_trans(Tween.TRANS_SINE)
 	var told := false
 	if Narrator.busy:
 		await level.get_tree().create_timer(0.6 if Game.fast else 1.6).timeout
@@ -23,6 +34,10 @@ static func tell(level: Node, story: StoryScript, fx: StyleFX, who: BlobbBody, a
 		told = true
 	if not is_instance_valid(who):
 		return told  # the level was left mid-retell (a static func keeps running after it's freed)
+	if s and in_water and is_instance_valid(s):
+		var top := (who as PlayerSwim).surface_y + 140.0 if who is PlayerSwim else -INF
+		who.global_position = Vector2(at.x, maxf(s.position.y + 70.0, top))
+		who.velocity = Vector2.ZERO
 	clear(s)
 	who.visible = true
 	who.sprite.flash(0.6)

@@ -4,6 +4,10 @@ extends RefCounted
 ##
 ## Map legend:  # wall/stump   . floor   P player   B crate   o plate   * crate on plate
 ##              ~ water        G gate (opens when every plate holds a crate)   E exit   ' ' void (wall)
+##              A the tiny banana (floor under it): after each move Blobb makes, it takes one step
+##                along its row (banana_step()). It pushes a crate ahead of it, or shoves Blobb one cell,
+##                if there's room beyond; otherwise (a wall, the gate, the exit, water) it turns round.
+##                Blobb can't walk into it or push a crate into it.
 ## Crates pushed into water sink and become walkable bridges — but only once `crates_float` is true
 ## (the narrators "decide" that wooden crates float). Before that, water blocks crates.
 
@@ -18,6 +22,8 @@ var gate := Vector2i(-1, -1)
 var exit_cell := Vector2i(-1, -1)
 var player := Vector2i.ZERO
 var crates_float := false
+var banana := Vector2i(-1, -1)  # (-1, -1): no banana in this room
+var banana_dir := 1             # +1 = right, -1 = left
 var _history: Array = []
 
 
@@ -51,6 +57,8 @@ static func from_rows(rows: Array) -> SokobanGrid:
 					g.gate = p
 				"E":
 					g.exit_cell = p
+				"A":
+					g.banana = p
 	return g
 
 
@@ -71,14 +79,14 @@ func is_wall(p: Vector2i) -> bool:
 func try_move(dir: Vector2i) -> Dictionary:
 	var res := {"moved": false, "pushed": -1, "bridged": false, "water_blocked": false, "exit": false}
 	var n := player + dir
-	if is_wall(n) or (n == gate and not gate_open()):
+	if is_wall(n) or (n == gate and not gate_open()) or n == banana:
 		return res
 	if water.has(n):
 		res["water_blocked"] = true
 		return res
 	if crates.has(n):
 		var t := n + dir
-		if is_wall(t) or crates.has(t) or t == gate or t == exit_cell:
+		if is_wall(t) or crates.has(t) or t == gate or t == exit_cell or t == banana:
 			return res
 		if water.has(t) and not crates_float:
 			res["water_blocked"] = true
@@ -111,6 +119,8 @@ func undo() -> bool:
 	crates = s["crates"]
 	water = s["water"]
 	bridges = s["bridges"]
+	banana = s["banana"]
+	banana_dir = s["banana_dir"]
 	return true
 
 
@@ -119,7 +129,50 @@ func can_undo() -> bool:
 
 
 func _push_history() -> void:
-	_history.append({"player": player, "crates": crates.duplicate(), "water": water.duplicate(), "bridges": bridges.duplicate()})
+	_history.append({"player": player, "crates": crates.duplicate(), "water": water.duplicate(), "bridges": bridges.duplicate(),
+		"banana": banana, "banana_dir": banana_dir})
+
+
+func has_banana() -> bool:
+	return banana.x >= 0
+
+
+func _banana_blocked(p: Vector2i) -> bool:
+	return is_wall(p) or crates.has(p) or water.has(p) or p == gate or p == exit_cell
+
+
+## The banana takes one step along its row (the level calls this after each move Blobb makes).
+## Returns: moved, turned, shoved (Blobb pushed one cell on), pushed (crate id or -1), from/to.
+## Mirrored by bstep() in tools/solve_sokoban.py.
+func banana_step() -> Dictionary:
+	var res := {"moved": false, "turned": false, "shoved": false, "pushed": -1}
+	if not has_banana():
+		return res
+	var step := Vector2i(banana_dir, 0)
+	var n := banana + step
+	if is_wall(n) or water.has(n) or n == gate or n == exit_cell:
+		banana_dir = -banana_dir
+		res["turned"] = true
+		return res
+	if n == player or crates.has(n):
+		var t := n + step
+		if _banana_blocked(t) or t == player:
+			banana_dir = -banana_dir
+			res["turned"] = true
+			return res
+		if n == player:
+			player = t
+			res["shoved"] = true
+		else:
+			var id: int = crates[n]
+			crates.erase(n)
+			crates[t] = id
+			res["pushed"] = id
+			res["from"] = n
+			res["to"] = t
+	banana = n
+	res["moved"] = true
+	return res
 
 
 ## True if the player stands orthogonally next to unbridged water.

@@ -82,7 +82,7 @@ class Room:
             if duck in seen: return 'loop', duck
             seen.add(duck)
             d = flow.get(duck, (0, -1)); n = (duck[0] + d[0], duck[1] + d[1])
-            if self.solid(n): return ('goal' if duck == self.goal else 'rest'), duck
+            if self.solid(n) or self.rows[n[1]][n[0]] == 'H': return ('goal' if duck == self.goal else 'rest'), duck  # the fence stops the duck
             if duck in flow and flow.get(n) == (-d[0], -d[1]): return 'rest', duck  # head-on: stays
             duck = n
         return 'loop', duck

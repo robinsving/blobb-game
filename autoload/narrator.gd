@@ -299,7 +299,7 @@ func _type_line(line: Dictionary) -> void:
 			i += 1
 			lbl.visible_characters = i
 			if i % 3 == 0 and ch != " ":
-				Game.sfx(blip, -22.0, randf_range(0.92, 1.08))
+				Game.sfx(blip, -17.0, randf_range(0.92, 1.08))  # O and Y typing: a little louder than at first (-22)
 			# small pauses after sentences and commas make the voices feel human
 			var next := text[i] if i < n else " "
 			if ch in [".", "?", "!", "…"] and next == " ":

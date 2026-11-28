@@ -137,7 +137,8 @@ func fx_blobb_color(color: String) -> void:
 ## Swap Blobb to one of the forms from the original drawing (BlobbSprite.FORMS) or "normal".
 func fx_blobb_form(form: String) -> void:
 	player.sprite.set_form(form)
-	Game.sfx("pop", -8.0, 0.8 if form == "grumpy" else 1.1)
+	if form != "grumpy" and form != "normal":  # the spiky one (and back) has its own sounds
+		Game.sfx("pop", -8.0, 1.1)
 
 
 func fx_forest_dark() -> void:
