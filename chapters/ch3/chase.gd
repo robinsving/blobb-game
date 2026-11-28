@@ -802,22 +802,34 @@ func _draw_hospital() -> void:
 	# rows of pale windows on the face toward Blobb
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 9
+	# big double windows like the one in the very last scene: two tall panes side by side in a dark
+	# frame, five across each floor
+	const WW := 1.2   # the whole window
+	const WH := 1.05
+	const FR := 0.06  # frame and middle bar
+	var frame := Color(0.13, 0.14, 0.23)
+	var zb := z0 - 0.005
 	var hh := top - 3.0
+	var row := 0
 	while hh > -8.0:
-		var xx := -3.4
-		while xx < 3.3:
+		for col in 5:
+			var xx := -3.5 + col * 1.5
 			var lit := rng.randf() < 0.55
-			var star := absf(hh - (top - 4.3)) < 0.01 and absf(xx - 1.35) < 0.01
-			_quad(_proj(xx, z0, hh), _proj(xx + 0.5, z0, hh), _proj(xx + 0.5, z0, hh - 0.7), _proj(xx, z0, hh - 0.7), Color(0.8, 0.9, 1.0, 0.75) if lit or star else Color(0.1, 0.12, 0.2))
-			if star:  # a star in this one: the same star as in the window at the very end
+			var star := row == 1 and col == 3
+			_quad(_proj(xx - FR, z0, hh + FR), _proj(xx + WW + FR, z0, hh + FR), _proj(xx + WW + FR, z0, hh - WH - FR), _proj(xx - FR, z0, hh - WH - FR), frame)
+			_quad(_proj(xx, zb, hh), _proj(xx + WW, zb, hh), _proj(xx + WW, zb, hh - WH), _proj(xx, zb, hh - WH), Color(0.8, 0.9, 1.0, 0.8) if lit or star else Color(0.1, 0.12, 0.2))
+			var mid := xx + WW * 0.5
+			_quad(_proj(mid - FR * 0.5, zb - 0.002, hh), _proj(mid + FR * 0.5, zb - 0.002, hh), _proj(mid + FR * 0.5, zb - 0.002, hh - WH), _proj(mid - FR * 0.5, zb - 0.002, hh - WH), frame)
+			if star:  # high in the left pane: inside the room at the very end it's the right one, seen from in there
 				var pts := PackedVector2Array()
+				var c := Vector2(xx + WW * 0.25, hh - WH * 0.32)
 				for i in 10:
 					var a := -PI * 0.5 + i * PI / 5.0
-					var r := 0.2 if i % 2 == 0 else 0.085
-					pts.append(_proj(xx + 0.25 + cos(a) * r, z0 - 0.01, hh - 0.35 - sin(a) * r))
+					var r := 0.17 if i % 2 == 0 else 0.07
+					pts.append(_proj(c.x + cos(a) * r, z0 - 0.01, c.y - sin(a) * r))
 				_world.draw_colored_polygon(pts, Color(0.1, 0.12, 0.2))
-			xx += 0.95
-		hh -= 1.3
+		hh -= 1.55
+		row += 1
 	# a helipad on the roof: a pale ring with an H (only seen from above the roof)
 	if _cam.z > top:
 		var pad: float = (_hospital["z0"] + _hospital["z1"]) * 0.5

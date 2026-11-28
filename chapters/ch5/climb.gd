@@ -120,6 +120,9 @@ var _pigeons_on := false
 var _room: CanvasLayer
 var _room_root: Control  # the room (dimmed under the credits)
 var _room_art: TextureRect  # the drawing of Blobb on the wall (it grows to full screen at the end)
+var _monitor: Control  # the heart monitor's lit screen in the room: it blips with each beep
+var _beat_fade := 1.0  # the beep's loudness (linear); it fades out as the drawing grows
+var _beat_times: Array[float] = []  # the last few beats (_t), for the monitor's trace
 var _cover: ColorRect  # the start: all black but Blobb, until O tells the mountain back (@mountain)
 var _bot_i := 0
 var _bot_wait := 0.0
@@ -401,6 +404,14 @@ func fx_stretch() -> void:
 	rig.can_reach = true
 	Game.sfx("pop", -6.0, 0.8)
 	Narrator.legend("hint_swing")  # stays at the bottom of the screen: easy to miss if it faded
+	_hint_after_lines("hint_swing_use")
+
+
+## The big hint, once the lines being told are done (a hint under a blocking scene goes unseen).
+func _hint_after_lines(key: String) -> void:
+	while Narrator.busy or Game.control_locked:
+		await get_tree().process_frame
+	Narrator.hint(Game.t(key), 7.0)
 
 
 ## "And your moon." The moon comes out beside the bright star: the narrators' signs, night kept.
@@ -412,7 +423,7 @@ func fx_moon() -> void:
 # ================================================================ the room and the end
 
 ## The credits, over the room: a slow roll from below to above, the room dimmed behind it.
-## Holding {advance} rolls them faster while it's held; {skip} rolls the rest fast.
+## Holding {advance} or {skip} rolls them faster while it's held.
 const CREDITS := [  # [Game.UI key, style]: title, head (the role) or name; "" = a gap
 	["credits_title", "title"], [""],
 	["credits_art", "head"], ["credits_art_by", "name"], [""],
@@ -453,12 +464,10 @@ func _credits() -> void:
 	create_tween().tween_property(_room_root, "modulate", Color(0.45, 0.45, 0.5), 3.0)
 	var tw := create_tween()
 	tw.tween_property(box, "position:y", -box.size.y, dur)
-	var rush := false  # {skip} rolls the rest fast; holding {advance} only while it's held
-	var speed := 1.0
+	var speed := 1.0  # holding {advance} or {skip} rolls them faster, only while it's held
 	while tw.is_running():
-		if Input.is_action_just_pressed("skip"):
-			rush = true
-		var want := 8.0 if rush else (6.0 if Input.is_action_pressed("advance") else 1.0)
+		var held := Input.is_action_pressed("advance") or Input.is_action_pressed("skip")
+		var want := 6.0 if held else 1.0
 		speed = move_toward(speed, want, get_process_delta_time() * 20.0)  # eases in and out, no jolt
 		tw.set_speed_scale(speed)
 		await get_tree().process_frame
@@ -483,6 +492,7 @@ func _zoom_drawing() -> void:
 	var dur := 1.5 if Game.fast else 7.0
 	var tw := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(back, "modulate:a", 1.0, dur)
+	tw.tween_property(self, "_beat_fade", 0.0, dur)  # the beep fades away with the room
 	tw.tween_property(art, "size", big, dur)
 	tw.tween_property(art, "pivot_offset", big * 0.5, dur)
 	tw.tween_property(art, "position", Vector2(960, 540) - big * 0.5, dur)
@@ -525,6 +535,10 @@ func _show_room() -> void:
 	front.size = Vector2(1920, 1080)
 	front.draw.connect(_draw_room_rest.bind(front))
 	root.add_child(front)
+	_monitor = Control.new()  # the monitor's screen, lit: that's where the beep comes from
+	_monitor.size = Vector2(1920, 1080)
+	_monitor.draw.connect(_draw_monitor.bind(_monitor))
+	root.add_child(_monitor)
 	if ResourceLoader.exists("res://assets/drawing.jpeg"):
 		var art := TextureRect.new()
 		var photo := AtlasTexture.new()  # trimmed a little, so no table shows round the paper
@@ -639,6 +653,53 @@ func _draw_room_rest(c: Control) -> void:
 	c.draw_rect(Rect2(PAPER.position + Vector2(PAPER.size.x * 0.5 - 30, -18), Vector2(60, 18)), Color(0.66, 0.68, 0.74, 0.8))
 
 
+## The heart monitor's screen (in the silhouette on its stand, beside the bed): a green trace
+## that sweeps left to right and spikes on every beep, a dot that flashes with it, a soft glow.
+const MON_SCREEN := Rect2(408, 312, 136, 82)
+const MON_SWEEP := 3.0  # seconds across the screen
+const MON_GREEN := Color(0.45, 1.0, 0.6)
+
+func _draw_monitor(c: Control) -> void:
+	var r := MON_SCREEN
+	var last: float = _beat_times.back() if _beat_times.size() > 0 else -9.0
+	var since := _t - last
+	var flash := clampf(1.0 - since / 0.35, 0.0, 1.0)
+	for k in 3:  # the glow round the screen, a little brighter on the beat
+		c.draw_rect(r.grow(10.0 + k * 12.0), Color(MON_GREEN, 0.03 + flash * 0.025))
+	c.draw_rect(r, Color(0.01, 0.05, 0.03))
+	var head := fmod(_t, MON_SWEEP) / MON_SWEEP  # the sweep: new trace written over the old
+	var n := 68
+	var prev := Vector2.ZERO
+	for i in n + 1:
+		var u := float(i) / n
+		var age := head - u if u <= head else head + 1.0 - u  # how long ago (in sweeps) this was written
+		if age > 0.94:
+			continue  # the gap just ahead of the sweep
+		var y := r.get_center().y + 8.0 - _ecg(_t - age * MON_SWEEP) * 30.0
+		var p := Vector2(r.position.x + 4.0 + u * (r.size.x - 8.0), y)
+		if i > 0 and prev != Vector2.ZERO:
+			c.draw_line(prev, p, Color(MON_GREEN, 1.0 - age * 0.8), 2.0, true)
+		prev = p
+	c.draw_circle(Vector2(r.end.x - 10.0, r.position.y + 9.0), 3.5, Color(1.0, 0.35, 0.35, 0.25 + flash * 0.75))
+
+
+## The trace's height at time `at`: a little bump, the spike on the beat, then a slow wave.
+func _ecg(at: float) -> float:
+	var dt := 99.0
+	for b in _beat_times:
+		if b <= at:
+			dt = at - b
+	if dt < 0.04:
+		return dt / 0.04 * 1.0
+	if dt < 0.08:
+		return 1.0 - (dt - 0.04) / 0.04 * 1.35
+	if dt < 0.12:
+		return -0.35 + (dt - 0.08) / 0.04 * 0.35
+	if dt < 0.45:
+		return sin((dt - 0.12) / 0.33 * PI) * 0.18
+	return 0.0
+
+
 # ================================================================ per frame
 
 func _physics_process(delta: float) -> void:
@@ -667,6 +728,8 @@ func _process(delta: float) -> void:
 	_update_sky()
 	_update_pigeons(delta)
 	_world.queue_redraw()
+	if _monitor:
+		_monitor.queue_redraw()
 
 
 # ================================================================ the beat
@@ -683,7 +746,11 @@ func _next_interval() -> float:
 
 
 func _on_beat() -> void:
-	Game.sfx("monitor", -19.0 if not _room else -24.0)  # quieter than at first (-12 / -20)
+	if _beat_fade > 0.02:
+		Game.sfx("monitor", (-19.0 if not _room else -24.0) + linear_to_db(_beat_fade))  # quieter than at first (-12 / -20)
+	_beat_times.append(_t)
+	if _beat_times.size() > 8:
+		_beat_times.remove_at(0)
 	rig.kick(_t)
 	if rig.standing_heart >= 0 and rig.hold < 0 and not _done and not Game.control_locked:
 		rig.launch()

@@ -76,6 +76,8 @@ func _room_intro() -> void:
 		await get_tree().create_timer(0.8).timeout
 	await story.play("room%d" % (room + 1), self)
 	Narrator.legend("hint_push")
+	if room == 0:  # the big hint too, so the controls aren't only in the faint line at the bottom
+		Narrator.hint(Game.t("hint_push_use"), 7.0)
 
 
 ## retry_dir: the push that bumped into the water; Blobb tries it again once crates float.
