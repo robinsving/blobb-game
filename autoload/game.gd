@@ -376,7 +376,11 @@ func go(path: String, color := Color.BLACK, dur := 0.7) -> void:
 	control_locked = false
 	get_tree().paused = false
 	warp = _next_warp  # a warp only ever applies to the scene it was asked for
+	var from := get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
 	if path != TITLE:
+		if from == TITLE:
+			track("start", {"scene": _scene_name(path), "at": warp, "lang": locale})
+		track("scene", {"scene": _scene_name(path)})
 		_set_progress(path, warp)  # a new scene (or a chapter begun again) is the new save point
 	_next_warp = -1
 	get_tree().change_scene_to_file(path)
@@ -439,6 +443,9 @@ func toggle_pause() -> void:
 ## A chapter is finished: chapter n opens, and Continue now starts it (after the last one,
 ## n = 6, there is nothing left to continue).
 func unlock_chapter(n: int) -> void:
+	track("chapter_done", {"chapter": n - 1})
+	if n >= CHAPTER_STARTS.size():
+		track("finished")
 	unlocked_chapter = maxi(unlocked_chapter, mini(n, CHAPTER_STARTS.size() - 1))
 	progress_scene = CHAPTER_STARTS[n] if n < CHAPTER_STARTS.size() else ""
 	progress_at = -1
@@ -450,7 +457,21 @@ func unlock_chapter(n: int) -> void:
 func checkpoint(at: int) -> void:
 	var path := get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
 	if path != "" and path != TITLE and (path != progress_scene or at != progress_at):
+		track("checkpoint", {"scene": _scene_name(path), "at": at})
 		_set_progress(path, at)
+
+
+## Play statistics: sends an event to Umami (stats.sving.cc; the script tag is in the Web
+## export preset's head_include). Only in the web build, never in test runs; does nothing
+## when the script is missing or blocked.
+func track(event: String, data := {}) -> void:
+	if testing or not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("window.umami && window.umami.track(%s, %s)" % [JSON.stringify(event), JSON.stringify(data)])
+
+
+func _scene_name(path: String) -> String:
+	return path.get_file().get_basename()
 
 
 ## Continue: back to the save point.
