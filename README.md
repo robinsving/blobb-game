@@ -18,7 +18,7 @@ hospital. It is told in English or Swedish.
 
 1. **The Other Side of the Forest** (*Andra sidan skogen*): a crayon forest and a box-pushing clearing.
 2. **Learning to Swim** (*Lära sig simma*): a millpond with whirlpools, then a water-stream puzzle in an old mill.
-3. **Lights** (*Ljus*): a town at night, a light-bridge puzzle on the rooftops, and a rooftop chase on the beat.
+3. **Lights** (*Ljus*): a town at night, a light-bridge puzzle on the rooftops, and a rooftop lane runner on the beat.
 4. **The Other Half** (*Den andra halvan*): a dream that can't settle on a look, and the foot of a mountain.
 5. **The Climb** (*Klättringen*): up the mountain at night on heartbeat ledges, into a full night sky.
 

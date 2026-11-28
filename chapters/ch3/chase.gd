@@ -13,10 +13,7 @@ extends Node2D
 
 const ART := "res://assets/gen/ch3/"
 const S := 118.0                          # pixels per world unit
-const AX := Vector2(0.866, 0.5) * S        # +x (lane to Blobb's right): down-right on screen
-const AZ := Vector2(0.866, -0.5) * S       # +z (forward): up-right
-const AH := Vector2(0, -0.92) * S          # +h: up
-## The camera, high up behind Blobb (a perspective view; the old isometric one used AX/AZ/AH):
+## The camera, high up behind Blobb (a perspective lane-runner view):
 const CAM_BACK := 5.5                      # world units behind him
 const CAM_UP := 4.6                        # and above his roof
 const CAM_PITCH := 0.5                     # radians, looking down
