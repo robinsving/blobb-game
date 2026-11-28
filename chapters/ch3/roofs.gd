@@ -69,6 +69,8 @@ func _room_intro() -> void:
 			await story.play("room3", self)
 	_busy = false
 	Narrator.legend("hint_roofs")
+	if room_i == 0:  # the big hint too, so the new key isn't only in the faint line at the bottom
+		Narrator.hint(Game.t("hint_roofs_use"), 7.0)
 	if Game.autoplay:
 		_autoplay()
 

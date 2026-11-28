@@ -96,11 +96,15 @@ func _ready() -> void:
 	_hint.add_theme_font_override("font", Fonts.hand())
 	_hint.add_theme_font_size_override("font_size", 38)
 	_hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
-	_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
-	_hint.add_theme_constant_override("outline_size", 10)
+	_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_hint.add_theme_constant_override("outline_size", 12)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.position = Vector2(0, 990)
-	_hint.size = Vector2(1920, 60)
+	_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var band := StyleBoxFlat.new()  # a dark band behind it, so white text reads on gravel and sky alike
+	band.bg_color = Color(0.0, 0.0, 0.0, 0.6)
+	_hint.add_theme_stylebox_override("normal", band)
+	_hint.position = Vector2(0, 962)
+	_hint.size = Vector2(1920, 64)
 	_hint.pivot_offset = _hint.size * 0.5  # it grows and shrinks round its middle (see hint())
 	_hint.modulate.a = 0.0
 	add_child(_hint)
@@ -108,15 +112,15 @@ func _ready() -> void:
 	_legend = Label.new()
 	_legend.add_theme_font_override("font", Fonts.hand())
 	_legend.add_theme_font_size_override("font_size", 28)
-	_legend.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
-	_legend.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
-	_legend.add_theme_constant_override("outline_size", 8)
+	_legend.add_theme_color_override("font_color", Color(1, 1, 1))
+	_legend.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_legend.add_theme_constant_override("outline_size", 10)
 	_legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_legend.position = Vector2(0, 1032)
 	_legend.size = Vector2(1920, 48)
 	_legend.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var strip := StyleBoxFlat.new()  # a soft dark strip, so it reads on gravel and roofs alike
-	strip.bg_color = Color(0.0, 0.0, 0.0, 0.42)
+	strip.bg_color = Color(0.0, 0.0, 0.0, 0.72)
 	_legend.add_theme_stylebox_override("normal", strip)
 	_legend.modulate.a = 0.0
 	add_child(_legend)
@@ -230,7 +234,7 @@ func legend(key: String) -> void:
 		_legend_tween.kill()
 	_refresh_legend()
 	_legend_tween = create_tween()
-	_legend_tween.tween_property(_legend, "modulate:a", 0.8 if key != "" else 0.0, 0.5)
+	_legend_tween.tween_property(_legend, "modulate:a", 1.0 if key != "" else 0.0, 0.5)
 
 
 func _refresh_legend() -> void:
