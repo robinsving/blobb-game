@@ -23,6 +23,7 @@ const STRIPS := {
 	# (a 4th entry true: played forward then back, so a clip that doesn't loop cleanly has no seam)
 	"grumpy": ["res://assets/sprites/blobb_grumpy.png", 24.0, true, true],
 	"calm": ["res://assets/sprites/blobb_calm.png", 24.0, false],  # spiky back to ordinary (_calm_down)
+	"reform": ["res://assets/sprites/blobb_reform.png", 16.0, false],  # the retell scribble pulls back into Blobb (reform())
 	"dash": ["res://assets/sprites/blobb_dash.png", 32.0, true, true],
 	# ch5's start: still straining from the climb, eyes squeezed shut (stretch and sag; loops)
 	"climb": ["res://assets/sprites/blobb_climb.png", 16.0, true],
@@ -122,11 +123,7 @@ func set_form(new_form: String) -> void:
 	if new_form == "normal":
 		self_modulate.a = 1.0
 	elif sprite_frames.has_animation(new_form):
-		if not _anim:
-			_anim = AnimatedSprite2D.new()
-			_anim.sprite_frames = sprite_frames
-			_anim.use_parent_material = true
-			add_child(_anim)
+		_make_anim()
 		_anim.visible = true
 		_anim.play(new_form)
 		_t = 0.0
@@ -177,6 +174,42 @@ func _calm_down() -> void:
 	_outro.chain().tween_property(self, "rotation", -0.05 * turn, 0.1)
 	_outro.chain().tween_property(self, "rotation", 0.0, 0.12)
 	_outro.chain().tween_callback(_reset_anim)
+
+
+func _make_anim() -> void:
+	if not _anim:
+		_anim = AnimatedSprite2D.new()
+		_anim.sprite_frames = sprite_frames
+		_anim.use_parent_material = true
+		add_child(_anim)
+
+
+## After a retell: the scribble he was told into pulls back together into Blobb (the "reform"
+## strip, through the same tint as he has). `from_k`: how much bigger than him its first frame was
+## shown (Retell's waiting scribble), so it starts at that size and shrinks to his. Returns how long
+## it takes, or 0 if there's no strip.
+func reform(from_k := 1.0) -> float:
+	if form != "normal" or not sprite_frames.has_animation("reform"):
+		return 0.0
+	if _outro and _outro.is_valid():
+		_outro.kill()
+	_make_anim()
+	_anim.position = Vector2.ZERO
+	_anim.scale = Vector2.ONE
+	_anim.modulate.a = 1.0
+	_anim.visible = true
+	_anim.play("reform")
+	self_modulate.a = 0.0
+	var d := sprite_frames.get_frame_count("reform") / sprite_frames.get_animation_speed("reform")
+	_outro = create_tween()
+	if from_k > 1.0:
+		_anim.scale = Vector2.ONE * from_k
+		_outro.tween_property(_anim, "scale", Vector2.ONE, d * 0.85).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_outro.tween_interval(d * 0.15)
+	else:
+		_outro.tween_interval(d)
+	_outro.tween_callback(_reset_anim)
+	return d
 
 
 func _reset_anim() -> void:

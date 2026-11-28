@@ -5,6 +5,8 @@ Same crop and frame size as BlobbSprite's other strips; colours matched to blobb
 Usage: python3 tools/key_form.py NAME [preview.png] [--every=N] [--mirror]
   --every=N  keep every Nth frame (default 1)
   --mirror   flip the frames horizontally (when the clip faces the other way)
+  --soft     alpha straight from brightness, no clean-up: keeps thin lines (e.g. reform, which starts
+             as the scribble); colours are matched on the last frame (the whole Blobb) only
 (needs numpy, scipy, pillow: e.g. uv run --with numpy --with scipy --with pillow python3 tools/key_form.py grumpy)
 """
 import glob
@@ -14,6 +16,16 @@ from PIL import Image
 from scipy import ndimage
 
 FRAME_W, FRAME_H = 321, 305
+
+
+def key_soft(path):
+	a = np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
+	alpha = np.clip((a.max(2) - 18.0) / 60.0, 0, 1)
+	# edge pixels are the figure blended with the black: brighten them back, so no dark fringe
+	# (only next to the background: the eyes and mouth inside are meant to be dark)
+	near = ndimage.binary_dilation(a.max(2) < 18.0, iterations=4)
+	t = np.where(near, np.clip(a.max(2) / 190.0, 0.05, 1.0), 1.0)[..., None]
+	return np.dstack([np.clip(a / 255.0 / t, 0, 1), alpha])
 
 
 def key(path):
@@ -42,11 +54,12 @@ def main():
 	args = [a for a in sys.argv[1:] if not a.startswith('--')]
 	every = int(next((a.split('=')[1] for a in sys.argv if a.startswith('--every=')), 1))
 	mirror = '--mirror' in sys.argv
+	soft = '--soft' in sys.argv
 	name = args[0]
 	paths = sorted(glob.glob('assets/animations/%s/%s_frame_*.png' % (name, name)))[::every]
 	if not paths:
 		sys.exit('no frames in assets/animations/%s/' % name)
-	frames = [key(p) for p in paths]
+	frames = [(key_soft if soft else key)(p) for p in paths]
 	h, w, _ = frames[0].shape
 	x0 = (w - FRAME_W) // 2  # the same crop as the idle/run/jump strips
 	y0 = h - FRAME_H - 20
@@ -56,6 +69,9 @@ def main():
 		strip[:, i * FRAME_W:(i + 1) * FRAME_W] = c[:, ::-1] if mirror else c
 	ref = np.asarray(Image.open('assets/sprites/blobb_idle.png').convert('RGBA')).astype(np.float32) / 255.0
 	rm, sm = ref[..., 3] > 0.9, strip[..., 3] > 0.9
+	if soft:  # match on the last frame only: the scribble's bright lines would skew the shift
+		sm = sm.copy()
+		sm[:, :FRAME_W * (len(frames) - 1)] = False
 	for ch in range(3):
 		r, x = ref[..., ch][rm], strip[..., ch][sm]
 		strip[..., ch] = np.clip(strip[..., ch] - x.mean() + r.mean(), 0, 1)  # shift only: keeps the clip's crayon contrast
